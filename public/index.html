@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoBot Control Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --bg: #080a10;
+      --bg-card: rgba(15, 20, 35, 0.8);
+      --bg-input: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.08);
+      --border-focus: rgba(99,102,241,0.6);
+      --text: #f1f5f9;
+      --muted: #64748b;
+      --primary: #6366f1;
+      --primary-dim: rgba(99,102,241,0.15);
+      --green: #10b981;
+      --green-dim: rgba(16,185,129,0.12);
+      --yellow: #f59e0b;
+      --yellow-dim: rgba(245,158,11,0.12);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59,130,246,0.12);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.12);
+      --orange: #f97316;
+      --orange-dim: rgba(249,115,22,0.12);
+      --radius: 12px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 25%,rgba(99,102,241,.12) 0,transparent 50%),radial-gradient(ellipse at 85% 75%,rgba(16,185,129,.08) 0,transparent 50%);pointer-events:none;z-index:-1}
+
+    /* ─── Header ─────────────────────────────────────── */
+    header{padding:16px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(8,10,16,.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+    .logo{display:flex;align-items:center;gap:10px}
+    .logo-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--primary),var(--green));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;box-shadow:0 0 18px rgba(99,102,241,.4)}
+    .logo h1{font-size:18px;font-weight:800;background:linear-gradient(90deg,#fff,#94a3b8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .live-badge{display:flex;align-items:center;gap:6px;background:var(--green-dim);border:1px solid rgba(16,185,129,.25);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--green)}
+    .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s ease infinite alternate}
+    @keyframes pulse{0%{opacity:.4;transform:scale(.9)}100%{opacity:1;transform:scale(1.15)}}
+
+    /* ─── Layout ──────────────────────────────────────── */
+    .workspace{display:grid;grid-template-columns:1fr 380px;gap:0;flex:1;min-height:0}
+    .left-panel{overflow-y:auto;padding:28px 32px;display:flex;flex-direction:column;gap:20px;border-right:1px solid var(--border)}
+    .right-panel{display:flex;flex-direction:column;overflow:hidden}
+
+    /* ─── Profile Bar ─────────────────────────────────── */
+    .profile-bar{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .profile-bar label{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+    select.profile-select{flex:1;min-width:140px;background:#131826;border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;transition:.2s}
+    select.profile-select:focus{outline:none;border-color:var(--primary)}
+    select.profile-select option{background:#131826;color:var(--text)}
+    .profile-active-badge{background:var(--primary-dim);border:1px solid rgba(99,102,241,.3);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--primary)}
+    .btn{border:none;border-radius:8px;padding:8px 14px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+    .btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(99,102,241,.3)}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,.45)}
+    .btn-ghost{background:var(--bg-input);color:var(--muted);border:1px solid var(--border)}
+    .btn-ghost:hover{color:var(--text);border-color:var(--muted)}
+    .btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+    .btn-danger:hover{background:rgba(239,68,68,.25)}
+    .btn-activate{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+    .btn-activate:hover{background:rgba(16,185,129,.25)}
+    .btn-save-big{background:linear-gradient(135deg,var(--primary),#4f46e5);color:#fff;padding:12px 24px;font-size:14px;font-weight:700;border-radius:10px;width:100%;justify-content:center;box-shadow:0 4px 16px rgba(99,102,241,.35)}
+    .btn-save-big:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(99,102,241,.5)}
+
+    /* ─── Hotkey Group Card ──────────────────────────── */
+    .group-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition: all 0.2s ease;}
+    .group-header{padding:14px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+    .group-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .group-title{font-size:14px;font-weight:700}
+    .group-body{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+
+    /* ─── Field helpers ──────────────────────────────── */
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+    .field input{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;transition:.2s;width:100%}
+    .field input:focus{outline:none;border-color:var(--border-focus);box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+    .range-row{display:flex;align-items:center;gap:10px}
+    .range-row input[type=range]{flex:1;accent-color:var(--primary);cursor:pointer}
+    .range-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--primary);min-width:60px;text-align:right}
+
+    /* ─── Dynamic list (FirstStep / BuffSequence) ─────── */
+    .dyn-list{display:flex;flex-direction:column;gap:8px}
+    .dyn-item{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+    .dyn-item .field{flex:1}
+    .dyn-item .field input{padding:6px 10px;font-size:12px}
+    .dyn-item .del-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;transition:.2s;flex-shrink:0}
+    .dyn-item .del-btn:hover{color:var(--red)}
+    .add-row{display:flex;justify-content:flex-start}
+
+    /* ─── Toast ──────────────────────────────────────── */
+    .toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+    .toast{padding:10px 16px;border-radius:9px;font-size:13px;font-weight:600;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .toast.success{background:var(--green-dim);border:1px solid rgba(16,185,129,.3);color:var(--green)}
+    .toast.error{background:var(--red-dim);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+    .toast.info{background:var(--primary-dim);border:1px solid rgba(99,102,241,.3);color:var(--primary)}
+
+    /* ─── Right panel ────────────────────────────────── */
+    .canvas-card{border-bottom:1px solid var(--border);position:relative;height:260px;flex-shrink:0;background:#03040a}
+    #webgl-canvas{width:100%;height:100%;display:block}
+    .canvas-overlay{position:absolute;top:14px;left:14px;background:rgba(8,10,16,.75);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:12px;pointer-events:none}
+    .canvas-overlay p{margin-bottom:3px}
+    .canvas-overlay p span{font-weight:700;color:var(--primary)}
+    .key-flash{position:absolute;bottom:12px;right:12px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:var(--red);border-radius:6px;padding:5px 12px;opacity:.4;transition:all .2s;pointer-events:none}
+    .key-flash.active{opacity:1;box-shadow:0 0 14px rgba(239,68,68,.3)}
+    .log-panel{flex:1;overflow-y:auto;padding:14px}
+    .log-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;flex-shrink:0}
+    .log-list{display:flex;flex-direction:column;gap:5px}
+    .log-item{padding:5px 8px;border-radius:6px;background:rgba(255,255,255,.02);border-left:3px solid transparent;display:grid;grid-template-columns:85px 70px 70px 1fr;align-items:center;gap:6px;font-size:11px;animation:logIn .2s ease}
+    @keyframes logIn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+    .log-item.keydown{border-left-color:var(--primary)}
+    .log-item.keyup{border-left-color:var(--muted)}
+    .log-item.click{border-left-color:var(--green)}
+    .log-time{color:var(--muted);font-family:'JetBrains Mono',monospace}
+    .log-type{font-weight:700;text-transform:uppercase;font-size:10px}
+    .log-type.keydown{color:var(--primary)}.log-type.keyup{color:var(--muted)}.log-type.click{color:var(--green)}
+    .log-key{background:rgba(255,255,255,.07);padding:2px 5px;border-radius:4px;font-weight:700;font-family:'JetBrains Mono',monospace;width:fit-content}
+    .log-detail{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* ─── Modal ──────────────────────────────────────── */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s}
+    .modal-bg.show{opacity:1;pointer-events:all}
+    .modal{background:#0f1420;border:1px solid var(--border);border-radius:16px;padding:28px;width:380px;display:flex;flex-direction:column;gap:18px;transform:scale(.95);transition:.2s}
+    .modal-bg.show .modal{transform:scale(1)}
+    .modal h2{font-size:17px;font-weight:700}
+    .modal .field input{font-size:14px}
+    .modal-footer{display:flex;gap:10px;justify-content:flex-end}
+
+    @media(max-width:1024px){.workspace{grid-template-columns:1fr}.right-panel{display:none}}
+    
+    /* ─── Language Switcher ─────────────────────────── */
+    .lang-switch {
+      display: flex;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .lang-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lang-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+    }
+    .lang-btn:hover:not(.active) {
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">C</div>
+    <h1 data-i18n="appTitle">AutoBot Control Center</h1>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div class="lang-switch">
+      <button class="lang-btn en" onclick="changeLang('en')">EN</button>
+      <button class="lang-btn th" onclick="changeLang('th')">TH</button>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span data-i18n="dashboardLive">Dashboard Live</span>
+    </div>
+  </div>
+</header>
+
+<div class="workspace">
+  <!-- ════════ LEFT PANEL ════════ -->
+  <div class="left-panel">
+
+    <!-- Profile Bar -->
+    <div class="profile-bar">
+      <div style="display:flex; width:100%; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label data-i18n="profile">PROFILE</label>
+        <select id="profile-select" class="profile-select" onchange="onProfileSelectChange()"></select>
+        <span id="active-profile-badge" class="profile-active-badge">● Active</span>
+        <button class="btn btn-activate" onclick="activateProfile()" data-i18n="setActive">✓ Set Active</button>
+        <button class="btn btn-ghost" onclick="openNewProfileModal()" data-i18n="newProfileBtn">+ New</button>
+        <button class="btn btn-danger" onclick="deleteProfile()" data-i18n="deleteProfileBtn">✕ Delete</button>
+      </div>
+      <div style="display:flex; width:100%; align-items:center; gap:12px; margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
+        <label style="font-size:11px; letter-spacing:0.5px;" data-i18n="targetUrlKeyword">TARGET URL KEYWORD</label>
+        <input type="text" id="target-url-keyword" placeholder="e.g. universe.flyff.com" style="flex:1; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:6px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; outline:none; height:34px;">
+      </div>
+    </div>
+
+    <!-- Actions Container -->
+    <div id="actions-container" style="display:flex; flex-direction:column; gap:20px;"></div>
+
+    <!-- Add Custom Action Button -->
+    <div style="display:flex; gap:12px; margin-top: 10px;">
+      <button class="btn btn-ghost" onclick="addNewAction()" style="border-color:var(--primary); color:var(--primary); width:100%; justify-content:center;" data-i18n="addCustomAction">➕ Add Custom Action</button>
+    </div>
+
+    <!-- Save Button -->
+    <button class="btn btn-save-big" onclick="saveCurrentProfile()" style="margin-top: 10px;">
+      <span data-i18n="applySave">💾 Apply & Save Profile</span>
+    </button>
+
+  </div><!-- /left-panel -->
+
+  <!-- ════════ RIGHT PANEL ════════ -->
+  <div class="right-panel">
+    <div class="log-header">
+      <span data-i18n="clientEventLog">Client Event Log</span>
+      <button class="btn btn-ghost" onclick="clearLogs()" data-i18n="clear">Clear</button>
+    </div>
+    <div class="canvas-card">
+      <canvas id="webgl-canvas"></canvas>
+      <div class="canvas-overlay">
+        <p><span data-i18n="canvasObject">Object</span>: <span id="obj-info">Torus Knot</span></p>
+        <p><span data-i18n="canvasColor">Color</span>: <span id="obj-color">#6366f1</span></p>
+        <p><span data-i18n="canvasSpeed">Speed</span>: <span id="obj-speed">1.00x</span></p>
+        <p><span data-i18n="canvasFps">FPS</span>: <span id="fps-count">60</span></p>
+      </div>
+      <div class="key-flash" id="key-flash">KEY: —</div>
+    </div>
+    <div class="log-panel">
+      <div class="log-list" id="log-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ NEW PROFILE MODAL ════════ -->
+<div class="modal-bg" id="new-profile-modal">
+  <div class="modal">
+    <h2 data-i18n="modalCreateTitle">Create New Profile</h2>
+    <div class="field">
+      <label data-i18n="modalProfileName">Profile Name</label>
+      <input type="text" id="new-profile-name" placeholder="e.g. Healer-PvP" onkeydown="if(event.key==='Enter')confirmNewProfile()">
+    </div>
+    <div class="field">
+      <label data-i18n="modalCopyFrom">Copy Settings From</label>
+      <select id="copy-from-select" class="profile-select"></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeNewProfileModal()" data-i18n="btnCancel">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmNewProfile()" data-i18n="btnCreate">Create Profile</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ CUSTOM CONFIRM MODAL ════════ -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal" style="max-width: 400px;">
+    <h2 id="confirm-title" data-i18n="confirmDeleteTitle">Confirm Deletion</h2>
+    <div class="field" style="margin-top: 5px;">
+      <p id="confirm-message" style="color: var(--text-muted); font-size: 14px; line-height: 1.5;"></p>
+    </div>
+    <div class="modal-footer" style="margin-top: 10px;">
+      <button class="btn btn-ghost" onclick="closeConfirmModal()" data-i18n="btnCancel">Cancel</button>
+      <button id="confirm-btn-yes" class="btn btn-danger" data-i18n="confirmYesBtn">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ TOAST ════════ -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// LANGUAGE TRANSLATIONS SYSTEM
+// ═══════════════════════════════════════════════════════
+let currentLang = localStorage.getItem('lang') || 'en';
+
+const TRANSLATIONS = {
+  en: {
+    appTitle: "AutoBot Control Center",
+    dashboardLive: "Dashboard Live",
+    profile: "PROFILE",
+    setActive: "✓ Set Active",
+    newProfileBtn: "+ New",
+    deleteProfileBtn: "✕ Delete",
+    targetUrlKeyword: "TARGET URL KEYWORD",
+    addCustomAction: "➕ Add Custom Action",
+    applySave: "💾 Apply & Save Profile",
+    clientEventLog: "Client Event Log",
+    clear: "Clear",
+    canvasObject: "Object",
+    canvasColor: "Color",
+    canvasSpeed: "Speed",
+    canvasFps: "FPS",
+    modalCreateTitle: "Create New Profile",
+    modalProfileName: "Profile Name",
+    modalCopyFrom: "Copy Settings From",
+    btnCancel: "Cancel",
+    btnCreate: "Create Profile",
+    
+    // Dynamic text
+    emptyProfile: "None (Empty Profile)",
+    enabled: "Enabled",
+    btnDeleteAction: "✕ Delete",
+    triggerType: "Trigger Type",
+    triggerHotkey: "Trigger Hotkey",
+    actionMode: "Action Mode",
+    
+    triggerKeyboard: "Keyboard Hotkey",
+    triggerMouse: "Mouse Click",
+    
+    mouseButton4: "Mouse Button 4 (Back)",
+    mouseButton5: "Mouse Button 5 (Forward)",
+    
+    clickToBind: "Click to bind key...",
+    pressAnyKey: "Press any key...",
+    
+    modeLoop: "Repeat Loop (Runs continuously)",
+    modeBuff: "Buff Sequence (Runs once sequentially)",
+    modeSingle: "Single Key Press (Instantly presses key)",
+    
+    loopKeysLabel: "Key(s) to press (comma-separated)",
+    loopJitterLabel: "Jitter (random timing +/- ms)",
+    loopIntervalLabel: "Interval (ms)",
+    loopQuickAdjust: "Quick Adjust",
+    firstStepsLabel: "First Steps (pressed once before loop starts)",
+    btnAddStep: "+ Add Step",
+    stepKeyLabel: "Key",
+    stepDelayLabel: "Delay (ms)",
+    
+    buffDelayLabel: "Sequence delay (ms between key presses)",
+    buffKeysLabel: "Sequence Keys (comma-separated, pressed in order)",
+    
+    singleKeysLabel: "Key(s) to press once (comma-separated)",
+    
+    // Toasts & Dialogs
+    toastAddedAction: "Added new custom action!",
+    toastDeletedAction: "Deleted action",
+    toastProfileSaved: "✓ Profile \"{name}\" saved!",
+    toastSaveFailed: "Save failed: ",
+    toastNetworkError: "Network error: ",
+    toastEnterProfileName: "Please enter a profile name",
+    toastProfileCreated: "✓ Profile \"{name}\" created!",
+    toastDeleteDefaultErr: "Cannot delete the Default profile",
+    confirmDeleteProfile: "Delete profile \"{name}\"?",
+    toastProfileDeleted: "Profile deleted",
+    toastLoadConfigErr: "Failed to load config from server",
+    activeStatus: "● Active",
+    inactiveStatus: "● Inactive",
+    confirmDeleteTitle: "Confirm Deletion",
+    confirmYesBtn: "Yes, Delete"
+  },
+  th: {
+    appTitle: "ศูนย์ควบคุมบอทอัตโนมัติ",
+    dashboardLive: "แดชบอร์ดทำงานอยู่",
+    profile: "โปรไฟล์",
+    setActive: "✓ ตั้งเป็นหลัก",
+    newProfileBtn: "+ สร้างใหม่",
+    deleteProfileBtn: "✕ ลบโปรไฟล์",
+    targetUrlKeyword: "คีย์เวิร์ด URL เป้าหมาย",
+    addCustomAction: "➕ เพิ่มคำสั่งใหม่",
+    applySave: "💾 บันทึกและใช้งานโปรไฟล์",
+    clientEventLog: "บันทึกสถานะการส่งปุ่ม",
+    clear: "ล้างข้อมูล",
+    canvasObject: "วัตถุ",
+    canvasColor: "สี",
+    canvasSpeed: "ความเร็ว",
+    canvasFps: "เฟรมเรต",
+    modalCreateTitle: "สร้างโปรไฟล์ใหม่",
+    modalProfileName: "ชื่อโปรไฟล์",
+    modalCopyFrom: "คัดลอกการตั้งค่าจาก",
+    btnCancel: "ยกเลิก",
+    btnCreate: "สร้างโปรไฟล์",
+    
+    // Dynamic text
+    emptyProfile: "ไม่มี (สร้างโปรไฟล์ว่าง)",
+    enabled: "เปิดใช้งาน",
+    btnDeleteAction: "✕ ลบออก",
+    triggerType: "ชนิดของ Trigger",
+    triggerHotkey: "ปุ่มคีย์ลัด (Hotkey)",
+    actionMode: "โหมดการทำงาน",
+    
+    triggerKeyboard: "ปุ่มคีย์บอร์ด",
+    triggerMouse: "คลิกเมาส์",
+    
+    mouseButton4: "ปุ่มเมาส์ 4 (ปุ่มย้อนกลับ / Back)",
+    mouseButton5: "ปุ่มเมาส์ 5 (ปุ่มไปข้างหน้า / Forward)",
+    
+    clickToBind: "คลิกเพื่อบันทึกปุ่ม...",
+    pressAnyKey: "กดปุ่มที่ต้องการบันทึก...",
+    
+    modeLoop: "ลูปทำงานซ้ำ (ทำงานต่อเนื่อง)",
+    modeBuff: "บัฟตามลำดับ (กดทีละปุ่มเรียงลำดับ)",
+    modeSingle: "กดครั้งเดียว (กดคีย์ทันทีเมื่อกด Hotkey)",
+    
+    loopKeysLabel: "ปุ่มที่จะกดซ้ำ (คั่นด้วยเครื่องหมายจุลภาค ,)",
+    loopJitterLabel: "ดีเลย์แบบสุ่ม (+/- มิลลิวินาที)",
+    loopIntervalLabel: "ความเร็วรอบ (มิลลิวินาที)",
+    loopQuickAdjust: "ปรับความเร็วอย่างรวดเร็ว",
+    firstStepsLabel: "คำสั่งเริ่มแรกก่อนเริ่มลูป (กดเพียงครั้งเดียว)",
+    btnAddStep: "+ เพิ่มปุ่มเริ่มแรก",
+    stepKeyLabel: "ปุ่ม",
+    stepDelayLabel: "ดีเลย์ (มิลลิวินาที)",
+    
+    buffDelayLabel: "ระยะห่างการกดแต่ละปุ่ม (มิลลิวินาที)",
+    buffKeysLabel: "ปุ่มบัฟตามลำดับ (คั่นด้วยจุลภาค , กดเรียงกันจากซ้ายไปขวา)",
+    
+    singleKeysLabel: "ปุ่มที่จะกดครั้งเดียว (คั่นด้วยจุลภาค ,)",
+    
+    // Toasts & Dialogs
+    toastAddedAction: "เพิ่มคำสั่งใหม่เรียบร้อยแล้ว!",
+    toastDeletedAction: "ลบคำสั่งเรียบร้อยแล้ว",
+    toastProfileSaved: "✓ บันทึกโปรไฟล์ \"{name}\" สำเร็จ!",
+    toastSaveFailed: "บันทึกไม่สำเร็จ: ",
+    toastNetworkError: "การเชื่อมต่อขัดข้อง: ",
+    toastEnterProfileName: "กรุณากรอกชื่อโปรไฟล์",
+    toastProfileCreated: "✓ สร้างโปรไฟล์ \"{name}\" สำเร็จ!",
+    toastDeleteDefaultErr: "ไม่สามารถลบโปรไฟล์เริ่มต้น (Default) ได้",
+    confirmDeleteProfile: "คุณต้องการลบโปรไฟล์ \"{name}\" ใช่หรือไม่?",
+    toastProfileDeleted: "ลบโปรไฟล์สำเร็จ",
+    toastLoadConfigErr: "ไม่สามารถโหลดการตั้งค่าจากเซิร์ฟเวอร์ได้",
+    activeStatus: "● ใช้งานอยู่",
+    inactiveStatus: "● ไม่ได้ใช้งาน",
+    confirmDeleteTitle: "ยืนยันการลบ",
+    confirmYesBtn: "ใช่, ลบออก"
+  }
+};
+
+function changeLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('lang', lang);
+  updateLanguageUI();
+}
+
+function updateLanguageUI() {
+  const lang = currentLang;
+  
+  // Update elements with data-i18n attribute
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) {
+      if (key === 'applySave') {
+        el.innerHTML = `💾 ${TRANSLATIONS[lang][key].substring(2)}`;
+      } else if (key === 'addCustomAction') {
+        el.innerHTML = `➕ ${TRANSLATIONS[lang][key].substring(2)}`;
+      } else {
+        el.textContent = TRANSLATIONS[lang][key];
+      }
+    }
+  });
+
+  // Update placeholders
+  const nameInput = document.getElementById('new-profile-name');
+  if (nameInput) {
+    nameInput.placeholder = lang === 'en' ? 'e.g. Healer-PvP' : 'เช่น Healer-PvP';
+  }
+
+  const urlInput = document.getElementById('target-url-keyword');
+  if (urlInput) {
+    urlInput.placeholder = lang === 'en' ? 'e.g. universe.flyff.com' : 'เช่น universe.flyff.com';
+  }
+
+  // Update dropdown values
+  populateProfileDropdowns();
+  
+  // Re-render current profile actions
+  if (fullConfig.profiles[currentEditProfile]) {
+    loadProfileToUI(fullConfig.profiles[currentEditProfile]);
+  }
+
+  // Highlight active lang btn
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.classList.contains(lang));
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let fullConfig = { activeProfile: 'Default', profiles: {} };
+let currentEditProfile = 'Default';
+
+// Hotkey Recording State
+let activeRecordingInput = null;
+let activeRecordingActionId = null;
+
+function startRecordingHotkey(input, actionId) {
+  activeRecordingInput = input;
+  activeRecordingActionId = actionId;
+  input.value = '';
+  input.placeholder = 'Press any key...';
+  input.style.borderColor = 'var(--primary)';
+  input.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.2)';
+  
+  window.addEventListener('keydown', handleRecordingKeyDown, true);
+}
+
+function stopRecordingHotkey(input) {
+  if (activeRecordingInput === input) {
+    window.removeEventListener('keydown', handleRecordingKeyDown, true);
+    activeRecordingInput = null;
+    activeRecordingActionId = null;
+    input.placeholder = 'Click to bind key...';
+    input.style.borderColor = 'var(--border)';
+    input.style.boxShadow = 'none';
+  }
+}
+
+function handleRecordingKeyDown(e) {
+  if (!activeRecordingInput) return;
+  e.preventDefault();
+  e.stopPropagation();
+
+  const cleanKey = mapJsKeyToGlobalListenerKey(e);
+  activeRecordingInput.value = cleanKey;
+  
+  // Save to config immediately
+  const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === activeRecordingActionId);
+  if (act) {
+    act.trigger.value = cleanKey;
+  }
+  
+  activeRecordingInput.blur();
+}
+
+function mapJsKeyToGlobalListenerKey(e) {
+  const code = e.code;
+  const key = e.key;
+
+  if (/^F\d+$/.test(key)) {
+    return key.toUpperCase();
+  }
+  if (code.startsWith('Key')) {
+    return code.replace('Key', '').toUpperCase();
+  }
+  if (code.startsWith('Digit')) {
+    return code.replace('Digit', '').toUpperCase();
+  }
+  if (code.startsWith('Numpad') && code.length === 7) {
+    return code.replace('Numpad', '').toUpperCase();
+  }
+
+  const specialMap = {
+    ' ': 'SPACE',
+    'Spacebar': 'SPACE',
+    'Escape': 'ESCAPE',
+    'Esc': 'ESCAPE',
+    'Insert': 'INSERT',
+    'Delete': 'DELETE',
+    'Home': 'HOME',
+    'End': 'END',
+    'PageUp': 'PAGE UP',
+    'PageDown': 'PAGE DOWN',
+    'ArrowUp': 'ARROW UP',
+    'ArrowDown': 'ARROW DOWN',
+    'ArrowLeft': 'ARROW LEFT',
+    'ArrowRight': 'ARROW RIGHT',
+    'Tab': 'TAB',
+    'CapsLock': 'CAPS LOCK',
+    'Backspace': 'BACKSPACE',
+    'Enter': 'ENTER',
+    'Shift': 'SHIFT',
+    'Control': 'CTRL',
+    'Alt': 'ALT',
+    'Meta': 'META',
+  };
+
+  if (specialMap[key]) {
+    return specialMap[key];
+  }
+  return key.toUpperCase();
+}
+
+// ═══════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════
+function toast(msg, type = 'success') {
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  wrap.appendChild(t);
+  requestAnimationFrame(() => { requestAnimationFrame(() => { t.classList.add('show'); }); });
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 350); }, 3000);
+}
+
+// ═══════════════════════════════════════════════════════
+// RANGE SYNC
+// ═══════════════════════════════════════════════════════
+function syncRange(inputId, rangeId) {
+  const v = parseInt(document.getElementById(inputId).value) || 0;
+  const r = document.getElementById(rangeId);
+  r.value = Math.min(Math.max(v, parseInt(r.min)), parseInt(r.max));
+  document.getElementById(rangeId + '-label').textContent = v + 'ms';
+}
+function syncInput(rangeId, inputId) {
+  const v = document.getElementById(rangeId).value;
+  document.getElementById(inputId).value = v;
+  document.getElementById(rangeId + '-label').textContent = v + 'ms';
+}
+
+// ═══════════════════════════════════════════════════════
+// PROFILE DROPDOWN
+// ═══════════════════════════════════════════════════════
+function populateProfileDropdowns() {
+  const names = Object.keys(fullConfig.profiles);
+  
+  // Populate profile-select
+  const selectEl = document.getElementById('profile-select');
+  const prevSel = selectEl.value;
+  selectEl.innerHTML = '';
+  names.forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n;
+    selectEl.appendChild(o);
+  });
+  if (names.includes(prevSel)) selectEl.value = prevSel;
+  else selectEl.value = currentEditProfile;
+
+  // Populate copy-from-select
+  const copyEl = document.getElementById('copy-from-select');
+  const prevCopy = copyEl.value;
+  copyEl.innerHTML = '';
+  
+  // Default empty option
+  const optNone = document.createElement('option');
+  optNone.value = '';
+  optNone.textContent = TRANSLATIONS[currentLang].emptyProfile;
+  copyEl.appendChild(optNone);
+
+  names.forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n;
+    copyEl.appendChild(o);
+  });
+  if (prevCopy !== undefined) copyEl.value = prevCopy;
+
+  const badge = document.getElementById('active-profile-badge');
+  badge.textContent = '● ' + fullConfig.activeProfile;
+  badge.style.display = currentEditProfile === fullConfig.activeProfile ? 'block' : 'block';
+  badge.style.opacity = currentEditProfile === fullConfig.activeProfile ? '1' : '0.4';
+}
+
+function onProfileSelectChange() {
+  currentEditProfile = document.getElementById('profile-select').value;
+  populateProfileDropdowns();
+  loadProfileToUI(fullConfig.profiles[currentEditProfile]);
+}
+
+// ═══════════════════════════════════════════════════════
+// LOAD PROFILE INTO UI
+// ═══════════════════════════════════════════════════════
+function loadProfileToUI(p) {
+  if (!p) return;
+  document.getElementById('target-url-keyword').value = p.targetUrlKeyword || 'universe.flyff.com';
+  if (!p.actions) p.actions = [];
+  renderActions(p.actions);
+}
+
+function escapeHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderActions(actions) {
+  const container = document.getElementById('actions-container');
+  container.innerHTML = '';
+
+  const colors = ['var(--green)', 'var(--yellow)', 'var(--blue)', 'var(--orange)', 'var(--red)', 'var(--primary)'];
+
+  actions.forEach((act, idx) => {
+    const cardColor = colors[idx % colors.length];
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    card.setAttribute('data-id', act.id);
+    card.style.borderLeft = `4px solid ${cardColor}`;
+
+    let headerHTML = `
+      <div class="group-header" style="display:flex; justify-content:space-between; align-items:center; width:100%; gap: 10px; padding: 14px 20px;">
+        <div class="group-dot" style="background:${cardColor}"></div>
+        <input type="text" class="action-name-input" value="${escapeHtml(act.name)}" placeholder="${currentLang === 'en' ? 'Action Name' : 'ชื่อคำสั่ง'}" style="background:none; border:none; color:var(--text); font-size:14px; font-weight:700; outline:none; border-bottom:1px dashed rgba(255,255,255,0.2); flex: 1; padding-bottom: 2px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer;">
+            <input type="checkbox" class="action-enabled-checkbox" ${act.enabled ? 'checked' : ''} style="accent-color:var(--primary); cursor:pointer;"> ${TRANSLATIONS[currentLang].enabled}
+          </label>
+          <button class="btn btn-danger" onclick="deleteAction('${act.id}')" style="padding:4px 8px; font-size:10px; border-radius:6px;">${TRANSLATIONS[currentLang].btnDeleteAction}</button>
+        </div>
+      </div>
+    `;
+
+    let bodyHTML = `
+      <div class="group-body" style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
+        <div class="field-row">
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].triggerType}</label>
+            <select class="action-trigger-type" onchange="onTriggerTypeChange('${act.id}')" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none;">
+              <option value="keyboard" ${act.trigger.type === 'keyboard' ? 'selected' : ''}>${TRANSLATIONS[currentLang].triggerKeyboard}</option>
+              <option value="mouse" ${act.trigger.type === 'mouse' ? 'selected' : ''}>${TRANSLATIONS[currentLang].triggerMouse}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].triggerHotkey}</label>
+            <div class="trigger-val-container-${act.id}" style="display:flex; width:100%;">
+              ${renderTriggerValField(act)}
+            </div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field" style="grid-column: span 2;">
+            <label>${TRANSLATIONS[currentLang].actionMode}</label>
+            <select class="action-mode" onchange="onModeChange('${act.id}')" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%;">
+              <option value="loop" ${act.mode === 'loop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeLoop}</option>
+              <option value="buff_sequence" ${act.mode === 'buff_sequence' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeBuff}</option>
+              <option value="single_press" ${act.mode === 'single_press' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeSingle}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mode-specific-container-${act.id}">
+          ${renderModeSpecificFields(act)}
+        </div>
+      </div>
+    `;
+
+    card.innerHTML = headerHTML + bodyHTML;
+    container.appendChild(card);
+  });
+}
+
+function renderTriggerValField(act) {
+  if (act.trigger.type === 'mouse') {
+    return `
+      <select class="action-trigger-val" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%;">
+        <option value="4" ${act.trigger.value == '4' ? 'selected' : ''}>${TRANSLATIONS[currentLang].mouseButton4}</option>
+        <option value="5" ${act.trigger.value == '5' ? 'selected' : ''}>${TRANSLATIONS[currentLang].mouseButton5}</option>
+      </select>
+    `;
+  } else {
+    const placeholderText = activeRecordingActionId === act.id ? TRANSLATIONS[currentLang].pressAnyKey : TRANSLATIONS[currentLang].clickToBind;
+    return `
+      <input type="text" class="action-trigger-val" value="${escapeHtml(act.trigger.value || '')}" placeholder="${placeholderText}" readonly onfocus="startRecordingHotkey(this, '${act.id}')" onblur="stopRecordingHotkey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%; cursor:pointer; text-align:center;">
+    `;
+  }
+}
+
+function renderModeSpecificFields(act) {
+  let html = '';
+  if (act.mode === 'loop') {
+    html = `
+      <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
+        <div class="field-row">
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].loopKeysLabel}</label>
+            <input type="text" class="loop-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'e.g. 2, 4' : 'เช่น 2, 4'}" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+          </div>
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].loopJitterLabel}</label>
+            <input type="number" class="loop-jitter" value="${act.jitter ?? 250}" min="0" placeholder="e.g. 250" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].loopIntervalLabel}</label>
+            <input type="number" class="loop-interval" id="interval-input-${act.id}" value="${act.interval ?? 3000}" min="100" step="100" oninput="syncRange('interval-input-${act.id}', 'interval-range-${act.id}')" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+          </div>
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].loopQuickAdjust}</label>
+            <div class="range-row">
+              <input type="range" id="interval-range-${act.id}" min="100" max="10000" step="100" value="${act.interval ?? 3000}" oninput="syncInput('interval-range-${act.id}', 'interval-input-${act.id}')">
+              <span class="range-val" id="interval-range-${act.id}-label">${act.interval ?? 3000}ms</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:4px;">
+          <label>${TRANSLATIONS[currentLang].firstStepsLabel}</label>
+          <div class="dyn-list" id="first-steps-list-${act.id}">
+            ${renderFirstStepsForAction(act)}
+          </div>
+          <div class="add-row" style="margin-top:6px;">
+            <button class="btn btn-ghost" onclick="addFirstStepToAction('${act.id}')" style="padding:4px 10px; font-size:11px; border-radius:6px;">${TRANSLATIONS[currentLang].btnAddStep}</button>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (act.mode === 'buff_sequence') {
+    html = `
+      <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
+        <div class="field">
+          <label>${TRANSLATIONS[currentLang].buffDelayLabel}</label>
+          <input type="number" class="buff-delay" value="${act.delayBuff ?? 800}" min="50" step="50" placeholder="800" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+        </div>
+        <div class="field">
+          <label>${TRANSLATIONS[currentLang].buffKeysLabel}</label>
+          <input type="text" class="buff-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'e.g. F3, 1, 2, 3' : 'เช่น F3, 1, 2, 3'}" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+        </div>
+      </div>
+    `;
+  } else if (act.mode === 'single_press') {
+    html = `
+      <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
+        <div class="field">
+          <label>${TRANSLATIONS[currentLang].singleKeysLabel}</label>
+          <input type="text" class="single-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'e.g. Space, F1' : 'เช่น Space, F1'}" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+        </div>
+      </div>
+    `;
+  }
+  return html;
+}
+
+function renderFirstStepsForAction(act) {
+  let html = '';
+  if (act.firstSteps && act.firstSteps.length > 0) {
+    act.firstSteps.forEach((step, stepIdx) => {
+      html += `
+        <div class="dyn-item" style="padding:6px 10px; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+          <div class="field" style="flex:1;"><label style="font-size:9px;">${TRANSLATIONS[currentLang].stepKeyLabel}</label><input type="text" class="fs-key-${act.id}" value="${escapeHtml(step.key)}" style="padding:6px 10px; font-size:12px;" placeholder="${currentLang === 'en' ? 'e.g. 3' : 'เช่น 3'}"></div>
+          <div class="field" style="flex:1;"><label style="font-size:9px;">${TRANSLATIONS[currentLang].stepDelayLabel}</label><input type="number" class="fs-delay-${act.id}" value="${step.delay}" style="padding:6px 10px; font-size:12px;" placeholder="500"></div>
+          <button class="del-btn" onclick="removeFirstStepFromAction('${act.id}', ${stepIdx})" style="margin-top:14px; background:none; border:none; color:var(--muted); cursor:pointer;">✕</button>
+        </div>
+      `;
+    });
+  }
+  return html;
+}
+
+function onTriggerTypeChange(actionId) {
+  const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === actionId);
+  if (!act) return;
+
+  const select = document.querySelector(`[data-id="${actionId}"] .action-trigger-type`);
+  act.trigger.type = select.value;
+  act.trigger.value = select.value === 'mouse' ? '4' : 'F9';
+
+  const container = document.querySelector(`.trigger-val-container-${actionId}`);
+  container.innerHTML = renderTriggerValField(act);
+}
+
+// Ensure first range label sets correctly
+function updateRangeLabel(rangeId, val) {
+  const label = document.getElementById(rangeId + '-label');
+  if (label) label.textContent = val + 'ms';
+}
+
+function onModeChange(actionId) {
+  const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === actionId);
+  if (!act) return;
+
+  syncActionFromDom(actionId);
+
+  const select = document.querySelector(`[data-id="${actionId}"] .action-mode`);
+  act.mode = select.value;
+
+  const container = document.querySelector(`.mode-specific-container-${actionId}`);
+  container.innerHTML = renderModeSpecificFields(act);
+}
+
+function syncActionFromDom(actionId) {
+  const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === actionId);
+  if (!act) return;
+
+  const card = document.querySelector(`[data-id="${actionId}"]`);
+  if (!card) return;
+
+  act.name = card.querySelector('.action-name-input').value.trim();
+  act.enabled = card.querySelector('.action-enabled-checkbox').checked;
+  act.trigger.type = card.querySelector('.action-trigger-type').value;
+  act.trigger.value = card.querySelector('.action-trigger-val').value.trim();
+  act.mode = card.querySelector('.action-mode').value;
+
+  if (act.mode === 'loop') {
+    const keysInput = card.querySelector('.loop-keys');
+    act.keys = keysInput ? keysInput.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+    act.jitter = parseInt(card.querySelector('.loop-jitter').value) || 0;
+    act.interval = parseInt(card.querySelector('.loop-interval').value) || 3000;
+
+    const fsKeys = [...card.querySelectorAll(`.fs-key-${actionId}`)].map(i => i.value.trim());
+    const fsDelays = [...card.querySelectorAll(`.fs-delay-${actionId}`)].map(i => parseInt(i.value) || 0);
+    act.firstSteps = fsKeys.map((k, i) => ({ key: k, delay: fsDelays[i] }));
+  } else if (act.mode === 'buff_sequence') {
+    act.delayBuff = parseInt(card.querySelector('.buff-delay').value) || 800;
+    const keysInput = card.querySelector('.buff-keys');
+    act.keys = keysInput ? keysInput.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+  } else if (act.mode === 'single_press') {
+    const keysInput = card.querySelector('.single-keys');
+    act.keys = keysInput ? keysInput.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+  }
+}
+
+function addNewAction() {
+  const profile = fullConfig.profiles[currentEditProfile];
+  if (!profile.actions) profile.actions = [];
+
+  const newId = 'action_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+  
+  profile.actions.forEach(act => syncActionFromDom(act.id));
+
+  profile.actions.push({
+    id: newId,
+    name: currentLang === 'en' ? 'New Custom Action' : 'คำสั่งใหม่',
+    mode: 'loop',
+    trigger: { type: 'keyboard', value: 'F12' },
+    keys: ['1'],
+    interval: 2000,
+    jitter: 100,
+    firstSteps: [],
+    enabled: true
+  });
+
+  renderActions(profile.actions);
+  toast(TRANSLATIONS[currentLang].toastAddedAction, 'info');
+}
+
+function deleteAction(actionId) {
+  const profile = fullConfig.profiles[currentEditProfile];
+  
+  profile.actions.forEach(act => syncActionFromDom(act.id));
+
+  profile.actions = profile.actions.filter(a => a.id !== actionId);
+  renderActions(profile.actions);
+  toast(TRANSLATIONS[currentLang].toastDeletedAction, 'info');
+}
+
+function addFirstStepToAction(actionId) {
+  const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === actionId);
+  if (!act) return;
+
+  syncActionFromDom(actionId);
+
+  if (!act.firstSteps) act.firstSteps = [];
+  act.firstSteps.push({ key: '', delay: 500 });
+
+  const container = document.querySelector(`.mode-specific-container-${actionId}`);
+  container.innerHTML = renderModeSpecificFields(act);
+}
+
+function removeFirstStepFromAction(actionId, stepIdx) {
+  const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === actionId);
+  if (!act) return;
+
+  syncActionFromDom(actionId);
+
+  act.firstSteps.splice(stepIdx, 1);
+
+  const container = document.querySelector(`.mode-specific-container-${actionId}`);
+  container.innerHTML = renderModeSpecificFields(act);
+}
+
+function collectProfile() {
+  const actions = fullConfig.profiles[currentEditProfile].actions;
+  actions.forEach(act => syncActionFromDom(act.id));
+  return {
+    targetUrlKeyword: document.getElementById('target-url-keyword').value.trim(),
+    actions: actions
+  };
+}
+
+async function saveCurrentProfile() {
+  const profileData = collectProfile();
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profileName: currentEditProfile, profileData })
+    });
+    const data = await res.json();
+    if (data.success) {
+      fullConfig.profiles[currentEditProfile] = profileData;
+      toast(TRANSLATIONS[currentLang].toastProfileSaved.replace('{name}', currentEditProfile), 'success');
+    } else {
+      toast(TRANSLATIONS[currentLang].toastSaveFailed + (data.error || 'Unknown'), 'error');
+    }
+  } catch (e) {
+    toast(TRANSLATIONS[currentLang].toastNetworkError + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// ACTIVATE PROFILE
+// ═══════════════════════════════════════════════════════
+async function activateProfile() {
+  try {
+    const res = await fetch('/api/profile/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: currentEditProfile })
+    });
+    const data = await res.json();
+    if (data.success) {
+      fullConfig.activeProfile = currentEditProfile;
+      populateProfileDropdowns();
+      toast(currentLang === 'en' 
+        ? `✓ "${currentEditProfile}" is now the Active Profile (used by bot)` 
+        : `✓ "${currentEditProfile}" เป็นโปรไฟล์หลักที่บอทเลือกใช้งานแล้ว`, 'success');
+    } else {
+      toast((currentLang === 'en' ? 'Failed: ' : 'ล้มเหลว: ') + (data.error || ''), 'error');
+    }
+  } catch (e) {
+    toast(TRANSLATIONS[currentLang].toastNetworkError.replace(': ', ''), 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// NEW PROFILE MODAL
+// ═══════════════════════════════════════════════════════
+function openNewProfileModal() {
+  populateProfileDropdowns();
+  document.getElementById('new-profile-name').value = '';
+  document.getElementById('copy-from-select').value = currentEditProfile;
+  document.getElementById('new-profile-modal').classList.add('show');
+  setTimeout(() => document.getElementById('new-profile-name').focus(), 100);
+}
+function closeNewProfileModal() {
+  document.getElementById('new-profile-modal').classList.remove('show');
+}
+
+async function confirmNewProfile() {
+  const name = document.getElementById('new-profile-name').value.trim();
+  const copyFrom = document.getElementById('copy-from-select').value;
+  if (!name) { toast(TRANSLATIONS[currentLang].toastEnterProfileName, 'error'); return; }
+
+  try {
+    const res = await fetch('/api/profile/new', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, copyFrom })
+    });
+    const data = await res.json();
+    if (data.success) {
+      await loadAllConfig();
+      currentEditProfile = name;
+      populateProfileDropdowns();
+      loadProfileToUI(fullConfig.profiles[name]);
+      closeNewProfileModal();
+      toast(TRANSLATIONS[currentLang].toastProfileCreated.replace('{name}', name), 'success');
+    } else {
+      toast((currentLang === 'en' ? 'Error: ' : 'ข้อผิดพลาด: ') + (data.error || ''), 'error');
+    }
+  } catch (e) {
+    toast(TRANSLATIONS[currentLang].toastNetworkError.replace(': ', ''), 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CUSTOM CONFIRM DIALOG
+// ═══════════════════════════════════════════════════════
+let customConfirmCallback = null;
+function showCustomConfirm(message, onConfirm) {
+  document.getElementById('confirm-message').textContent = message;
+  customConfirmCallback = onConfirm;
+  document.getElementById('confirm-modal').classList.add('show');
+}
+function closeConfirmModal() {
+  document.getElementById('confirm-modal').classList.remove('show');
+  customConfirmCallback = null;
+}
+document.getElementById('confirm-btn-yes').addEventListener('click', () => {
+  if (customConfirmCallback) customConfirmCallback();
+  closeConfirmModal();
+});
+
+// ═══════════════════════════════════════════════════════
+// DELETE PROFILE
+// ═══════════════════════════════════════════════════════
+async function deleteProfile() {
+  if (currentEditProfile === 'Default') { toast(TRANSLATIONS[currentLang].toastDeleteDefaultErr, 'error'); return; }
+  
+  const msg = TRANSLATIONS[currentLang].confirmDeleteProfile.replace('{name}', currentEditProfile);
+  showCustomConfirm(msg, async () => {
+    try {
+      const res = await fetch('/api/profile/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: currentEditProfile })
+      });
+      const data = await res.json();
+      if (data.success) {
+        await loadAllConfig();
+        currentEditProfile = fullConfig.activeProfile;
+        populateProfileDropdowns();
+        loadProfileToUI(fullConfig.profiles[currentEditProfile]);
+        toast(TRANSLATIONS[currentLang].toastProfileDeleted, 'info');
+      } else {
+        toast((currentLang === 'en' ? 'Error: ' : 'ข้อผิดพลาด: ') + (data.error || ''), 'error');
+      }
+    } catch (e) {
+      toast(TRANSLATIONS[currentLang].toastNetworkError.replace(': ', ''), 'error');
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// LOAD ALL CONFIG FROM SERVER
+// ═══════════════════════════════════════════════════════
+async function loadAllConfig() {
+  try {
+    const res = await fetch('/api/config', { cache: 'no-store' });
+    fullConfig = await res.json();
+    currentEditProfile = fullConfig.activeProfile;
+  } catch (e) {
+    toast(TRANSLATIONS[currentLang].toastLoadConfigErr, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+(async function init() {
+  await loadAllConfig();
+  updateLanguageUI();
+})();
+
+// ═══════════════════════════════════════════════════════
+// THREE.JS 3D CANVAS
+// ═══════════════════════════════════════════════════════
+(function setup3D() {
+  const canvas = document.getElementById('webgl-canvas');
+  const card = canvas.parentElement;
+  canvas.width = card.clientWidth;
+  canvas.height = card.clientHeight;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x03040a);
+  const cam = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 100);
+  cam.position.z = 7;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(canvas.width, canvas.height);
+  renderer.setPixelRatio(devicePixelRatio);
+  const geo = new THREE.TorusKnotGeometry(1.4, 0.44, 120, 16);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x6366f1, roughness: .1, metalness: .8 });
+  const mesh = new THREE.Mesh(geo, mat);
+  scene.add(mesh);
+  scene.add(new THREE.AmbientLight(0xffffff, .4));
+  const dl = new THREE.DirectionalLight(0xffffff, .8); dl.position.set(5,5,5); scene.add(dl);
+  const pl = new THREE.PointLight(0x10b981, 1, 50); pl.position.set(-5,-3,3); scene.add(pl);
+  let targetScale = 1, speedMult = 1, frames = 0, last = performance.now();
+  const colors = [0x6366f1,0x10b981,0xf59e0b,0xef4444,0x3b82f6,0x8b5cf6,0xec4899];
+  function animate() {
+    requestAnimationFrame(animate);
+    mesh.rotation.x += .01 * speedMult;
+    mesh.rotation.y += .014 * speedMult;
+    mesh.scale.lerp(new THREE.Vector3(targetScale,targetScale,targetScale), .1);
+    renderer.render(scene, cam);
+    frames++;
+    const now = performance.now();
+    if (now - last >= 1000) {
+      document.getElementById('fps-count').textContent = Math.round(frames * 1000 / (now - last));
+      frames = 0; last = now;
+    }
+  }
+  animate();
+  window.trigger3D = key => {
+    targetScale = 1.35; setTimeout(() => targetScale = 1, 150);
+    const c = colors[Math.floor(Math.random() * colors.length)];
+    mat.color.setHex(c);
+    document.getElementById('obj-color').textContent = '#' + c.toString(16).padStart(6,'0');
+    document.getElementById('obj-color').style.color = document.getElementById('obj-color').textContent;
+    speedMult = isNaN(key) ? 2 : 1 + parseInt(key) * .15;
+    document.getElementById('obj-speed').textContent = speedMult.toFixed(2) + 'x';
+  };
+  window.addEventListener('resize', () => {
+    canvas.width = card.clientWidth;
+    canvas.height = card.clientHeight;
+    cam.aspect = canvas.width / canvas.height;
+    cam.updateProjectionMatrix();
+    renderer.setSize(canvas.width, canvas.height);
+  });
+})();
+
+// ═══════════════════════════════════════════════════════
+// EVENT LOG
+// ═══════════════════════════════════════════════════════
+function addLog(type, key, detail) {
+  const now = new Date();
+  const t = now.toTimeString().slice(0,8) + '.' + String(now.getMilliseconds()).padStart(3,'0');
+  const list = document.getElementById('log-list');
+  const el = document.createElement('div');
+  el.className = `log-item ${type}`;
+  el.innerHTML = `<span class="log-time">${t}</span><span class="log-type ${type}">${type}</span><span class="log-key">${key}</span><span class="log-detail">${detail}</span>`;
+  list.insertBefore(el, list.firstChild);
+  while (list.children.length > 60) list.removeChild(list.lastChild);
+}
+function clearLogs() { document.getElementById('log-list').innerHTML = ''; }
+
+let keyTimer;
+function flashKey(key) {
+  const el = document.getElementById('key-flash');
+  el.textContent = 'KEY: ' + key;
+  el.classList.add('active');
+  clearTimeout(keyTimer);
+  keyTimer = setTimeout(() => el.classList.remove('active'), 500);
+}
+
+window.addEventListener('keydown', e => {
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+  addLog('keydown', e.key, `code: ${e.code}`);
+  flashKey(e.key);
+  if (window.trigger3D) trigger3D(e.key);
+});
+window.addEventListener('keyup', e => {
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;
+  addLog('keyup', e.key, `code: ${e.code}`);
+});
+document.getElementById('webgl-canvas').addEventListener('mousedown', e => {
+  const r = e.target.getBoundingClientRect();
+  addLog('click', `BTN${e.button}`, `X:${Math.round(e.clientX - r.left)} Y:${Math.round(e.clientY - r.top)}`);
+});
+</script>
+</body>
+</html>

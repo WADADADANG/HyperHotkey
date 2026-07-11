@@ -1,0 +1,91 @@
+{
+  "activeProfile": "Default",
+  "profiles": {
+    "Default": {
+      "targetUrlKeyword": "universe.flyff.com",
+      "actions": [
+        {
+          "id": "action_1",
+          "name": "Healing Loop",
+          "mode": "loop",
+          "trigger": {
+            "type": "mouse",
+            "value": "5"
+          },
+          "keys": [
+            "2"
+          ],
+          "interval": 3000,
+          "jitter": 250,
+          "firstSteps": [
+            {
+              "key": "3",
+              "delay": 500
+            }
+          ],
+          "enabled": true
+        },
+        {
+          "id": "action_2",
+          "name": "Mini Healing Loop",
+          "mode": "loop",
+          "trigger": {
+            "type": "mouse",
+            "value": "4"
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 5000,
+          "jitter": 150,
+          "firstSteps": [],
+          "enabled": true
+        },
+        {
+          "id": "action_3",
+          "name": "Between Healing Loop",
+          "mode": "loop",
+          "trigger": {
+            "type": "keyboard",
+            "value": "HOME"
+          },
+          "keys": [
+            "3"
+          ],
+          "interval": 40000,
+          "jitter": 2000,
+          "firstSteps": [],
+          "enabled": false
+        },
+        {
+          "id": "action_4",
+          "name": "Buff Sequence",
+          "mode": "buff_sequence",
+          "trigger": {
+            "type": "keyboard",
+            "value": "INSERT"
+          },
+          "keys": [
+            "F3",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "F4",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "F1"
+          ],
+          "delayBuff": 800,
+          "enabled": false
+        }
+      ]
+    }
+  }
+}
