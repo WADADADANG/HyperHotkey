@@ -1,6 +1,4 @@
 const { chromium, firefox } = require('playwright');
-const { GlobalKeyboardListener } = require('node-global-key-listener');
-const mouseEvents = require('global-mouse-events');
 const readline = require('readline');
 const path = require('path');
 const fs = require('fs');
@@ -8,8 +6,10 @@ const fs = require('fs');
 // Start the control panel server
 require('./test-server.js');
 
-const keyboard = new GlobalKeyboardListener();
-let browserContext, page;
+let keyboard, mouseEvents;
+let browserContext1, page1;
+let browserContext2, page2;
+let operationMode = 'single'; // 'single' or 'dual'
 
 // ============================================================================
 // CONFIGURATION VARIABLES
@@ -45,58 +45,7 @@ function loadConfigFromFile() {
             if (profile.actions && Array.isArray(profile.actions)) {
                 activeActions = profile.actions;
             } else {
-                // Backward compatibility conversion if they had old structure
                 activeActions = [];
-                if (profile.HealingLoop && profile.HealingLoop.key) {
-                    activeActions.push({
-                        id: "action_1",
-                        name: "Healing Loop",
-                        mode: "loop",
-                        trigger: { type: "keyboard", value: "F9" },
-                        keys: [profile.HealingLoop.key],
-                        interval: profile.HealingLoop.interval || 3000,
-                        jitter: 250,
-                        firstSteps: profile.FirstStep || [],
-                        enabled: true
-                    });
-                }
-                if (profile.MiniHealingLoop && profile.MiniHealingLoop.key) {
-                    activeActions.push({
-                        id: "action_2",
-                        name: "Mini Healing Loop",
-                        mode: "loop",
-                        trigger: { type: "keyboard", value: "F10" },
-                        keys: [profile.MiniHealingLoop.key],
-                        interval: profile.MiniHealingLoop.interval || 1500,
-                        jitter: 150,
-                        firstSteps: [],
-                        enabled: true
-                    });
-                }
-                if (profile.BetweenHealing1 && profile.BetweenHealing1.key) {
-                    activeActions.push({
-                        id: "action_3",
-                        name: "Between Healing Loop",
-                        mode: "loop",
-                        trigger: { type: "keyboard", value: "F8" },
-                        keys: [profile.BetweenHealing1.key],
-                        interval: profile.BetweenHealing1.interval || 40000,
-                        jitter: 2000,
-                        firstSteps: [],
-                        enabled: true
-                    });
-                }
-                if (profile.buttonBuffs && profile.buttonBuffs.length > 0) {
-                    activeActions.push({
-                        id: "action_4",
-                        name: "Buff Sequence",
-                        mode: "buff_sequence",
-                        trigger: { type: "keyboard", value: "INSERT" },
-                        keys: profile.buttonBuffs,
-                        delayBuff: profile.DelayBuff || 800,
-                        enabled: true
-                    });
-                }
             }
 
             // Sync state of active loops
@@ -110,6 +59,7 @@ function loadConfigFromFile() {
                 activeProfile: "Default",
                 profiles: {
                     Default: {
+                        targetUrlKeyword: "universe.flyff.com",
                         actions: [
                             {
                                 id: "action_1",
@@ -120,7 +70,8 @@ function loadConfigFromFile() {
                                 interval: 3000,
                                 jitter: 250,
                                 firstSteps: [{ key: "3", delay: 500 }],
-                                enabled: true
+                                enabled: true,
+                                targetClient: "1"
                             },
                             {
                                 id: "action_2",
@@ -131,7 +82,8 @@ function loadConfigFromFile() {
                                 interval: 1500,
                                 jitter: 150,
                                 firstSteps: [],
-                                enabled: true
+                                enabled: true,
+                                targetClient: "1"
                             },
                             {
                                 id: "action_3",
@@ -142,7 +94,8 @@ function loadConfigFromFile() {
                                 interval: 40000,
                                 jitter: 2000,
                                 firstSteps: [],
-                                enabled: true
+                                enabled: true,
+                                targetClient: "1"
                             },
                             {
                                 id: "action_4",
@@ -151,7 +104,8 @@ function loadConfigFromFile() {
                                 trigger: { type: "keyboard", value: "INSERT" },
                                 keys: ["F3", "1", "2", "3", "4", "5", "6", "7", "F4", "1", "2", "3", "4", "5", "F1"],
                                 delayBuff: 800,
-                                enabled: true
+                                enabled: true,
+                                targetClient: "1"
                             }
                         ]
                     }
@@ -184,48 +138,60 @@ watchConfigChanges();
 // ============================================================================
 // SYSTEM STATE & TIMERS
 // ============================================================================
-let isHealing = false;
-let isMiniHealing = false;
-let isBuff = false;
-
-// Storage for randomized timeout references (Dynamic Jitter)
-let healingTimeout = null;
-let miniHealingTimeout = null;
-let between1Timeout = null;
+// Storage for randomized timeout references (Dynamic Jitter) per action ID
+let activeLoopStates = {};
+let isBuffSequenceRunning = { '1': false, '2': false };
 
 // ============================================================================
-// BROWSER LAUNCHER & SELECTION PROMPT
+// BROWSER LAUNCHER & SELECTION PROMPTS
 // ============================================================================
-function askBrowserSelection() {
+function askOperationModeAndBrowser() {
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
     });
 
     console.log("=================================================");
-    console.log("Please select browser to run the game:");
-    console.log(" [1] Google Chrome");
-    console.log(" [2] Microsoft Edge");
-    console.log(" [3] Mozilla Firefox");
+    console.log("Please select Operation Mode:");
+    console.log(" [1] Single Client (1 Game Account)");
+    console.log(" [2] Dual Clients (2 Game Accounts)");
     console.log("=================================================");
 
     return new Promise((resolve) => {
-        rl.question("Enter number (1, 2 or 3) and press Enter: ", (answer) => {
-            rl.close();
-            const choice = answer.trim();
-            if (choice === '1' || choice === '2' || choice === '3') {
-                resolve(choice);
-            } else {
-                console.log("⚠️ Invalid choice! Opening Google Chrome by default.");
-                resolve('1');
-            }
+        rl.question("Enter number (1 or 2): ", (modeAnswer) => {
+            const modeChoice = modeAnswer.trim();
+            const mode = (modeChoice === '2') ? 'dual' : 'single';
+            
+            console.log("\n=================================================");
+            console.log("Please select browser to run:");
+            console.log(" [1] Google Chrome");
+            console.log(" [2] Microsoft Edge");
+            console.log(" [3] Mozilla Firefox");
+            console.log("=================================================");
+            
+            rl.question("Enter number (1, 2 or 3) and press Enter: ", (browserAnswer) => {
+                rl.close();
+                const browserChoice = browserAnswer.trim();
+                let choice = '1';
+                if (browserChoice === '1' || browserChoice === '2' || browserChoice === '3') {
+                    choice = browserChoice;
+                } else {
+                    console.log("⚠️ Invalid choice! Opening Google Chrome by default.");
+                }
+                resolve({ mode, choice });
+            });
         });
     });
 }
 
-async function launchBrowser(choice) {
+function isBlankPage(p) {
+    const url = p.url();
+    return url === 'about:blank' || url === '' || url.includes('chrome://newtab') || url.includes('chrome-search://');
+}
+
+async function launchBrowser(mode, choice) {
+    operationMode = mode;
     const projectPath = __dirname;
-    let profilePath = '';
     let launchOptions = {
         headless: false,
         viewport: null,
@@ -237,86 +203,207 @@ async function launchBrowser(choice) {
         ]
     };
 
+    let startUrl = targetUrlKeyword;
+    if (!startUrl.startsWith('http://') && !startUrl.startsWith('https://')) {
+        if (startUrl.includes('localhost') || startUrl.includes('127.0.0.1')) {
+            startUrl = 'http://' + startUrl;
+        } else {
+            startUrl = 'https://' + startUrl;
+        }
+    }
+
     let browserName = '';
+    let browserType = chromium;
 
     if (choice === '1') {
         browserName = 'Google Chrome';
-        profilePath = path.join(projectPath, 'chrome-profile');
-        console.log(`[System] Launching ${browserName} with persistent context...`);
-        browserContext = await chromium.launchPersistentContext(profilePath, {
-            ...launchOptions,
-            channel: 'chrome'
-        });
+        browserType = chromium;
     } else if (choice === '2') {
         browserName = 'Microsoft Edge';
-        profilePath = path.join(projectPath, 'edge-profile');
-        console.log(`[System] Launching ${browserName} with persistent context...`);
-        browserContext = await chromium.launchPersistentContext(profilePath, {
-            ...launchOptions,
-            channel: 'msedge'
-        });
+        browserType = chromium;
     } else {
         browserName = 'Mozilla Firefox';
-        profilePath = path.join(projectPath, 'firefox-profile', 'playwright-nightly');
-        console.log(`[System] Launching ${browserName} with persistent context...`);
-        browserContext = await firefox.launchPersistentContext(profilePath, {
-            headless: false,
-            viewport: null,
-            args: [
+        browserType = firefox;
+    }
+
+    const channelVal = choice === '1' ? 'chrome' : (choice === '2' ? 'msedge' : undefined);
+    const controlPanelUrl = 'http://localhost:3000/';
+    
+    // Launch Client 1
+    let profilePath1 = '';
+    if (choice === '1') profilePath1 = path.join(projectPath, 'chrome-profile');
+    else if (choice === '2') profilePath1 = path.join(projectPath, 'edge-profile');
+    else profilePath1 = path.join(projectPath, 'firefox-profile', 'playwright-nightly');
+
+    console.log(`[System] Launching Client 1 (${browserName}) with persistent context...`);
+    const launchArgs1 = { ...launchOptions };
+    if (channelVal) launchArgs1.channel = channelVal;
+    if (choice === '3') {
+        launchArgs1.args = [
+            '-start-maximized',
+            '-disable-background-timer-throttling',
+            '-disable-backgrounding-occluded-windows'
+        ];
+    }
+    browserContext1 = await browserType.launchPersistentContext(profilePath1, launchArgs1);
+
+    const pages1 = browserContext1.pages();
+    const targetPage1 = pages1.find(p => p.url().includes(targetUrlKeyword));
+    const controlPanelPage1 = pages1.find(p => p.url().includes('localhost:3000'));
+    const blankPages1 = pages1.filter(p => isBlankPage(p));
+    
+    let usedPages1 = [];
+    if (targetPage1) usedPages1.push(targetPage1);
+    if (controlPanelPage1) usedPages1.push(controlPanelPage1);
+
+    // Navigate or open target game page for Client 1
+    let pageForTarget1 = targetPage1;
+    if (!pageForTarget1) {
+        const availableBlank = blankPages1.find(p => !usedPages1.includes(p));
+        if (availableBlank) {
+            pageForTarget1 = availableBlank;
+            usedPages1.push(availableBlank);
+            console.log(`[System] Client 1: Navigating existing blank tab to game URL: ${startUrl}`);
+            pageForTarget1.goto(startUrl).catch(e => console.log(`[System] Client 1 initial navigation error:`, e.message));
+        } else {
+            console.log(`[System] Client 1: Creating new tab for game URL: ${startUrl}`);
+            pageForTarget1 = await browserContext1.newPage();
+            usedPages1.push(pageForTarget1);
+            pageForTarget1.goto(startUrl).catch(e => console.log(`[System] Client 1 initial navigation error:`, e.message));
+        }
+    }
+
+    // Open control panel tab on Client 1
+    if (!startUrl.includes('localhost:3000') && !controlPanelPage1) {
+        const availableBlank = blankPages1.find(p => !usedPages1.includes(p));
+        if (availableBlank) {
+            console.log(`[System] Client 1: Reusing existing blank tab for control panel`);
+            availableBlank.goto(controlPanelUrl).catch(e => console.log(`[System] Client 1 control panel navigation error:`, e.message));
+        } else {
+            console.log(`[System] Client 1: Opening new tab for control panel: ${controlPanelUrl}`);
+            if (pageForTarget1) {
+                await pageForTarget1.evaluate((url) => {
+                    window.open(url, '_blank');
+                }, controlPanelUrl).catch(async (err) => {
+                    console.log(`[System] Client 1 window.open failed, falling back to newPage():`, err.message);
+                    const cpPage = await browserContext1.newPage();
+                    cpPage.goto(controlPanelUrl).catch(e => console.log(`[System] Client 1 control panel navigation error:`, e.message));
+                });
+            } else {
+                const cpPage = await browserContext1.newPage();
+                cpPage.goto(controlPanelUrl).catch(e => console.log(`[System] Client 1 control panel navigation error:`, e.message));
+            }
+        }
+    } else if (controlPanelPage1) {
+        console.log(`[System] Client 1 already has control panel open: "${controlPanelPage1.url()}"`);
+    }
+
+    await browserContext1.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    });
+
+    // Launch Client 2
+    if (mode === 'dual') {
+        let profilePath2 = '';
+        if (choice === '1') profilePath2 = path.join(projectPath, 'chrome-profile-2');
+        else if (choice === '2') profilePath2 = path.join(projectPath, 'edge-profile-2');
+        else profilePath2 = path.join(projectPath, 'firefox-profile-2');
+
+        console.log(`[System] Launching Client 2 (${browserName}) with persistent context...`);
+        const launchArgs2 = { ...launchOptions };
+        if (channelVal) launchArgs2.channel = channelVal;
+        if (choice === '3') {
+            launchArgs2.args = [
                 '-start-maximized',
                 '-disable-background-timer-throttling',
                 '-disable-backgrounding-occluded-windows'
-            ]
+            ];
+        }
+        browserContext2 = await browserType.launchPersistentContext(profilePath2, launchArgs2);
+
+        const pages2 = browserContext2.pages();
+        const targetPage2 = pages2.find(p => p.url().includes(targetUrlKeyword));
+        const blankPages2 = pages2.filter(p => isBlankPage(p));
+        
+        let usedPages2 = [];
+        if (targetPage2) usedPages2.push(targetPage2);
+
+        // Navigate or open target game page for Client 2
+        let pageForTarget2 = targetPage2;
+        if (!pageForTarget2) {
+            const availableBlank = blankPages2.find(p => !usedPages2.includes(p));
+            if (availableBlank) {
+                pageForTarget2 = availableBlank;
+                usedPages2.push(availableBlank);
+                console.log(`[System] Client 2: Navigating existing blank tab to game URL: ${startUrl}`);
+                pageForTarget2.goto(startUrl).catch(e => console.log(`[System] Client 2 initial navigation error:`, e.message));
+            } else {
+                console.log(`[System] Client 2: Creating new tab for game URL: ${startUrl}`);
+                pageForTarget2 = await browserContext2.newPage();
+                usedPages2.push(pageForTarget2);
+                pageForTarget2.goto(startUrl).catch(e => console.log(`[System] Client 2 initial navigation error:`, e.message));
+            }
+        }
+
+        await browserContext2.addInitScript(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
         });
     }
 
-    // Open a blank page initially if none are open
-    const pages = browserContext.pages();
-    if (pages.length === 0) {
-        await browserContext.newPage();
-    }
-
-    // Hide Playwright automation flags (navigator.webdriver) to prevent detection
-    await browserContext.addInitScript(() => {
-        Object.defineProperty(navigator, 'webdriver', {
-            get: () => undefined
-        });
-    });
-
-    console.log(`[System] ${browserName} launched successfully!`);
+    console.log(`[System] ${browserName} launcher completed successfully!`);
 }
 
-function resetAndRescan() {
-    if (page) {
-        try {
-            page.removeAllListeners('close');
-            page.removeAllListeners('crash');
-        } catch (e) { }
+function resetAndRescanClient(clientIndex, browserCtx) {
+    if (clientIndex === 1) {
+        if (page1) {
+            try {
+                page1.removeAllListeners('close');
+                page1.removeAllListeners('crash');
+            } catch (e) {}
+        }
+        page1 = null;
+        stopLoopsForClient(1);
+        findAndAttachTabForClient(1, browserCtx).catch(err => console.error("Error in tab search for Client 1:", err));
+    } else {
+        if (page2) {
+            try {
+                page2.removeAllListeners('close');
+                page2.removeAllListeners('crash');
+            } catch (e) {}
+        }
+        page2 = null;
+        stopLoopsForClient(2);
+        findAndAttachTabForClient(2, browserCtx).catch(err => console.error("Error in tab search for Client 2:", err));
     }
-    page = null;
-    stopAllLoops();
-    findAndAttachTab().catch(err => console.error("Error in tab search:", err));
 }
 
-async function updateOverlayUI() {
-    if (!page) return;
+async function updateOverlayUIForClient(clientIndex, targetPage) {
+    if (!targetPage) return;
     try {
         const runningNames = [];
         for (let act of activeActions) {
-            if (act.mode === 'loop' && activeLoopStates[act.id] && activeLoopStates[act.id].running) {
-                runningNames.push(`🟢 ${act.name}`);
+            const target = act.targetClient || '1';
+            if (target === String(clientIndex) || target === 'both') {
+                if (act.mode === 'loop' && activeLoopStates[act.id] && activeLoopStates[act.id].running) {
+                    runningNames.push(`🟢 ${act.name}`);
+                }
             }
         }
-        if (isBuffSequenceRunning) {
+        if (isBuffSequenceRunning[String(clientIndex)]) {
             const buffAct = activeActions.find(a => a.mode === 'buff_sequence');
-            runningNames.push(`🔵 ${buffAct ? buffAct.name : 'Buff Sequence'}...`);
+            if (buffAct) {
+                const target = buffAct.targetClient || '1';
+                if (target === String(clientIndex) || target === 'both') {
+                    runningNames.push(`🔵 ${buffAct.name}...`);
+                }
+            }
         }
 
         const listHtml = runningNames.length > 0
             ? runningNames.map(name => `<div style="font-weight:600;color:#10b981;margin-bottom:2px;">${name}</div>`).join('')
             : `<div style="color:#a1a1aa;">💤 Standby</div>`;
 
-        await page.evaluate((html) => {
+        await targetPage.evaluate((html) => {
             const statusDiv = document.getElementById('bot-overlay-status');
             if (statusDiv) statusDiv.innerHTML = html;
         }, listHtml);
@@ -325,41 +412,58 @@ async function updateOverlayUI() {
     }
 }
 
-// Scanning for the target tab periodically until found
-async function findAndAttachTab() {
-    console.log(`[System] 🔍 Scanning for tabs containing "${targetUrlKeyword}"...`);
-    console.log("[System] (Please open your game page or local test page in the launched browser)");
+async function updateOverlayUI() {
+    if (operationMode === 'dual') {
+        await updateOverlayUIForClient(1, page1);
+        await updateOverlayUIForClient(2, page2);
+    } else {
+        await updateOverlayUIForClient(1, page1);
+    }
+}
 
+// Scanning for the target tab periodically until found
+async function findAndAttachTabForClient(clientIndex, browserCtx) {
+    console.log(`[System] 🔍 [Client ${clientIndex}] Scanning for tabs containing "${targetUrlKeyword}"...`);
+    
     while (true) {
         try {
-            const pages = browserContext.pages();
-            const foundPage = pages.find(p => p.url().includes(targetUrlKeyword) || p.url().includes('localhost:3000') || p.url().includes('game'));
+            const pages = browserCtx.pages();
+            const foundPage = pages.find(p => {
+                const url = p.url();
+                if (url.includes(targetUrlKeyword) || (url.includes('game') && !url.includes('localhost:3000'))) {
+                    return true;
+                }
+                if (targetUrlKeyword.includes('localhost:3000') && url.includes('localhost:3000')) {
+                    return true;
+                }
+                return false;
+            });
 
             if (foundPage) {
-                page = foundPage;
-                console.log(`\n[System] ✅ Game tab detected! Target locked: "${await page.title()}"`);
+                if (clientIndex === 1) {
+                    page1 = foundPage;
+                } else {
+                    page2 = foundPage;
+                }
+                console.log(`\n[System] ✅ [Client ${clientIndex}] Game tab detected! Target locked: "${await foundPage.title()}"`);
 
-                // Track tab closure to reset and poll again
-                page.on('close', () => {
-                    console.log("\n⚠️ [System] Game tab closed! Pausing bot and scanning for tab again...");
-                    resetAndRescan();
+                foundPage.on('close', () => {
+                    console.log(`\n⚠️ [System] [Client ${clientIndex}] Game tab closed! Pausing actions for Client ${clientIndex} and scanning again...`);
+                    resetAndRescanClient(clientIndex, browserCtx);
                 });
 
-                page.on('crash', () => {
-                    console.log("\n⚠️ [System] Game tab crashed! Pausing bot and scanning for tab again...");
-                    resetAndRescan();
+                foundPage.on('crash', () => {
+                    console.log(`\n⚠️ [System] [Client ${clientIndex}] Game tab crashed! Pausing actions for Client ${clientIndex} and scanning again...`);
+                    resetAndRescanClient(clientIndex, browserCtx);
                 });
 
-                console.log("-------------------------------------------------");
-                console.log("Global Hotkeys (Ready to use):");
-                console.log(" - XBUTTON1 or MOUSE BACK or [F9]  : Toggle Healing Mode");
-                console.log(" - XBUTTON2 or MOUSE FORWARD or [F10]: Toggle Mini Healing Mode");
-                console.log(" - INSERT or [HOME]                 : Trigger Buff Sequence");
-                console.log("-------------------------------------------------\n");
+                console.log(`-------------------------------------------------`);
+                console.log(`[Client ${clientIndex}] Global Hotkeys initialized!`);
+                console.log(`-------------------------------------------------\n`);
                 break;
             }
         } catch (e) {
-            // Silence page retrieval errors during transition or browser shutdown
+            // Silence page retrieval errors during transition
         }
         await new Promise(res => setTimeout(res, 2000));
     }
@@ -370,14 +474,24 @@ async function findAndAttachTab() {
 // ============================================================================
 async function initSystem() {
     try {
-        const choice = await askBrowserSelection();
-        await launchBrowser(choice);
+        const { mode, choice } = await askOperationModeAndBrowser();
+        await launchBrowser(mode, choice);
 
         console.log("=================================================");
         console.log("[System] Bot attached to browser context successfully!");
         console.log("=================================================");
 
-        await findAndAttachTab();
+        if (mode === 'dual') {
+            await Promise.all([
+                findAndAttachTabForClient(1, browserContext1),
+                findAndAttachTabForClient(2, browserContext2)
+            ]);
+        } else {
+            await findAndAttachTabForClient(1, browserContext1);
+        }
+
+        // Start native mouse and keyboard listeners after initialization completes
+        startGlobalListeners();
 
     } catch (error) {
         console.error("\n❌ [System Error] Initialization failed!");
@@ -390,8 +504,23 @@ async function initSystem() {
 // ============================================================================
 // ACTION & LOOP FUNCTIONS
 // ============================================================================
-async function sendKey(key) {
-    if (!page) return;
+async function sendKey(action, key) {
+    const target = action.targetClient || '1';
+    let targetPage = page1;
+    let clientName = 'Client 1';
+
+    if (target === '2') {
+        targetPage = page2;
+        clientName = 'Client 2';
+    } else if (target === 'both') {
+        // Sequentially send to both if marked as both
+        await sendKey({ ...action, targetClient: '1' }, key);
+        await sendKey({ ...action, targetClient: '2' }, key);
+        return;
+    }
+
+    if (!targetPage) return;
+
     try {
         // 1. Add random pre-press delay for human-like timing (10 - 35ms)
         const jitterDelay = Math.floor(Math.random() * 25) + 10;
@@ -399,24 +528,24 @@ async function sendKey(key) {
 
         // 2. Simulate hold time (60 - 130ms) like a human
         const holdTime = Math.floor(Math.random() * 70) + 60;
-        await page.keyboard.press(key, { delay: holdTime });
+        await targetPage.keyboard.press(key, { delay: holdTime });
 
-        console.log(`[Action] Sent key: "${key}" (Delay: ${jitterDelay}ms | Hold: ${holdTime}ms)`);
+        console.log(`[Action] [${clientName}] Sent key: "${key}" (Delay: ${jitterDelay}ms | Hold: ${holdTime}ms)`);
     } catch (e) {
-        console.error(`[Action Error] Failed to send key "${key}":`, e.message);
+        console.error(`[Action Error] [${clientName}] Failed to send key "${key}":`, e.message);
 
         // Detect closed connection / target destroyed / browser crash
         const msg = e.message.toLowerCase();
         if (msg.includes('closed') || msg.includes('target') || msg.includes('session') || msg.includes('detached') || msg.includes('destroyed')) {
-            console.log("\n⚠️ [System] Game tab connection lost during action execution! Initiating rescan...");
-            resetAndRescan();
+            console.log(`\n⚠️ [System] [${clientName}] Game tab connection lost during action execution! Initiating rescan...`);
+            if (target === '2') {
+                resetAndRescanClient(2, browserContext2);
+            } else {
+                resetAndRescanClient(1, browserContext1);
+            }
         }
     }
 }
-
-// Storage for running action state
-let activeLoopStates = {};
-let isBuffSequenceRunning = false;
 
 // Ensure running loops match the activeActions list
 function syncRunningLoops() {
@@ -432,9 +561,10 @@ function syncRunningLoops() {
 
 // Start a loop action
 async function startLoopAction(action) {
-    if (isBuffSequenceRunning) return;
+    const target = action.targetClient || '1';
+    if (isBuffSequenceRunning[target]) return;
 
-    console.log(`🟢 [Action] Starting loop: "${action.name}"`);
+    console.log(`🟢 [Action] Starting loop: "${action.name}" on Client ${target}`);
     if (!activeLoopStates[action.id]) {
         activeLoopStates[action.id] = { running: true, timeout: null };
     } else {
@@ -446,7 +576,7 @@ async function startLoopAction(action) {
         console.log(` - Running first steps for "${action.name}"...`);
         for (let step of action.firstSteps) {
             if (!activeLoopStates[action.id] || !activeLoopStates[action.id].running) return;
-            await sendKey(step.key);
+            await sendKey(action, step.key);
             await new Promise(res => setTimeout(res, step.delay));
         }
     }
@@ -476,15 +606,26 @@ function stopAllLoops() {
     }
 }
 
+// Stop active loops for a specific client
+function stopLoopsForClient(clientIndex) {
+    for (let act of activeActions) {
+        const target = act.targetClient || '1';
+        if ((target === String(clientIndex) || target === 'both') && act.mode === 'loop') {
+            stopLoopAction(act.id, act.name);
+        }
+    }
+}
+
 // Inner execution step for loops
 async function runLoopStep(action) {
+    const target = action.targetClient || '1';
     const state = activeLoopStates[action.id];
-    if (!state || !state.running || isBuffSequenceRunning) return;
+    if (!state || !state.running || isBuffSequenceRunning[target]) return;
 
     if (action.keys && action.keys.length > 0) {
         for (let key of action.keys) {
-            if (!state || !state.running || isBuffSequenceRunning) return;
-            await sendKey(key);
+            if (!state || !state.running || isBuffSequenceRunning[target]) return;
+            await sendKey(action, key);
         }
     }
 
@@ -502,30 +643,32 @@ async function runLoopStep(action) {
 
 // Run buff sequence
 async function runBuffSequenceAction(action) {
-    isBuffSequenceRunning = true;
-    console.log(`🔵 [Action] Buff Sequence Started: "${action.name}"...`);
+    const target = action.targetClient || '1';
+    isBuffSequenceRunning[target] = true;
+    console.log(`🔵 [Action] Buff Sequence Started: "${action.name}" on Client ${target}...`);
 
-    // Stop all active loop actions first
-    stopAllLoops();
+    // Stop active loop actions for this client first
+    stopLoopsForClient(target);
 
     const delay = action.delayBuff || 800;
     if (action.keys && action.keys.length > 0) {
         for (let key of action.keys) {
-            await sendKey(key);
+            await sendKey(action, key);
             await new Promise(res => setTimeout(res, delay));
         }
     }
 
-    isBuffSequenceRunning = false;
-    console.log(`⚪ [Action] Finished Buff Sequence: "${action.name}"`);
+    isBuffSequenceRunning[target] = false;
+    console.log(`⚪ [Action] Finished Buff Sequence: "${action.name}" on Client ${target}`);
 }
 
 // Run single press
 async function runSinglePressAction(action) {
-    console.log(`⚡ [Action] Single Press: "${action.name}"`);
+    const target = action.targetClient || '1';
+    console.log(`⚡ [Action] Single Press: "${action.name}" on Client ${target}`);
     if (action.keys && action.keys.length > 0) {
         for (let key of action.keys) {
-            await sendKey(key);
+            await sendKey(action, key);
         }
     }
 }
@@ -540,7 +683,8 @@ function handleActionTrigger(act) {
             startLoopAction(act).catch(err => console.error(`Error in startLoopAction:`, err));
         }
     } else if (act.mode === 'buff_sequence') {
-        if (!isBuffSequenceRunning) {
+        const target = act.targetClient || '1';
+        if (!isBuffSequenceRunning[target]) {
             runBuffSequenceAction(act).catch(err => console.error(`Error in runBuffSequence:`, err));
         }
     } else if (act.mode === 'single_press') {
@@ -552,45 +696,54 @@ function handleActionTrigger(act) {
 // GLOBAL HOTKEYS LISTENER (Native OS level hooks)
 // ============================================================================
 
-// 1. Mouse Button Events Hook
-mouseEvents.on('mousedown', (event) => {
-    console.log(`[Global Mouse Captured] Clicked button: ${event.button}`);
-    if (!page) return;
+function startGlobalListeners() {
+    console.log("\n[System] Initializing global keyboard and mouse listeners...");
+    const { GlobalKeyboardListener } = require('node-global-key-listener');
+    mouseEvents = require('global-mouse-events');
+    keyboard = new GlobalKeyboardListener();
 
-    // Find matching actions
-    const matchingActions = activeActions.filter(act =>
-        act.enabled &&
-        act.trigger.type === 'mouse' &&
-        act.trigger.value == event.button
-    );
+    // 1. Mouse Button Events Hook
+    mouseEvents.on('mousedown', (event) => {
+        console.log(`[Global Mouse Captured] Clicked button: ${event.button}`);
+        if (!page1 && !page2) return;
 
-    for (let act of matchingActions) {
-        console.log(`[Global Mouse Captured] Triggered action: "${act.name}" via Mouse Button ${event.button}`);
-        handleActionTrigger(act);
-    }
-});
+        // Find matching actions
+        const matchingActions = activeActions.filter(act =>
+            act.enabled &&
+            act.trigger.type === 'mouse' &&
+            act.trigger.value == event.button
+        );
 
-// 2. Keyboard Events Hook
-keyboard.addListener(function (e, down) {
-    if (e.state !== "DOWN") return;
-    if (!page) return;
+        for (let act of matchingActions) {
+            console.log(`[Global Mouse Captured] Triggered action: "${act.name}" via Mouse Button ${event.button}`);
+            handleActionTrigger(act);
+        }
+    });
 
-    // Find matching actions
-    const matchingActions = activeActions.filter(act =>
-        act.enabled &&
-        act.trigger.type === 'keyboard' &&
-        act.trigger.value &&
-        act.trigger.value.toUpperCase() === e.name.toUpperCase()
-    );
+    // 2. Keyboard Events Hook
+    keyboard.addListener(function (e, down) {
+        if (e.state !== "DOWN") return;
+        if (!page1 && !page2) return;
 
-    if (matchingActions.length > 0) {
-        console.log(`[Global Key Captured] Triggered key: "${e.name}"`);
-    }
+        // Find matching actions
+        const matchingActions = activeActions.filter(act =>
+            act.enabled &&
+            act.trigger.type === 'keyboard' &&
+            act.trigger.value &&
+            act.trigger.value.toUpperCase() === e.name.toUpperCase()
+        );
 
-    for (let act of matchingActions) {
-        handleActionTrigger(act);
-    }
-});
+        if (matchingActions.length > 0) {
+            console.log(`[Global Key Captured] Triggered key: "${e.name}"`);
+        }
+
+        for (let act of matchingActions) {
+            handleActionTrigger(act);
+        }
+    });
+
+    console.log("[System] Global keyboard and mouse listeners initialized successfully!");
+}
 
 // Start system initialization
 initSystem();

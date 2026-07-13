@@ -1,5 +1,7 @@
 node_modules/
 chrome-profile/
+chrome-profile-2/
 firefox-profile/
+firefox-profile-2/
 *.log
 .DS_Store

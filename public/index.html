@@ -314,6 +314,10 @@ const TRANSLATIONS = {
     triggerType: "Trigger Type",
     triggerHotkey: "Trigger Hotkey",
     actionMode: "Action Mode",
+    targetClient: "Target Client",
+    client1: "Client 1",
+    client2: "Client 2",
+    bothClients: "Both Clients",
     
     triggerKeyboard: "Keyboard Hotkey",
     triggerMouse: "Mouse Click",
@@ -388,6 +392,10 @@ const TRANSLATIONS = {
     triggerType: "ชนิดของ Trigger",
     triggerHotkey: "ปุ่มคีย์ลัด (Hotkey)",
     actionMode: "โหมดการทำงาน",
+    targetClient: "เป้าหมายเครื่อง/แท็บ",
+    client1: "เบราว์เซอร์ 1 (หลัก)",
+    client2: "เบราว์เซอร์ 2 (รอง)",
+    bothClients: "ทั้งสองเบราว์เซอร์",
     
     triggerKeyboard: "ปุ่มคีย์บอร์ด",
     triggerMouse: "คลิกเมาส์",
@@ -716,12 +724,20 @@ function renderActions(actions) {
         </div>
 
         <div class="field-row">
-          <div class="field" style="grid-column: span 2;">
+          <div class="field">
             <label>${TRANSLATIONS[currentLang].actionMode}</label>
             <select class="action-mode" onchange="onModeChange('${act.id}')" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%;">
               <option value="loop" ${act.mode === 'loop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeLoop}</option>
               <option value="buff_sequence" ${act.mode === 'buff_sequence' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeBuff}</option>
               <option value="single_press" ${act.mode === 'single_press' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeSingle}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label data-i18n="targetClient">${TRANSLATIONS[currentLang].targetClient}</label>
+            <select class="action-target-client" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%;">
+              <option value="1" ${act.targetClient === '1' || !act.targetClient ? 'selected' : ''}>${TRANSLATIONS[currentLang].client1}</option>
+              <option value="2" ${act.targetClient === '2' ? 'selected' : ''}>${TRANSLATIONS[currentLang].client2}</option>
+              <option value="both" ${act.targetClient === 'both' ? 'selected' : ''}>${TRANSLATIONS[currentLang].bothClients}</option>
             </select>
           </div>
         </div>
@@ -879,6 +895,7 @@ function syncActionFromDom(actionId) {
   act.trigger.type = card.querySelector('.action-trigger-type').value;
   act.trigger.value = card.querySelector('.action-trigger-val').value.trim();
   act.mode = card.querySelector('.action-mode').value;
+  act.targetClient = card.querySelector('.action-target-client').value;
 
   if (act.mode === 'loop') {
     const keysInput = card.querySelector('.loop-keys');
@@ -916,7 +933,8 @@ function addNewAction() {
     interval: 2000,
     jitter: 100,
     firstSteps: [],
-    enabled: true
+    enabled: true,
+    targetClient: '1'
   });
 
   renderActions(profile.actions);

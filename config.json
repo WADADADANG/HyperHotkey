@@ -1,8 +1,8 @@
 {
-  "activeProfile": "Default",
+  "activeProfile": "Flyff 2",
   "profiles": {
     "Default": {
-      "targetUrlKeyword": "universe.flyff.com",
+      "targetUrlKeyword": "universe.flyff.com/play",
       "actions": [
         {
           "id": "action_1",
@@ -23,7 +23,8 @@
               "delay": 500
             }
           ],
-          "enabled": true
+          "enabled": true,
+          "targetClient": "1"
         },
         {
           "id": "action_2",
@@ -39,7 +40,8 @@
           "interval": 5000,
           "jitter": 150,
           "firstSteps": [],
-          "enabled": true
+          "enabled": true,
+          "targetClient": "1"
         },
         {
           "id": "action_3",
@@ -55,7 +57,8 @@
           "interval": 40000,
           "jitter": 2000,
           "firstSteps": [],
-          "enabled": false
+          "enabled": false,
+          "targetClient": "1"
         },
         {
           "id": "action_4",
@@ -83,7 +86,47 @@
             "F1"
           ],
           "delayBuff": 800,
-          "enabled": false
+          "enabled": false,
+          "targetClient": "1"
+        }
+      ]
+    },
+    "Flyff 2": {
+      "targetUrlKeyword": "universe.flyff.com/play",
+      "actions": [
+        {
+          "id": "action_1783931275751_446",
+          "name": "Healing 1",
+          "mode": "loop",
+          "trigger": {
+            "type": "mouse",
+            "value": "4"
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 4800,
+          "jitter": 250,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1"
+        },
+        {
+          "id": "action_1783931302136_90",
+          "name": "Healing 2",
+          "mode": "loop",
+          "trigger": {
+            "type": "mouse",
+            "value": "5"
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 4200,
+          "jitter": 250,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "2"
         }
       ]
     }
