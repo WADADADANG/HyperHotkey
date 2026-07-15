@@ -136,7 +136,7 @@
         },
         {
           "id": "action_1784089828905_433",
-          "name": "MeeRaiPao Psykeeper SKill AOE",
+          "name": "Psykeeper AOE",
           "mode": "loop",
           "trigger": {
             "type": "keyboard",
