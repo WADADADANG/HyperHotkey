@@ -93,6 +93,12 @@
     },
     "Flyff 2": {
       "targetUrlKeyword": "universe.flyff.com/play",
+      "enableOverlay": true,
+      "clientAliases": {
+        "1": "1",
+        "2": "2",
+        "3": "3"
+      },
       "actions": [
         {
           "id": "action_1783931275751_446",
@@ -122,11 +128,28 @@
           "keys": [
             "1"
           ],
-          "interval": 4200,
+          "interval": 1500,
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
           "targetClient": "2"
+        },
+        {
+          "id": "action_1784089828905_433",
+          "name": "MeeRaiPao Psykeeper SKill AOE",
+          "mode": "loop",
+          "trigger": {
+            "type": "keyboard",
+            "value": "NUMPAD MINUS"
+          },
+          "keys": [
+            "5"
+          ],
+          "interval": 3200,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "3"
         }
       ]
     }

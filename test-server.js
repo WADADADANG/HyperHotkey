@@ -51,13 +51,79 @@ const server = http.createServer((req, res) => {
   }
 
   const urlPath = req.url.split('?')[0];
-  console.log(`[Server] ${req.method} ${urlPath}`);
+  // Mute periodic polling logs to prevent console noise
+  if (!(req.method === 'GET' && (urlPath === '/api/status' || urlPath === '/api/config'))) {
+    console.log(`[Server] ${req.method} ${urlPath}`);
+  }
 
   // --- GET /api/config → full config ---
   if (urlPath === '/api/config' && req.method === 'GET') {
     const config = readConfig();
     if (!config) return sendJSON(res, 500, { error: 'Failed to read config' });
     return sendJSON(res, 200, config);
+  }
+
+  // --- GET /api/status → active clients list & their statuses ---
+  if (urlPath === '/api/status' && req.method === 'GET') {
+    const activeList = global.activeClients || [];
+    const clientStatuses = {};
+
+    activeList.forEach(clientIdx => {
+      const clientStr = String(clientIdx);
+      // Check if a buff sequence is currently running
+      if (global.isBuffSequenceRunning && global.isBuffSequenceRunning[clientStr]) {
+        const activeActions = global.activeActions || [];
+        const buffAct = activeActions.find(a => a.mode === 'buff_sequence' && (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all'));
+        clientStatuses[clientStr] = {
+          status: buffAct ? buffAct.name : "Buffing",
+          type: "buff"
+        };
+      } else {
+        // Check if any loop actions targeting this client are running
+        const activeLoopStates = global.activeLoopStates || {};
+        const activeActions = global.activeActions || [];
+        const activeLoop = activeActions.find(a => 
+          a.mode === 'loop' && 
+          a.enabled && 
+          activeLoopStates[a.id] && 
+          activeLoopStates[a.id].running &&
+          (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+        );
+
+        if (activeLoop) {
+          clientStatuses[clientStr] = {
+            status: activeLoop.name,
+            type: "loop"
+          };
+        } else {
+          clientStatuses[clientStr] = {
+            status: "Standby",
+            type: "standby"
+          };
+        }
+      }
+    });
+
+    return sendJSON(res, 200, {
+      activeClients: activeList,
+      clientStatuses: clientStatuses
+    });
+  }
+
+  // --- POST /api/overlay/disable → toggle off overlay config ---
+  if (urlPath === '/api/overlay/disable' && req.method === 'POST') {
+    const config = readConfig();
+    if (!config) return sendJSON(res, 500, { error: 'Config read failed' });
+    const currentProfile = config.activeProfile;
+    if (config.profiles[currentProfile]) {
+      config.profiles[currentProfile].enableOverlay = false;
+      writeConfig(config);
+      console.log(`[Server] Disabled overlay in config profile: ${currentProfile}`);
+      sendJSON(res, 200, { success: true });
+    } else {
+      sendJSON(res, 400, { error: 'Active profile not found' });
+    }
+    return;
   }
 
   // --- POST /api/config → save profile settings ---

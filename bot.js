@@ -7,9 +7,9 @@ const fs = require('fs');
 require('./test-server.js');
 
 let keyboard, mouseEvents;
-let browserContext1, page1;
-let browserContext2, page2;
-let operationMode = 'single'; // 'single' or 'dual'
+let clientPages = {};    // clientIndex -> page
+let clientContexts = {}; // clientIndex -> browserContext
+let activeClients = [];  // Array of active client indices, e.g. [2, 4]
 
 // ============================================================================
 // CONFIGURATION VARIABLES
@@ -17,6 +17,7 @@ let operationMode = 'single'; // 'single' or 'dual'
 let targetUrlKeyword = 'universe.flyff.com'; // URL keyword to identify game tab
 
 let activeActions = [];
+let clientAliases = {};
 
 // Helper to load config from JSON file
 function loadConfigFromFile() {
@@ -47,9 +48,22 @@ function loadConfigFromFile() {
             } else {
                 activeActions = [];
             }
+            global.activeActions = activeActions; // Share with test-server.js
+
+            // Load client aliases
+            clientAliases = profile.clientAliases || {};
 
             // Sync state of active loops
             syncRunningLoops();
+
+            // Sync Python overlay process
+            syncOverlayProcess(!!profile.enableOverlay);
+
+            // Update browser titles if running
+            updateBrowserTitles();
+
+            // Send state to overlay
+            sendOverlayUpdate();
 
             console.log(`[Config] Loaded ${activeActions.length} actions successfully!`);
         } else {
@@ -140,35 +154,197 @@ watchConfigChanges();
 // ============================================================================
 // Storage for randomized timeout references (Dynamic Jitter) per action ID
 let activeLoopStates = {};
-let isBuffSequenceRunning = { '1': false, '2': false };
+let isBuffSequenceRunning = {};
+global.activeLoopStates = activeLoopStates;
+global.isBuffSequenceRunning = isBuffSequenceRunning;
+
+let isSystemInitialized = false;
+const { spawn } = require('child_process');
+let overlayProcess = null;
+
+function sendOverlayUpdate() {
+    if (!overlayProcess) return;
+    const activeList = activeClients || [];
+    const clientStatuses = {};
+    activeList.forEach(clientIdx => {
+        const clientStr = String(clientIdx);
+        if (isBuffSequenceRunning[clientStr]) {
+            const buffAct = activeActions.find(a => a.mode === 'buff_sequence' && (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all'));
+            clientStatuses[clientStr] = {
+                status: buffAct ? buffAct.name : "Buffing",
+                type: "buff"
+            };
+        } else {
+            const activeLoop = activeActions.find(a => 
+                a.mode === 'loop' && 
+                a.enabled && 
+                activeLoopStates[a.id] && 
+                activeLoopStates[a.id].running &&
+                (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+            );
+            if (activeLoop) {
+                clientStatuses[clientStr] = {
+                    status: activeLoop.name,
+                    type: "loop"
+                };
+            } else {
+                clientStatuses[clientStr] = {
+                    status: "Standby",
+                    type: "standby"
+                };
+            }
+        }
+    });
+    const payload = JSON.stringify({ activeClients: activeList, clientStatuses, clientAliases });
+    try {
+        overlayProcess.stdin.write(payload + "\n");
+    } catch (err) {
+        // Ignored
+    }
+}
+
+function syncOverlayProcess(enableOverlay) {
+    if (!isSystemInitialized) return; // Delay overlay launch until system initialization is complete
+
+    if (enableOverlay) {
+        if (overlayProcess) return; // Already running
+
+        console.log(`[Overlay] Starting Python Desktop Overlay...`);
+        const overlayPath = path.join(__dirname, 'overlay.py');
+        
+        // Spawn Python subprocess with stdin piped, ignoring stdout/stderr to reduce log clutter
+        overlayProcess = spawn('python', ['-u', overlayPath], {
+            stdio: ['pipe', 'ignore', 'ignore'],
+            detached: true,
+            windowsHide: true
+        });
+
+        overlayProcess.on('error', (err) => {
+            overlayProcess = spawn('py', ['-u', overlayPath], { stdio: ['pipe', 'ignore', 'ignore'], detached: true, windowsHide: true });
+            
+            overlayProcess.on('error', (err2) => {
+                overlayProcess = spawn('python3', ['-u', overlayPath], { stdio: ['pipe', 'ignore', 'ignore'], detached: true, windowsHide: true });
+                
+                overlayProcess.on('error', (err3) => {
+                    console.error(`[Overlay Error] Python is not installed or not available in the system PATH.`);
+                    overlayProcess = null;
+                });
+            });
+        });
+
+        if (overlayProcess) {
+            overlayProcess.unref();
+            
+            overlayProcess.on('close', () => {
+                console.log(`[Overlay] Desktop Overlay process closed.`);
+                overlayProcess = null;
+            });
+
+            // Send initial state update
+            setTimeout(sendOverlayUpdate, 300);
+        }
+    } else {
+        if (overlayProcess) {
+            console.log(`[Overlay] Stopping Desktop Overlay...`);
+            overlayProcess.kill('SIGINT');
+            overlayProcess = null;
+        }
+    }
+}
+
+// Clean up subprocess on main process exit
+process.on('exit', () => {
+    if (overlayProcess) {
+        overlayProcess.kill();
+    }
+});
+
+function updateBrowserTitles() {
+    for (let index of activeClients) {
+        const page = clientPages[index];
+        if (!page) continue;
+        const alias = clientAliases[String(index)] || '';
+        const prefix = alias ? `[${alias}] ` : `[Client ${index}] `;
+        
+        page.evaluate(({ prefix }) => {
+            window.__clientPrefix = prefix;
+            const title = document.title;
+            let cleanTitle = title;
+            if (cleanTitle && cleanTitle.includes('] ')) {
+                const parts = cleanTitle.split('] ');
+                if (parts.length > 1 && parts[0].startsWith('[')) {
+                    cleanTitle = parts.slice(1).join('] ');
+                }
+            }
+            document.title = prefix + cleanTitle;
+        }, { prefix }).catch(e => {
+            // Ignore errors for closed tabs
+        });
+    }
+}
 
 // ============================================================================
 // BROWSER LAUNCHER & SELECTION PROMPTS
 // ============================================================================
-function askOperationModeAndBrowser() {
+function parseClientInput(input) {
+    const clients = [];
+    const parts = input.split(',');
+    for (let part of parts) {
+        part = part.trim();
+        if (part.includes('-')) {
+            const rangeParts = part.split('-');
+            const start = parseInt(rangeParts[0], 10);
+            const end = parseInt(rangeParts[1], 10);
+            if (!isNaN(start) && !isNaN(end) && start >= 1 && end <= 8 && start <= end) {
+                for (let i = start; i <= end; i++) {
+                    if (!clients.includes(i)) clients.push(i);
+                }
+            }
+        } else {
+            const num = parseInt(part, 10);
+            if (!isNaN(num) && num >= 1 && num <= 8) {
+                if (!clients.includes(num)) clients.push(num);
+            }
+        }
+    }
+    return clients.sort((a, b) => a - b);
+}
+
+function askClientsAndBrowser() {
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
     });
 
     console.log("=================================================");
-    console.log("Please select Operation Mode:");
-    console.log(" [1] Single Client (1 Game Account)");
-    console.log(" [2] Dual Clients (2 Game Accounts)");
+    console.log("Enter active client numbers to run (1-8):");
+    console.log("Example: '2,4' for Client 2 & 4, or '1-3' for Clients 1 to 3.");
+    console.log("Press Enter without input to run Client 1.");
     console.log("=================================================");
 
     return new Promise((resolve) => {
-        rl.question("Enter number (1 or 2): ", (modeAnswer) => {
-            const modeChoice = modeAnswer.trim();
-            const mode = (modeChoice === '2') ? 'dual' : 'single';
-            
+        rl.question("Enter clients and press Enter: ", (clientAnswer) => {
+            const input = clientAnswer.trim();
+            let parsedClients = [];
+            if (input === '') {
+                parsedClients = [1];
+            } else {
+                parsedClients = parseClientInput(input);
+            }
+            if (parsedClients.length === 0) {
+                console.log("⚠️ No valid client numbers detected! Running Client 1 by default.");
+                parsedClients = [1];
+            }
+
+            console.log(`\nSelected clients to launch: [${parsedClients.join(', ')}]`);
+
             console.log("\n=================================================");
             console.log("Please select browser to run:");
             console.log(" [1] Google Chrome");
             console.log(" [2] Microsoft Edge");
             console.log(" [3] Mozilla Firefox");
             console.log("=================================================");
-            
+
             rl.question("Enter number (1, 2 or 3) and press Enter: ", (browserAnswer) => {
                 rl.close();
                 const browserChoice = browserAnswer.trim();
@@ -178,7 +354,7 @@ function askOperationModeAndBrowser() {
                 } else {
                     console.log("⚠️ Invalid choice! Opening Google Chrome by default.");
                 }
-                resolve({ mode, choice });
+                resolve({ activeClientsList: parsedClients, choice });
             });
         });
     });
@@ -189,9 +365,47 @@ function isBlankPage(p) {
     return url === 'about:blank' || url === '' || url.includes('chrome://newtab') || url.includes('chrome-search://');
 }
 
-async function launchBrowser(mode, choice) {
-    operationMode = mode;
+function migrateProfilesDirectory() {
     const projectPath = __dirname;
+    const profilesDir = path.join(projectPath, 'profiles');
+    if (!fs.existsSync(profilesDir)) {
+        try {
+            fs.mkdirSync(profilesDir, { recursive: true });
+        } catch (e) {
+            console.error(`[System Error] Failed to create profiles directory:`, e.message);
+            return;
+        }
+    }
+
+    const oldProfiles = [
+        'chrome-profile', 'chrome-profile-2',
+        'edge-profile', 'edge-profile-2',
+        'firefox-profile', 'firefox-profile-2'
+    ];
+
+    for (const name of oldProfiles) {
+        const oldPath = path.join(projectPath, name);
+        const newPath = path.join(profilesDir, name);
+        if (fs.existsSync(oldPath)) {
+            if (!fs.existsSync(newPath)) {
+                try {
+                    fs.renameSync(oldPath, newPath);
+                    console.log(`[System] Cleaned up folder structure: Moved old profile "${name}" to "profiles/${name}"`);
+                } catch (e) {
+                    console.warn(`[System] Failed to move old profile folder "${name}":`, e.message);
+                }
+            }
+        }
+    }
+}
+
+async function launchBrowser(activeClientsList, choice) {
+    activeClients = activeClientsList;
+    global.activeClients = activeClients; // Share with test-server.js
+
+    const projectPath = __dirname;
+    const profilesDir = path.join(projectPath, 'profiles');
+
     let launchOptions = {
         headless: false,
         viewport: null,
@@ -228,197 +442,136 @@ async function launchBrowser(mode, choice) {
 
     const channelVal = choice === '1' ? 'chrome' : (choice === '2' ? 'msedge' : undefined);
     const controlPanelUrl = 'http://localhost:3000/';
-    
-    // Launch Client 1
-    let profilePath1 = '';
-    if (choice === '1') profilePath1 = path.join(projectPath, 'chrome-profile');
-    else if (choice === '2') profilePath1 = path.join(projectPath, 'edge-profile');
-    else profilePath1 = path.join(projectPath, 'firefox-profile', 'playwright-nightly');
 
-    console.log(`[System] Launching Client 1 (${browserName}) with persistent context...`);
-    const launchArgs1 = { ...launchOptions };
-    if (channelVal) launchArgs1.channel = channelVal;
-    if (choice === '3') {
-        launchArgs1.args = [
-            '-start-maximized',
-            '-disable-background-timer-throttling',
-            '-disable-backgrounding-occluded-windows'
-        ];
-    }
-    browserContext1 = await browserType.launchPersistentContext(profilePath1, launchArgs1);
+    // Launch all selected clients
+    for (let clientIndex of activeClients) {
+        console.log(`[System] Launching Client ${clientIndex} (${browserName}) with persistent context...`);
 
-    const pages1 = browserContext1.pages();
-    const targetPage1 = pages1.find(p => p.url().includes(targetUrlKeyword));
-    const controlPanelPage1 = pages1.find(p => p.url().includes('localhost:3000'));
-    const blankPages1 = pages1.filter(p => isBlankPage(p));
-    
-    let usedPages1 = [];
-    if (targetPage1) usedPages1.push(targetPage1);
-    if (controlPanelPage1) usedPages1.push(controlPanelPage1);
-
-    // Navigate or open target game page for Client 1
-    let pageForTarget1 = targetPage1;
-    if (!pageForTarget1) {
-        const availableBlank = blankPages1.find(p => !usedPages1.includes(p));
-        if (availableBlank) {
-            pageForTarget1 = availableBlank;
-            usedPages1.push(availableBlank);
-            console.log(`[System] Client 1: Navigating existing blank tab to game URL: ${startUrl}`);
-            pageForTarget1.goto(startUrl).catch(e => console.log(`[System] Client 1 initial navigation error:`, e.message));
+        let profileName = '';
+        if (choice === '1') {
+            profileName = clientIndex === 1 ? 'chrome-profile' : `chrome-profile-${clientIndex}`;
+        } else if (choice === '2') {
+            profileName = clientIndex === 1 ? 'edge-profile' : `edge-profile-${clientIndex}`;
         } else {
-            console.log(`[System] Client 1: Creating new tab for game URL: ${startUrl}`);
-            pageForTarget1 = await browserContext1.newPage();
-            usedPages1.push(pageForTarget1);
-            pageForTarget1.goto(startUrl).catch(e => console.log(`[System] Client 1 initial navigation error:`, e.message));
+            profileName = clientIndex === 1 ? 'firefox-profile' : `firefox-profile-${clientIndex}`;
         }
-    }
 
-    // Open control panel tab on Client 1
-    if (!startUrl.includes('localhost:3000') && !controlPanelPage1) {
-        const availableBlank = blankPages1.find(p => !usedPages1.includes(p));
-        if (availableBlank) {
-            console.log(`[System] Client 1: Reusing existing blank tab for control panel`);
-            availableBlank.goto(controlPanelUrl).catch(e => console.log(`[System] Client 1 control panel navigation error:`, e.message));
-        } else {
-            console.log(`[System] Client 1: Opening new tab for control panel: ${controlPanelUrl}`);
-            if (pageForTarget1) {
-                await pageForTarget1.evaluate((url) => {
-                    window.open(url, '_blank');
-                }, controlPanelUrl).catch(async (err) => {
-                    console.log(`[System] Client 1 window.open failed, falling back to newPage():`, err.message);
-                    const cpPage = await browserContext1.newPage();
-                    cpPage.goto(controlPanelUrl).catch(e => console.log(`[System] Client 1 control panel navigation error:`, e.message));
-                });
-            } else {
-                const cpPage = await browserContext1.newPage();
-                cpPage.goto(controlPanelUrl).catch(e => console.log(`[System] Client 1 control panel navigation error:`, e.message));
-            }
-        }
-    } else if (controlPanelPage1) {
-        console.log(`[System] Client 1 already has control panel open: "${controlPanelPage1.url()}"`);
-    }
-
-    await browserContext1.addInitScript(() => {
-        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-    });
-
-    // Launch Client 2
-    if (mode === 'dual') {
-        let profilePath2 = '';
-        if (choice === '1') profilePath2 = path.join(projectPath, 'chrome-profile-2');
-        else if (choice === '2') profilePath2 = path.join(projectPath, 'edge-profile-2');
-        else profilePath2 = path.join(projectPath, 'firefox-profile-2');
-
-        console.log(`[System] Launching Client 2 (${browserName}) with persistent context...`);
-        const launchArgs2 = { ...launchOptions };
-        if (channelVal) launchArgs2.channel = channelVal;
+        const profilePath = path.join(profilesDir, profileName);
+        const launchArgs = { ...launchOptions };
+        if (channelVal) launchArgs.channel = channelVal;
+        
+        // Firefox specific args
         if (choice === '3') {
-            launchArgs2.args = [
+            launchArgs.args = [
                 '-start-maximized',
                 '-disable-background-timer-throttling',
                 '-disable-backgrounding-occluded-windows'
             ];
-        }
-        browserContext2 = await browserType.launchPersistentContext(profilePath2, launchArgs2);
-
-        const pages2 = browserContext2.pages();
-        const targetPage2 = pages2.find(p => p.url().includes(targetUrlKeyword));
-        const blankPages2 = pages2.filter(p => isBlankPage(p));
-        
-        let usedPages2 = [];
-        if (targetPage2) usedPages2.push(targetPage2);
-
-        // Navigate or open target game page for Client 2
-        let pageForTarget2 = targetPage2;
-        if (!pageForTarget2) {
-            const availableBlank = blankPages2.find(p => !usedPages2.includes(p));
-            if (availableBlank) {
-                pageForTarget2 = availableBlank;
-                usedPages2.push(availableBlank);
-                console.log(`[System] Client 2: Navigating existing blank tab to game URL: ${startUrl}`);
-                pageForTarget2.goto(startUrl).catch(e => console.log(`[System] Client 2 initial navigation error:`, e.message));
-            } else {
-                console.log(`[System] Client 2: Creating new tab for game URL: ${startUrl}`);
-                pageForTarget2 = await browserContext2.newPage();
-                usedPages2.push(pageForTarget2);
-                pageForTarget2.goto(startUrl).catch(e => console.log(`[System] Client 2 initial navigation error:`, e.message));
+            // Firefox persistent path logic
+            if (clientIndex === 1) {
+                launchArgs.profile = path.join(profilePath, 'playwright-nightly');
             }
         }
 
-        await browserContext2.addInitScript(() => {
+        const browserCtx = await browserType.launchPersistentContext(profilePath, launchArgs);
+        clientContexts[clientIndex] = browserCtx;
+
+        const pages = browserCtx.pages();
+        const targetPage = pages.find(p => p.url().includes(targetUrlKeyword));
+        const controlPanelPage = pages.find(p => p.url().includes('localhost:3000'));
+        const blankPages = pages.filter(p => isBlankPage(p));
+
+        let usedPages = [];
+        if (targetPage) usedPages.push(targetPage);
+        if (controlPanelPage) usedPages.push(controlPanelPage);
+
+        // 1. Open target game page
+        let pageForTarget = targetPage;
+        if (!pageForTarget) {
+            const availableBlank = blankPages.find(p => !usedPages.includes(p));
+            if (availableBlank) {
+                pageForTarget = availableBlank;
+                usedPages.push(availableBlank);
+                console.log(`[System] Client ${clientIndex}: Navigating existing blank tab to game URL: ${startUrl}`);
+                pageForTarget.goto(startUrl).catch(e => console.log(`[System] Client ${clientIndex} initial navigation error:`, e.message));
+            } else {
+                console.log(`[System] Client ${clientIndex}: Creating new tab for game URL: ${startUrl}`);
+                pageForTarget = await browserCtx.newPage();
+                usedPages.push(pageForTarget);
+                pageForTarget.goto(startUrl).catch(e => console.log(`[System] Client ${clientIndex} initial navigation error:`, e.message));
+            }
+        }
+
+        // 2. Open control panel tab on Client 1 only
+        if (clientIndex === 1 && !startUrl.includes('localhost:3000') && !controlPanelPage) {
+            const availableBlank = blankPages.find(p => !usedPages.includes(p));
+            if (availableBlank) {
+                console.log(`[System] Client 1: Reusing existing blank tab for control panel`);
+                availableBlank.goto(controlPanelUrl).catch(e => console.log(`[System] Client 1 control panel navigation error:`, e.message));
+            } else {
+                console.log(`[System] Client 1: Opening new tab for control panel: ${controlPanelUrl}`);
+                if (pageForTarget) {
+                    await pageForTarget.evaluate((url) => {
+                        window.open(url, '_blank');
+                    }, controlPanelUrl).catch(async (err) => {
+                        console.log(`[System] Client 1 window.open failed, falling back to newPage():`, err.message);
+                        const cpPage = await browserCtx.newPage();
+                        cpPage.goto(controlPanelUrl).catch(e => console.log(`[System] Client 1 control panel navigation error:`, e.message));
+                    });
+                } else {
+                    const cpPage = await browserCtx.newPage();
+                    cpPage.goto(controlPanelUrl).catch(e => console.log(`[System] Client 1 control panel navigation error:`, e.message));
+                }
+            }
+        } else if (clientIndex === 1 && controlPanelPage) {
+            console.log(`[System] Client 1 already has control panel open: "${controlPanelPage.url()}"`);
+        }
+
+        // 3. Add Webdriver evasion and dynamic title observer
+        await browserCtx.addInitScript(({ index, initialPrefix }) => {
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-        });
+            
+            window.__clientPrefix = initialPrefix;
+            
+            const updateTitle = () => {
+                const prefix = window.__clientPrefix || `[Client ${index}] `;
+                const title = document.title;
+                if (title && !title.startsWith(prefix)) {
+                    let cleanTitle = title;
+                    if (title.includes('] ')) {
+                        const parts = title.split('] ');
+                        if (parts[0].startsWith('[')) {
+                            cleanTitle = parts.slice(1).join('] ');
+                        }
+                    }
+                    document.title = prefix + cleanTitle;
+                }
+            };
+
+            const observer = new MutationObserver(updateTitle);
+            observer.observe(document.querySelector('title') || document.documentElement, {
+                subtree: true,
+                characterData: true,
+                childList: true
+            });
+            updateTitle();
+        }, { index: clientIndex, initialPrefix: clientAliases[String(clientIndex)] ? `[${clientAliases[String(clientIndex)]}] ` : `[Client ${clientIndex}] ` });
     }
 
     console.log(`[System] ${browserName} launcher completed successfully!`);
 }
 
 function resetAndRescanClient(clientIndex, browserCtx) {
-    if (clientIndex === 1) {
-        if (page1) {
-            try {
-                page1.removeAllListeners('close');
-                page1.removeAllListeners('crash');
-            } catch (e) {}
-        }
-        page1 = null;
-        stopLoopsForClient(1);
-        findAndAttachTabForClient(1, browserCtx).catch(err => console.error("Error in tab search for Client 1:", err));
-    } else {
-        if (page2) {
-            try {
-                page2.removeAllListeners('close');
-                page2.removeAllListeners('crash');
-            } catch (e) {}
-        }
-        page2 = null;
-        stopLoopsForClient(2);
-        findAndAttachTabForClient(2, browserCtx).catch(err => console.error("Error in tab search for Client 2:", err));
+    const page = clientPages[clientIndex];
+    if (page) {
+        try {
+            page.removeAllListeners('close');
+            page.removeAllListeners('crash');
+        } catch (e) {}
     }
-}
-
-async function updateOverlayUIForClient(clientIndex, targetPage) {
-    if (!targetPage) return;
-    try {
-        const runningNames = [];
-        for (let act of activeActions) {
-            const target = act.targetClient || '1';
-            if (target === String(clientIndex) || target === 'both') {
-                if (act.mode === 'loop' && activeLoopStates[act.id] && activeLoopStates[act.id].running) {
-                    runningNames.push(`🟢 ${act.name}`);
-                }
-            }
-        }
-        if (isBuffSequenceRunning[String(clientIndex)]) {
-            const buffAct = activeActions.find(a => a.mode === 'buff_sequence');
-            if (buffAct) {
-                const target = buffAct.targetClient || '1';
-                if (target === String(clientIndex) || target === 'both') {
-                    runningNames.push(`🔵 ${buffAct.name}...`);
-                }
-            }
-        }
-
-        const listHtml = runningNames.length > 0
-            ? runningNames.map(name => `<div style="font-weight:600;color:#10b981;margin-bottom:2px;">${name}</div>`).join('')
-            : `<div style="color:#a1a1aa;">💤 Standby</div>`;
-
-        await targetPage.evaluate((html) => {
-            const statusDiv = document.getElementById('bot-overlay-status');
-            if (statusDiv) statusDiv.innerHTML = html;
-        }, listHtml);
-    } catch (e) {
-        // Ignore page connection drops
-    }
-}
-
-async function updateOverlayUI() {
-    if (operationMode === 'dual') {
-        await updateOverlayUIForClient(1, page1);
-        await updateOverlayUIForClient(2, page2);
-    } else {
-        await updateOverlayUIForClient(1, page1);
-    }
+    clientPages[clientIndex] = null;
+    stopLoopsForClient(clientIndex);
+    findAndAttachTabForClient(clientIndex, browserCtx).catch(err => console.error(`Error in tab search for Client ${clientIndex}:`, err));
 }
 
 // Scanning for the target tab periodically until found
@@ -440,11 +593,7 @@ async function findAndAttachTabForClient(clientIndex, browserCtx) {
             });
 
             if (foundPage) {
-                if (clientIndex === 1) {
-                    page1 = foundPage;
-                } else {
-                    page2 = foundPage;
-                }
+                clientPages[clientIndex] = foundPage;
                 console.log(`\n[System] ✅ [Client ${clientIndex}] Game tab detected! Target locked: "${await foundPage.title()}"`);
 
                 foundPage.on('close', () => {
@@ -460,6 +609,7 @@ async function findAndAttachTabForClient(clientIndex, browserCtx) {
                 console.log(`-------------------------------------------------`);
                 console.log(`[Client ${clientIndex}] Global Hotkeys initialized!`);
                 console.log(`-------------------------------------------------\n`);
+                updateBrowserTitles();
                 break;
             }
         } catch (e) {
@@ -474,24 +624,37 @@ async function findAndAttachTabForClient(clientIndex, browserCtx) {
 // ============================================================================
 async function initSystem() {
     try {
-        const { mode, choice } = await askOperationModeAndBrowser();
-        await launchBrowser(mode, choice);
+        migrateProfilesDirectory();
+        
+        const { activeClientsList, choice } = await askClientsAndBrowser();
+        await launchBrowser(activeClientsList, choice);
+        sendOverlayUpdate();
 
         console.log("=================================================");
         console.log("[System] Bot attached to browser context successfully!");
         console.log("=================================================");
 
-        if (mode === 'dual') {
-            await Promise.all([
-                findAndAttachTabForClient(1, browserContext1),
-                findAndAttachTabForClient(2, browserContext2)
-            ]);
-        } else {
-            await findAndAttachTabForClient(1, browserContext1);
-        }
+        const scanPromises = activeClients.map(index => 
+            findAndAttachTabForClient(index, clientContexts[index])
+        );
+        await Promise.all(scanPromises);
 
         // Start native mouse and keyboard listeners after initialization completes
         startGlobalListeners();
+
+        isSystemInitialized = true;
+        // Sync overlay process after system is fully initialized
+        const configPath = path.join(__dirname, 'config.json');
+        if (fs.existsSync(configPath)) {
+            const data = fs.readFileSync(configPath, 'utf8');
+            const parsed = JSON.parse(data);
+            if (parsed.profiles && parsed.activeProfile) {
+                const profile = parsed.profiles[parsed.activeProfile];
+                if (profile) {
+                    syncOverlayProcess(!!profile.enableOverlay);
+                }
+            }
+        }
 
     } catch (error) {
         console.error("\n❌ [System Error] Initialization failed!");
@@ -506,20 +669,24 @@ async function initSystem() {
 // ============================================================================
 async function sendKey(action, key) {
     const target = action.targetClient || '1';
-    let targetPage = page1;
-    let clientName = 'Client 1';
 
-    if (target === '2') {
-        targetPage = page2;
-        clientName = 'Client 2';
-    } else if (target === 'both') {
-        // Sequentially send to both if marked as both
-        await sendKey({ ...action, targetClient: '1' }, key);
-        await sendKey({ ...action, targetClient: '2' }, key);
+    if (target === 'both' || target === 'all') {
+        // Sequentially send to all active clients
+        for (let index of activeClients) {
+            await sendKey({ ...action, targetClient: String(index) }, key);
+        }
         return;
     }
 
+    const targetIdx = parseInt(target, 10);
+    const targetPage = clientPages[targetIdx];
+    const clientName = `Client ${targetIdx}`;
+
     if (!targetPage) return;
+
+    if (isBuffSequenceRunning[String(targetIdx)] && action.mode === 'loop') {
+        return; // Skip loops if buff sequence is running on this client
+    }
 
     try {
         // 1. Add random pre-press delay for human-like timing (10 - 35ms)
@@ -538,11 +705,7 @@ async function sendKey(action, key) {
         const msg = e.message.toLowerCase();
         if (msg.includes('closed') || msg.includes('target') || msg.includes('session') || msg.includes('detached') || msg.includes('destroyed')) {
             console.log(`\n⚠️ [System] [${clientName}] Game tab connection lost during action execution! Initiating rescan...`);
-            if (target === '2') {
-                resetAndRescanClient(2, browserContext2);
-            } else {
-                resetAndRescanClient(1, browserContext1);
-            }
+            resetAndRescanClient(targetIdx, clientContexts[targetIdx]);
         }
     }
 }
@@ -562,7 +725,20 @@ function syncRunningLoops() {
 // Start a loop action
 async function startLoopAction(action) {
     const target = action.targetClient || '1';
-    if (isBuffSequenceRunning[target]) return;
+
+    let targets = [];
+    if (target === 'both' || target === 'all') {
+        targets = activeClients;
+    } else {
+        targets = [parseInt(target, 10)];
+    }
+
+    for (let t of targets) {
+        if (isBuffSequenceRunning[String(t)]) {
+            console.log(`⚠️ Cannot start loop: Buff Sequence is currently running on Client ${t}`);
+            return;
+        }
+    }
 
     console.log(`🟢 [Action] Starting loop: "${action.name}" on Client ${target}`);
     if (!activeLoopStates[action.id]) {
@@ -583,6 +759,7 @@ async function startLoopAction(action) {
 
     // Start the interval loop
     runLoopStep(action);
+    sendOverlayUpdate();
 }
 
 // Stop a loop action
@@ -594,6 +771,7 @@ function stopLoopAction(actionId, actionName) {
             clearTimeout(activeLoopStates[actionId].timeout);
             activeLoopStates[actionId].timeout = null;
         }
+        sendOverlayUpdate();
     }
 }
 
@@ -610,21 +788,24 @@ function stopAllLoops() {
 function stopLoopsForClient(clientIndex) {
     for (let act of activeActions) {
         const target = act.targetClient || '1';
-        if ((target === String(clientIndex) || target === 'both') && act.mode === 'loop') {
-            stopLoopAction(act.id, act.name);
+        if (act.mode === 'loop') {
+            if (target === 'both' || target === 'all') {
+                stopLoopAction(act.id, act.name);
+            } else if (parseInt(target, 10) === clientIndex) {
+                stopLoopAction(act.id, act.name);
+            }
         }
     }
 }
 
 // Inner execution step for loops
 async function runLoopStep(action) {
-    const target = action.targetClient || '1';
     const state = activeLoopStates[action.id];
-    if (!state || !state.running || isBuffSequenceRunning[target]) return;
+    if (!state || !state.running) return;
 
     if (action.keys && action.keys.length > 0) {
         for (let key of action.keys) {
-            if (!state || !state.running || isBuffSequenceRunning[target]) return;
+            if (!state || !state.running) return;
             await sendKey(action, key);
         }
     }
@@ -644,11 +825,20 @@ async function runLoopStep(action) {
 // Run buff sequence
 async function runBuffSequenceAction(action) {
     const target = action.targetClient || '1';
-    isBuffSequenceRunning[target] = true;
-    console.log(`🔵 [Action] Buff Sequence Started: "${action.name}" on Client ${target}...`);
+    
+    let targets = [];
+    if (target === 'both' || target === 'all') {
+        targets = activeClients;
+    } else {
+        targets = [parseInt(target, 10)];
+    }
 
-    // Stop active loop actions for this client first
-    stopLoopsForClient(target);
+    for (let t of targets) {
+        isBuffSequenceRunning[String(t)] = true;
+        console.log(`🔵 [Action] Buff Sequence Started: "${action.name}" on Client ${t}...`);
+        stopLoopsForClient(t);
+    }
+    sendOverlayUpdate();
 
     const delay = action.delayBuff || 800;
     if (action.keys && action.keys.length > 0) {
@@ -658,8 +848,11 @@ async function runBuffSequenceAction(action) {
         }
     }
 
-    isBuffSequenceRunning[target] = false;
-    console.log(`⚪ [Action] Finished Buff Sequence: "${action.name}" on Client ${target}`);
+    for (let t of targets) {
+        isBuffSequenceRunning[String(t)] = false;
+        console.log(`⚪ [Action] Finished Buff Sequence: "${action.name}" on Client ${t}`);
+    }
+    sendOverlayUpdate();
 }
 
 // Run single press
@@ -684,7 +877,24 @@ function handleActionTrigger(act) {
         }
     } else if (act.mode === 'buff_sequence') {
         const target = act.targetClient || '1';
-        if (!isBuffSequenceRunning[target]) {
+        
+        let targets = [];
+        if (target === 'both' || target === 'all') {
+            targets = activeClients;
+        } else {
+            targets = [parseInt(target, 10)];
+        }
+
+        // Only start if not already running on any of the target clients
+        let alreadyRunning = false;
+        for (let t of targets) {
+            if (isBuffSequenceRunning[String(t)]) {
+                alreadyRunning = true;
+                break;
+            }
+        }
+
+        if (!alreadyRunning) {
             runBuffSequenceAction(act).catch(err => console.error(`Error in runBuffSequence:`, err));
         }
     } else if (act.mode === 'single_press') {
@@ -705,7 +915,8 @@ function startGlobalListeners() {
     // 1. Mouse Button Events Hook
     mouseEvents.on('mousedown', (event) => {
         console.log(`[Global Mouse Captured] Clicked button: ${event.button}`);
-        if (!page1 && !page2) return;
+        const hasAttachedPage = Object.values(clientPages).some(p => p !== null && p !== undefined);
+        if (!hasAttachedPage) return;
 
         // Find matching actions
         const matchingActions = activeActions.filter(act =>
@@ -723,7 +934,8 @@ function startGlobalListeners() {
     // 2. Keyboard Events Hook
     keyboard.addListener(function (e, down) {
         if (e.state !== "DOWN") return;
-        if (!page1 && !page2) return;
+        const hasAttachedPage = Object.values(clientPages).some(p => p !== null && p !== undefined);
+        if (!hasAttachedPage) return;
 
         // Find matching actions
         const matchingActions = activeActions.filter(act =>
