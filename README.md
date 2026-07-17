@@ -40,3 +40,20 @@
    - บันทึกซิงค์เรียลไทม์ ไม่ต้องรีสตาร์ท
    - เปิด Desktop Overlay ได้ในหน้าตั้งค่า
 
+---
+
+## 🛡️ ความปลอดภัยและการตรวจจับ
+
+**ข้อดีที่ปลอดภัยกว่า Bot ทั่วไป:**
+
+- ✅ ใช้ **Firefox** → ไม่มี `navigator.webdriver = true` ที่ Chromium-based bot มักติดมา
+- ✅ ส่งปุ่มผ่าน `keyboard.down/up` ระดับ CDP ซึ่งเหมือน input จริง ไม่ใช่ JS inject
+- ✅ มี **Human-Like Jitter** สุ่ม delay ป้องกัน timing pattern ซ้ำๆ
+- ✅ เกมยังคิดว่า tab มี focus อยู่ตลอด (Playwright ไม่ทำให้ tab ดู hidden)
+- ✅ มี **Ghost Mouse Jitter** สุ่มขยับเมาส์เล็กน้อยในแท็บเกมเพื่อสร้าง `mousemove` event ป้องกันการตรวจจับ (cursor บนหน้าจอจริงไม่ขยับ แต่ใน**เกมจะเห็นเมาส์ขยับเล็กน้อย**)
+
+**สิ่งที่ยังอาจตรวจจับได้:**
+
+- ⚠️ **Interval สม่ำเสมอเกินไป** หาก Jitter ตั้งน้อยเกินไป ควรตั้งอย่างน้อย 200-500ms
+
+> **หมายเหตุ:** Flyff Universe ใช้ Anti-Cheat ฝั่ง Client-Side ตรวจ Memory injection และ DLL หลัก ไม่ได้เน้น browser fingerprinting มากนัก ความเสี่ยงจริงๆ มาจาก **pattern การกดปุ่มที่ไม่เป็นธรรมชาติ** และ **IP ที่ใช้ซ้ำหลายจอ** มากกว่า

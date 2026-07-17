@@ -31,14 +31,31 @@ let isSystemInitialized = false;
 let overlayProcess = null;
 const { spawn } = require('child_process');
 
+// Ghost Mouse Jitter state
+let ghostMouseJitterConfig = { enabled: false, intervalMin: 8000, intervalMax: 25000, maxOffset: 12 };
+let ghostMouseJitterTimers = {}; // clientIndex -> timeout handle
+
+function getActionTargets(targetClientString) {
+    if (!targetClientString) return ['1'];
+    if (targetClientString === 'all' || targetClientString === 'both') {
+        return activeClients.map(String);
+    }
+    const split = targetClientString.split(',').map(s => s.trim()).filter(Boolean);
+    return split.length > 0 ? split : ['1'];
+}
+
+function isTargetMatched(targetClientString, clientStr) {
+    const targets = getActionTargets(targetClientString);
+    return targets.includes(clientStr);
+}
+
 function releaseAllHeldKeys() {
     for (let actionId in activeHoldStates) {
         if (activeHoldStates[actionId]) {
             const act = activeActions.find(a => a.id === actionId);
             if (act && act.mode === 'key_hold') {
                 const targetKey = act.targetKey || '1';
-                const target = act.targetClient || '1';
-                let targets = (target === 'both' || target === 'all') ? activeClients : [parseInt(target, 10)];
+                let targets = getActionTargets(act.targetClient).map(x => parseInt(x, 10));
                 for (let t of targets) {
                     const page = clientPages[t];
                     if (page) {
@@ -90,11 +107,26 @@ function loadConfigFromFile() {
             // Load client aliases
             clientAliases = profile.clientAliases || {};
 
+            // Load Ghost Mouse Jitter config
+            if (profile.ghostMouseJitter) {
+                ghostMouseJitterConfig = {
+                    enabled: !!profile.ghostMouseJitter.enabled,
+                    intervalMin: profile.ghostMouseJitter.intervalMin || 8000,
+                    intervalMax: profile.ghostMouseJitter.intervalMax || 25000,
+                    maxOffset: profile.ghostMouseJitter.maxOffset || 12
+                };
+            } else {
+                ghostMouseJitterConfig = { enabled: false, intervalMin: 8000, intervalMax: 25000, maxOffset: 12 };
+            }
+
             // Sync state of active loops
             syncRunningLoops();
 
             // Sync Python overlay process
             syncOverlayProcess(!!profile.enableOverlay);
+
+            // Sync Ghost Mouse Jitter
+            syncGhostMouseJitter();
 
             // Update browser titles if running
             updateBrowserTitles();
@@ -198,7 +230,7 @@ function sendOverlayUpdate() {
     activeList.forEach(clientIdx => {
         const clientStr = String(clientIdx);
         if (isBuffSequenceRunning[clientStr]) {
-            const buffAct = activeActions.find(a => a.mode === 'buff_sequence' && (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all'));
+            const buffAct = activeActions.find(a => a.mode === 'buff_sequence' && isTargetMatched(a.targetClient, clientStr));
             clientStatuses[clientStr] = {
                 status: buffAct ? buffAct.name : "Buffing",
                 type: "buff"
@@ -209,7 +241,7 @@ function sendOverlayUpdate() {
                 a.enabled && 
                 activeLoopStates[a.id] && 
                 activeLoopStates[a.id].running &&
-                (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+                isTargetMatched(a.targetClient, clientStr)
             );
             if (activeLoop) {
                 clientStatuses[clientStr] = {
@@ -221,7 +253,7 @@ function sendOverlayUpdate() {
                     a.mode === 'key_hold' &&
                     a.enabled &&
                     activeHoldStates[a.id] &&
-                    (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+                    isTargetMatched(a.targetClient, clientStr)
                 );
                 if (activeHold) {
                     clientStatuses[clientStr] = {
@@ -233,7 +265,7 @@ function sendOverlayUpdate() {
                         a.mode === 'forward' &&
                         a.enabled &&
                         pressedRemapKeys[`${a.id}-${clientStr}`] &&
-                        (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+                        isTargetMatched(a.targetClient, clientStr)
                     );
                     if (activeForward) {
                         clientStatuses[clientStr] = {
@@ -748,12 +780,75 @@ async function findAndAttachTabForClient(clientIndex, browserCtx) {
                 console.log(`[Client ${clientIndex}] Global Hotkeys initialized!`);
                 console.log(`-------------------------------------------------\n`);
                 updateBrowserTitles();
+                // Start ghost mouse jitter for this client if enabled
+                startGhostMouseJitter(clientIndex);
                 break;
             }
         } catch (e) {
             // Silence page retrieval errors during transition
         }
         await new Promise(res => setTimeout(res, 2000));
+    }
+}
+
+// ============================================================================
+// GHOST MOUSE JITTER
+// ============================================================================
+function startGhostMouseJitter(clientIndex) {
+    stopGhostMouseJitter(clientIndex); // Clear any existing timer first
+    if (!ghostMouseJitterConfig.enabled) return;
+
+    const page = clientPages[clientIndex];
+    if (!page) return;
+
+    const scheduleNext = () => {
+        const { intervalMin, intervalMax, maxOffset } = ghostMouseJitterConfig;
+        const delay = intervalMin + Math.random() * (intervalMax - intervalMin);
+
+        ghostMouseJitterTimers[clientIndex] = setTimeout(async () => {
+            // Re-check if still enabled and page is still valid
+            if (!ghostMouseJitterConfig.enabled) return;
+            const currentPage = clientPages[clientIndex];
+            if (!currentPage) return;
+
+            try {
+                // Get viewport size or use safe default
+                const viewportSize = currentPage.viewportSize() || { width: 1280, height: 720 };
+                const centerX = viewportSize.width / 2;
+                const centerY = viewportSize.height / 2;
+
+                // Random small offset from center
+                const dx = (Math.random() - 0.5) * 2 * maxOffset;
+                const dy = (Math.random() - 0.5) * 2 * maxOffset;
+
+                await currentPage.mouse.move(centerX + dx, centerY + dy, { steps: 3 });
+            } catch (e) {
+                // Page may have navigated or closed — silently skip
+            }
+
+            scheduleNext();
+        }, delay);
+    };
+
+    scheduleNext();
+    console.log(`[Ghost Mouse] Started for Client ${clientIndex} (interval: ${ghostMouseJitterConfig.intervalMin}-${ghostMouseJitterConfig.intervalMax}ms, offset: ±${ghostMouseJitterConfig.maxOffset}px)`);
+}
+
+function stopGhostMouseJitter(clientIndex) {
+    if (ghostMouseJitterTimers[clientIndex]) {
+        clearTimeout(ghostMouseJitterTimers[clientIndex]);
+        delete ghostMouseJitterTimers[clientIndex];
+    }
+}
+
+function syncGhostMouseJitter() {
+    // Called on config reload — start or stop for all active clients
+    for (let clientIndex of activeClients) {
+        if (ghostMouseJitterConfig.enabled && clientPages[clientIndex]) {
+            startGhostMouseJitter(clientIndex);
+        } else {
+            stopGhostMouseJitter(clientIndex);
+        }
     }
 }
 
@@ -807,16 +902,17 @@ async function initSystem() {
 // ============================================================================
 async function sendKey(action, key) {
     const target = action.targetClient || '1';
+    const targets = getActionTargets(target);
 
-    if (target === 'both' || target === 'all') {
-        // Sequentially send to all active clients
-        for (let index of activeClients) {
-            await sendKey({ ...action, targetClient: String(index) }, key);
+    if (targets.length > 1) {
+        // Sequentially send to all targets in the list
+        for (let targetIdxStr of targets) {
+            await sendKey({ ...action, targetClient: targetIdxStr }, key);
         }
         return;
     }
 
-    const targetIdx = parseInt(target, 10);
+    const targetIdx = parseInt(targets[0], 10);
     const targetPage = clientPages[targetIdx];
     const clientName = `Client ${targetIdx}`;
 
@@ -861,15 +957,9 @@ function syncRunningLoops() {
 }
 
 // Start a loop action
-async function startLoopAction(action) {
+async function startLoopAction(action, callStack) {
     const target = action.targetClient || '1';
-
-    let targets = [];
-    if (target === 'both' || target === 'all') {
-        targets = activeClients;
-    } else {
-        targets = [parseInt(target, 10)];
-    }
+    let targets = getActionTargets(target).map(x => parseInt(x, 10));
 
     for (let t of targets) {
         if (isBuffSequenceRunning[String(t)]) {
@@ -884,6 +974,8 @@ async function startLoopAction(action) {
     } else {
         activeLoopStates[action.id].running = true;
     }
+
+    fireChain(action, 'onStart', callStack);
 
     // Run first steps if any
     if (action.firstSteps && action.firstSteps.length > 0) {
@@ -909,6 +1001,8 @@ function stopLoopAction(actionId, actionName) {
             clearTimeout(activeLoopStates[actionId].timeout);
             activeLoopStates[actionId].timeout = null;
         }
+        const act = activeActions.find(a => a.id === actionId);
+        if (act) fireChain(act, 'onStop');
         sendOverlayUpdate();
     }
 }
@@ -925,11 +1019,9 @@ function stopAllLoops() {
 // Stop active loops for a specific client
 function stopLoopsForClient(clientIndex) {
     for (let act of activeActions) {
-        const target = act.targetClient || '1';
         if (act.mode === 'loop') {
-            if (target === 'both' || target === 'all') {
-                stopLoopAction(act.id, act.name);
-            } else if (parseInt(target, 10) === clientIndex) {
+            const targets = getActionTargets(act.targetClient).map(x => parseInt(x, 10));
+            if (targets.includes(clientIndex)) {
                 stopLoopAction(act.id, act.name);
             }
         }
@@ -937,7 +1029,7 @@ function stopLoopsForClient(clientIndex) {
 }
 
 // Inner execution step for loops
-async function runLoopStep(action) {
+async function runLoopStep(action, callStack) {
     const state = activeLoopStates[action.id];
     if (!state || !state.running) return;
 
@@ -948,6 +1040,8 @@ async function runLoopStep(action) {
         }
     }
 
+    fireChain(action, 'onEachCycle', callStack);
+
     const baseInterval = action.interval || 3000;
     const jitterMax = action.jitter || 0;
     let nextInterval = baseInterval;
@@ -957,25 +1051,20 @@ async function runLoopStep(action) {
         nextInterval = Math.max(100, baseInterval + jitter);
     }
 
-    state.timeout = setTimeout(() => runLoopStep(action), nextInterval);
+    state.timeout = setTimeout(() => runLoopStep(action, callStack), nextInterval);
 }
 
 // Run buff sequence
-async function runBuffSequenceAction(action) {
+async function runBuffSequenceAction(action, callStack) {
     const target = action.targetClient || '1';
-    
-    let targets = [];
-    if (target === 'both' || target === 'all') {
-        targets = activeClients;
-    } else {
-        targets = [parseInt(target, 10)];
-    }
+    let targets = getActionTargets(target).map(x => parseInt(x, 10));
 
     for (let t of targets) {
         isBuffSequenceRunning[String(t)] = true;
         console.log(`🔵 [Action] Buff Sequence Started: "${action.name}" on Client ${t}...`);
         stopLoopsForClient(t);
     }
+    fireChain(action, 'onStart', callStack);
     sendOverlayUpdate();
 
     const delay = action.delayBuff || 800;
@@ -990,11 +1079,12 @@ async function runBuffSequenceAction(action) {
         isBuffSequenceRunning[String(t)] = false;
         console.log(`⚪ [Action] Finished Buff Sequence: "${action.name}" on Client ${t}`);
     }
+    fireChain(action, 'onComplete', callStack);
     sendOverlayUpdate();
 }
 
 // Run single press
-async function runSinglePressAction(action) {
+async function runSinglePressAction(action, callStack) {
     const target = action.targetClient || '1';
     console.log(`⚡ [Action] Single Press: "${action.name}" on Client ${target}`);
     if (action.keys && action.keys.length > 0) {
@@ -1002,18 +1092,13 @@ async function runSinglePressAction(action) {
             await sendKey(action, key);
         }
     }
+    fireChain(action, 'onFired', callStack);
 }
 
-async function toggleKeyHoldAction(action) {
+async function toggleKeyHoldAction(action, callStack) {
     const targetKey = action.targetKey || '1';
     const target = action.targetClient || '1';
-    
-    let targets = [];
-    if (target === 'both' || target === 'all') {
-        targets = activeClients;
-    } else {
-        targets = [parseInt(target, 10)];
-    }
+    let targets = getActionTargets(target).map(x => parseInt(x, 10));
 
     const isCurrentlyHeld = !!activeHoldStates[action.id];
     const nextState = !isCurrentlyHeld;
@@ -1035,6 +1120,8 @@ async function toggleKeyHoldAction(action) {
             console.error(`[Action Error] Failed toggle key hold on Client ${t}:`, e.message);
         }
     }
+
+    fireChain(action, nextState ? 'onEnable' : 'onDisable', callStack);
     sendOverlayUpdate();
 }
 
@@ -1049,13 +1136,7 @@ function handleActionTrigger(act) {
         }
     } else if (act.mode === 'buff_sequence') {
         const target = act.targetClient || '1';
-        
-        let targets = [];
-        if (target === 'both' || target === 'all') {
-            targets = activeClients;
-        } else {
-            targets = [parseInt(target, 10)];
-        }
+        let targets = getActionTargets(target).map(x => parseInt(x, 10));
 
         // Only start if not already running on any of the target clients
         let alreadyRunning = false;
@@ -1073,6 +1154,58 @@ function handleActionTrigger(act) {
         runSinglePressAction(act).catch(err => console.error(`Error in runSinglePress:`, err));
     } else if (act.mode === 'key_hold') {
         toggleKeyHoldAction(act).catch(err => console.error(`Error in toggleKeyHoldAction:`, err));
+    }
+}
+
+// ============================================================================
+// ACTION CHAIN (Trigger forwarding between Actions)
+// ============================================================================
+
+// Fire chained actions for a given source action and event name.
+// callStack prevents infinite loops (A→B→A).
+function fireChain(sourceAction, eventName, callStack = new Set()) {
+    const chains = sourceAction.chaining;
+    if (!chains || chains._enabled !== true) return; // Chain disabled globally unless explicitly true
+    if (!chains[eventName] || !chains[eventName].length) return;
+
+    const stackKey = `${sourceAction.id}:${eventName}`;
+    if (callStack.has(stackKey)) {
+        console.warn(`[Chain] ⚠️ Circular chain detected: "${sourceAction.name}" → ${eventName} — skipping.`);
+        return;
+    }
+    callStack.add(stackKey);
+
+    for (const targetId of chains[eventName]) {
+        const targetAction = activeActions.find(a => a.id === targetId && a.enabled);
+        if (!targetAction) {
+            console.warn(`[Chain] Target action "${targetId}" not found or disabled — skipping.`);
+            continue;
+        }
+        console.log(`[Chain] "${sourceAction.name}" [${eventName}] → "${targetAction.name}"`);
+        runChainedAction(targetAction, callStack);
+    }
+}
+
+// Run a target action directly (bypasses hotkey requirement).
+function runChainedAction(action, callStack) {
+    if (action.mode === 'loop') {
+        const state = activeLoopStates[action.id];
+        if (state && state.running) {
+            stopLoopAction(action.id, action.name);
+        } else {
+            startLoopAction(action, callStack).catch(err => console.error(`[Chain Error] startLoopAction:`, err));
+        }
+    } else if (action.mode === 'buff_sequence') {
+        const target = action.targetClient || '1';
+        let targets = getActionTargets(target).map(x => parseInt(x, 10));
+        let alreadyRunning = targets.some(t => isBuffSequenceRunning[String(t)]);
+        if (!alreadyRunning) {
+            runBuffSequenceAction(action, callStack).catch(err => console.error(`[Chain Error] runBuffSequenceAction:`, err));
+        }
+    } else if (action.mode === 'single_press') {
+        runSinglePressAction(action, callStack).catch(err => console.error(`[Chain Error] runSinglePressAction:`, err));
+    } else if (action.mode === 'key_hold') {
+        toggleKeyHoldAction(action, callStack).catch(err => console.error(`[Chain Error] toggleKeyHoldAction:`, err));
     }
 }
 
@@ -1119,6 +1252,7 @@ function startGlobalListeners() {
                 act.enabled &&
                 act.mode !== 'forward' &&
                 act.trigger.type === 'keyboard' &&
+                act.trigger.type !== 'none' &&
                 act.trigger.value &&
                 act.trigger.value.toUpperCase() === e.name.toUpperCase()
             );
@@ -1144,13 +1278,7 @@ function startGlobalListeners() {
         for (let act of forwardActions) {
             const targetKey = act.targetKey || '5';
             const target = act.targetClient || '1';
-
-            let targets = [];
-            if (target === 'both' || target === 'all') {
-                targets = activeClients;
-            } else {
-                targets = [parseInt(target, 10)];
-            }
+            let targets = getActionTargets(target).map(x => parseInt(x, 10));
 
             for (let clientIndex of targets) {
                 const page = clientPages[clientIndex];
@@ -1168,14 +1296,23 @@ function startGlobalListeners() {
                                 page.keyboard.down(targetKey).catch(err => {
                                     console.error(`[Forward Error] [Client ${clientIndex}] Failed keyboard.down("${targetKey}"):`, err.message);
                                 });
+                                // Fire onActivated chain once (only on the first client to avoid duplicate)
+                                if (clientIndex === targets[0]) fireChain(act, 'onActivated');
                                 sendOverlayUpdate();
                             }, delay);
+                            // Fire onKeyDown immediately
+                            if (clientIndex === targets[0]) fireChain(act, 'onKeyDown');
                         } else {
                             pressedRemapKeys[trackingKey] = true;
                             console.log(`[Forward] [Client ${clientIndex}] Key Down: "${targetKey}" (via Physical Key "${e.name}")`);
                             page.keyboard.down(targetKey).catch(err => {
                                 console.error(`[Forward Error] [Client ${clientIndex}] Failed keyboard.down("${targetKey}"):`, err.message);
                             });
+                            // Fire onKeyDown AND onActivated together (no delay)
+                            if (clientIndex === targets[0]) {
+                                fireChain(act, 'onKeyDown');
+                                fireChain(act, 'onActivated');
+                            }
                             sendOverlayUpdate();
                         }
                     }
@@ -1190,8 +1327,8 @@ function startGlobalListeners() {
                         page.keyboard.up(targetKey).catch(err => {
                             console.error(`[Forward Error] [Client ${clientIndex}] Failed keyboard.up("${targetKey}"):`, err.message);
                         });
+                        if (clientIndex === targets[0]) fireChain(act, 'onKeyUp');
                         // For delayed-activation actions: give overlay 120ms to render ⚡ before going back to Standby.
-                        // For normal (non-delayed) actions: update overlay immediately as before.
                         if (act.delayActivation) {
                             setTimeout(() => sendOverlayUpdate(), 120);
                         } else {

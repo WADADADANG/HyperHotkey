@@ -299,7 +299,12 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      border-bottom: 1px solid var(--border)
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s ease;
+    }
+
+    .group-header:hover {
+      background: rgba(255, 255, 255, 0.04) !important;
     }
 
     .group-dot {
@@ -772,6 +777,36 @@
             <input type="checkbox" id="enable-overlay-checkbox" style="accent-color:var(--primary); cursor:pointer;" onchange="saveCurrentProfile()">
             <span data-i18n="enableOverlayLabel">Enable Desktop Status Overlay</span>
           </label>
+        </div>
+        <div
+          style="display:flex; width:100%; align-items:center; gap:12px; margin-top:10px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); cursor:pointer; font-weight:600;">
+            <input type="checkbox" id="ghost-mouse-enabled" style="accent-color:#a855f7; cursor:pointer;" onchange="toggleGhostMouseSettings(); saveCurrentProfile()">
+            <span>🖱️ Ghost Mouse Jitter</span>
+          </label>
+        </div>
+        <div id="ghost-mouse-settings" style="display:none; margin-top:8px; padding:10px; background:rgba(168,85,247,0.07); border:1px solid rgba(168,85,247,0.2); border-radius:8px; gap:10px; flex-direction:column;">
+          <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">สุ่มขยับเมาส์เล็กน้อยในแท็บเกมเพื่อสร้าง <code>mousemove</code> event ป้องกันการตรวจจับ</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+            <label style="font-size:11px; color:var(--muted); display:flex; flex-direction:column; gap:4px;">
+              Min Interval (ms)
+              <input type="number" id="ghost-mouse-interval-min" min="1000" max="60000" step="500" value="8000"
+                style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:12px; outline:none; height:28px;"
+                onchange="saveCurrentProfile()">
+            </label>
+            <label style="font-size:11px; color:var(--muted); display:flex; flex-direction:column; gap:4px;">
+              Max Interval (ms)
+              <input type="number" id="ghost-mouse-interval-max" min="1000" max="120000" step="500" value="25000"
+                style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:12px; outline:none; height:28px;"
+                onchange="saveCurrentProfile()">
+            </label>
+            <label style="font-size:11px; color:var(--muted); display:flex; flex-direction:column; gap:4px;">
+              Max Offset (px)
+              <input type="number" id="ghost-mouse-max-offset" min="1" max="100" step="1" value="12"
+                style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:12px; outline:none; height:28px;"
+                onchange="saveCurrentProfile()">
+            </label>
+          </div>
         </div>
         <div
           style="margin-top:12px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
@@ -1380,13 +1415,27 @@
       document.getElementById('target-url-keyword').value = p.targetUrlKeyword || 'universe.flyff.com';
       const checkbox = document.getElementById('enable-overlay-checkbox');
       if (checkbox) checkbox.checked = !!p.enableOverlay;
-      
+
+      // Load Ghost Mouse Jitter settings
+      const gmj = p.ghostMouseJitter || {};
+      const gmEnabled = document.getElementById('ghost-mouse-enabled');
+      if (gmEnabled) {
+        gmEnabled.checked = !!gmj.enabled;
+        toggleGhostMouseSettings();
+      }
+      const gmMin = document.getElementById('ghost-mouse-interval-min');
+      if (gmMin) gmMin.value = gmj.intervalMin || 8000;
+      const gmMax = document.getElementById('ghost-mouse-interval-max');
+      if (gmMax) gmMax.value = gmj.intervalMax || 25000;
+      const gmOffset = document.getElementById('ghost-mouse-max-offset');
+      if (gmOffset) gmOffset.value = gmj.maxOffset || 12;
+
       const aliases = p.clientAliases || {};
       for (let i = 1; i <= 8; i++) {
         const el = document.getElementById(`client-alias-${i}`);
         if (el) el.value = aliases[String(i)] || '';
       }
-      
+
       if (!p.actions) p.actions = [];
       renderActions(p.actions);
     }
@@ -1409,13 +1458,36 @@
         card.setAttribute('data-id', act.id);
         card.style.borderLeft = `4px solid ${cardColor}`;
 
+        const isExpanded = expandedActions.has(act.id);
+
         let headerHTML = `
-      <div class="group-header" style="display:flex; justify-content:space-between; align-items:center; width:100%; gap: 10px; padding: 14px 20px;">
+      <div class="group-header" onclick="toggleActionAccordion('${act.id}')" style="display:flex; justify-content:space-between; align-items:center; width:100%; gap: 12px; padding: 10px 16px; cursor:pointer; user-select:none; background:rgba(255,255,255,0.015); transition:background 0.2s;">
+        <span class="action-arrow-${act.id}" style="font-size:10px; color:var(--muted); transition:transform 0.2s; transform:rotate(${isExpanded ? '90' : '0'}deg); width:12px; display:inline-block;">▶</span>
         <div class="group-dot" style="background:${cardColor}"></div>
-        <input type="text" class="action-name-input" value="${escapeHtml(act.name)}" placeholder="${currentLang === 'en' ? 'Action Name' : 'ชื่อคำสั่ง'}" style="background:none; border:none; color:var(--text); font-size:14px; font-weight:700; outline:none; border-bottom:1px dashed rgba(255,255,255,0.2); flex: 1; padding-bottom: 2px;">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer;">
-            <input type="checkbox" class="action-enabled-checkbox" ${act.enabled ? 'checked' : ''} style="accent-color:var(--primary); cursor:pointer;"> ${TRANSLATIONS[currentLang].enabled}
+        
+        <!-- Editable Name: stop propagation so typing/clicking doesn't fold action -->
+        <input type="text" class="action-name-input" value="${escapeHtml(act.name)}" 
+          placeholder="${currentLang === 'en' ? 'Action Name' : 'ชื่อคำสั่ง'}" 
+          onclick="event.stopPropagation()"
+          onchange="saveCurrentProfile()"
+          style="background:none; border:none; color:var(--text); font-size:13px; font-weight:700; outline:none; border-bottom:1px dashed rgba(255,255,255,0.15); width:160px; padding-bottom: 2px;">
+        
+        <!-- Summary details visible even when collapsed -->
+        <div class="summary-badges" style="display:flex; align-items:center; gap:8px; font-size:11px; flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; color:var(--muted);">
+          <span style="background:var(--primary-dim); border:1px solid rgba(99,102,241,0.2); border-radius:4px; padding:2px 6px; color:var(--primary); font-size:10px; font-weight:700; text-transform:uppercase;">
+            ${TRANSLATIONS[currentLang]['mode' + act.mode.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')] || act.mode}
+          </span>
+          <span>
+            📍 ${act.trigger.type === 'none' ? (currentLang === 'en' ? 'Chain only' : 'Chain เท่านั้น') : `${act.trigger.type === 'keyboard' ? '⌨️' : '🖱️'} ${act.trigger.value || ''}`}
+          </span>
+          <span>
+            🎯 จอ: ${getActionTargetsList(act.targetClient).join(', ')}
+          </span>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px;" onclick="event.stopPropagation()">
+          <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; font-weight:600;">
+            <input type="checkbox" class="action-enabled-checkbox" ${act.enabled ? 'checked' : ''} onchange="saveCurrentProfile()" style="accent-color:var(--primary); cursor:pointer;"> ${TRANSLATIONS[currentLang].enabled}
           </label>
           <button class="btn btn-danger" onclick="deleteAction('${act.id}')" style="padding:4px 8px; font-size:10px; border-radius:6px;">${TRANSLATIONS[currentLang].btnDeleteAction}</button>
         </div>
@@ -1423,13 +1495,14 @@
     `;
 
         let bodyHTML = `
-      <div class="group-body" style="padding:18px 20px; display:flex; flex-direction:column; gap:14px;">
+      <div class="group-body" style="padding:${isExpanded ? '18px 20px' : '0'}; max-height:${isExpanded ? '1500px' : '0'}; opacity:${isExpanded ? '1' : '0'}; overflow:hidden; transition: max-height 0.25s ease-out, opacity 0.2s, padding 0.25s ease-out; display:flex; flex-direction:column; gap:14px;">
         <div class="field-row">
           <div class="field">
             <label>${TRANSLATIONS[currentLang].triggerType}</label>
             <select class="action-trigger-type" onchange="onTriggerTypeChange('${act.id}')" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none;">
               <option value="keyboard" ${act.trigger.type === 'keyboard' ? 'selected' : ''}>${TRANSLATIONS[currentLang].triggerKeyboard}</option>
               <option value="mouse" ${act.trigger.type === 'mouse' ? 'selected' : ''}>${TRANSLATIONS[currentLang].triggerMouse}</option>
+              <option value="none" ${(!act.trigger.type || act.trigger.type === 'none') ? 'selected' : ''}>${currentLang === 'en' ? 'None (Chain only)' : 'ไม่มี (Chain เท่านั้น)'}</option>
             </select>
           </div>
           <div class="field">
@@ -1451,17 +1524,17 @@
               <option value="key_hold" ${act.mode === 'key_hold' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeHold}</option>
             </select>
           </div>
-          <div class="field">
+          <div class="field client-selector-container">
             <label data-i18n="targetClient">${TRANSLATIONS[currentLang].targetClient}</label>
-            <select class="action-target-client" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%;">
-              ${renderTargetClientOptions(act)}
-            </select>
+            ${renderTargetClientSelector(act)}
           </div>
         </div>
 
         <div class="mode-specific-container-${act.id}">
           ${renderModeSpecificFields(act)}
         </div>
+
+        ${renderChainSection(act)}
       </div>
     `;
 
@@ -1470,22 +1543,223 @@
       });
     }
 
-    function renderTargetClientOptions(act) {
-      let html = '';
-      const currentTarget = act.targetClient || '1';
+    // Returns available chain events for a given action mode
+    function getChainEventsForMode(mode) {
+      const map = {
+        loop:          ['onStart', 'onEachCycle', 'onStop'],
+        buff_sequence: ['onStart', 'onComplete'],
+        single_press:  ['onFired'],
+        forward:       ['onKeyDown', 'onActivated', 'onKeyUp'],
+        key_hold:      ['onEnable', 'onDisable']
+      };
+      return map[mode] || [];
+    }
 
-      for (let i = 1; i <= 8; i++) {
-        const isClientActive = activeClients.includes(i);
-        const prefix = TRANSLATIONS[currentLang].clientNamePrefix || 'Client';
-        const status = isClientActive ? ` (${TRANSLATIONS[currentLang].activeStatusSuffix || 'Active'})` : '';
+    // Track which action chains are expanded (by action id)
+    const expandedChains = new Set();
+    const expandedActions = new Set(); // Track action accordion state
 
-        html += `<option value="${i}" ${currentTarget === String(i) ? 'selected' : ''}>${prefix} ${i}${status}</option>`;
+    function toggleActionAccordion(actionId) {
+      const card = document.querySelector(`[data-id="${actionId}"]`);
+      if (!card) return;
+      const body = card.querySelector('.group-body');
+      const arrow = card.querySelector(`.action-arrow-${actionId}`);
+      if (!body) return;
+      
+      const isOpen = expandedActions.has(actionId);
+      if (isOpen) {
+        expandedActions.delete(actionId);
+        body.style.maxHeight = '0';
+        body.style.opacity = '0';
+        body.style.padding = '0';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      } else {
+        expandedActions.add(actionId);
+        body.style.maxHeight = '1500px';
+        body.style.opacity = '1';
+        body.style.padding = '18px 20px';
+        if (arrow) arrow.style.transform = 'rotate(90deg)';
       }
+    }
 
-      const allLabel = TRANSLATIONS[currentLang].allClients || 'All Active Clients';
-      html += `<option value="all" ${currentTarget === 'all' || currentTarget === 'both' ? 'selected' : ''}>${allLabel}</option>`;
+    function toggleChainAccordion(actionId) {
+      const panel = document.querySelector(`[data-id="${actionId}"] .chain-body`);
+      const arrow = document.querySelector(`[data-id="${actionId}"] .chain-arrow`);
+      if (!panel) return;
+      const isOpen = expandedChains.has(actionId);
+      if (isOpen) {
+        expandedChains.delete(actionId);
+        panel.style.maxHeight = '0';
+        panel.style.opacity = '0';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      } else {
+        expandedChains.add(actionId);
+        panel.style.maxHeight = panel.scrollHeight + 'px';
+        panel.style.opacity = '1';
+        if (arrow) arrow.style.transform = 'rotate(90deg)';
+      }
+    }
 
+    function renderChainSection(act) {
+      const events = getChainEventsForMode(act.mode);
+      if (!events.length) return '';
+
+      const chains = act.chaining || {};
+
+      // Count how many chains have targets selected
+      const chainedCount = events.reduce((n, ev) => n + (chains[ev] || []).length, 0);
+
+      // Build options for target action dropdown (all OTHER actions)
+      const otherActions = collectProfile().actions || [];
+
+      let rows = events.map(ev => {
+        const selected = (chains[ev] || []);
+        return `
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+            <span style="font-size:11px; color:#a855f7; font-family:'JetBrains Mono'; width:110px; flex-shrink:0;">${ev}</span>
+            <select class="chain-target" data-event="${ev}" multiple
+              style="flex:1; background:var(--bg-input); border:1px solid rgba(168,85,247,0.3); border-radius:6px; padding:4px 6px; color:var(--text); font-size:11px; min-height:32px; outline:none;"
+              onchange="saveCurrentProfile()">
+              ${otherActions.filter(a => a.id !== act.id).map(a =>
+                `<option value="${a.id}" ${selected.includes(a.id) ? 'selected' : ''}>${escapeHtml(a.name)}</option>`
+              ).join('')}
+            </select>
+          </div>`;
+      }).join('');
+
+      const chainEnabled = act.chaining?._enabled === true; // default false
+      const isExpanded = expandedChains.has(act.id);
+      const badge = chainedCount > 0
+        ? `<span style="background:rgba(168,85,247,0.2); color:#a855f7; border-radius:10px; padding:1px 7px; font-size:10px; font-weight:700;">${chainedCount}</span>`
+        : '';
+
+      return `
+        <div style="border-top:1px dashed rgba(168,85,247,0.25); margin-top:12px; padding-top:10px;">
+          <!-- Accordion header -->
+          <div style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;"
+               onclick="toggleChainAccordion('${act.id}')">
+            <span class="chain-arrow" style="font-size:12px; color:#a855f7; transition:transform 0.2s; transform:rotate(${isExpanded ? '90' : '0'}deg);">▶</span>
+            <span style="font-size:11px; color:#a855f7; font-weight:700; letter-spacing:0.5px;">⛓ ACTION CHAIN</span>
+            ${badge}
+            <!-- Enable toggle — stopPropagation so click doesn't also expand/collapse -->
+            <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); cursor:pointer; margin-left:auto;" onclick="event.stopPropagation()">
+              <input type="checkbox" class="chain-enabled" ${chainEnabled ? 'checked' : ''}
+                style="accent-color:#a855f7; cursor:pointer;"
+                onchange="const r=this.closest('[data-id]').querySelector('.chain-rows'); r.style.opacity=this.checked?'1':'0.35'; r.style.pointerEvents=this.checked?'':'none'; saveCurrentProfile()">
+              ${currentLang === 'en' ? 'Enabled' : 'เปิดใช้'}
+            </label>
+          </div>
+          <!-- Accordion body -->
+          <div class="chain-body" style="overflow:hidden; transition:max-height 0.25s ease, opacity 0.2s; max-height:${isExpanded ? '600px' : '0'}; opacity:${isExpanded ? '1' : '0'};">
+            <div style="padding-top:10px;">
+              <div style="font-size:10px; color:var(--muted); margin-bottom:8px;">เลือก Action ที่จะ Trigger อัตโนมัติเมื่อเกิด event (Ctrl+Click เพื่อเลือกหลายตัว)</div>
+              <div class="chain-rows" style="opacity:${chainEnabled ? '1' : '0.35'}; pointer-events:${chainEnabled ? '' : 'none'}; transition:opacity 0.2s;">
+                ${rows}
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function getActionTargetsList(targetClientString) {
+      if (!targetClientString) return ['1'];
+      if (targetClientString === 'all' || targetClientString === 'both') {
+        return ['1','2','3','4','5','6','7','8'];
+      }
+      return targetClientString.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    function renderTargetClientSelector(act) {
+      const selectedTargets = getActionTargetsList(act.targetClient);
+      const isAllSelected = act.targetClient === 'all' || act.targetClient === 'both';
+      
+      let html = `<div class="client-btn-group" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">`;
+      
+      for (let i = 1; i <= 8; i++) {
+        const isActive = activeClients.includes(i);
+        const isSelected = isAllSelected || selectedTargets.includes(String(i));
+        const activeColor = isSelected ? 'var(--primary)' : 'var(--bg-input)';
+        const borderColor = isSelected ? 'var(--primary)' : 'var(--border)';
+        const textColor = isSelected ? '#fff' : 'var(--muted)';
+        const opacity = isActive ? '1' : '0.5';
+        const titleText = isActive ? `Client ${i}` : `Client ${i} (Offline)`;
+        
+        html += `
+          <button type="button" class="client-select-btn ${isSelected ? 'selected' : ''}" 
+            data-value="${i}"
+            title="${titleText}"
+            onclick="toggleClientSelection(this, '${act.id}')"
+            style="background:${activeColor}; border:1px solid ${borderColor}; color:${textColor}; opacity:${opacity}; width:32px; height:32px; border-radius:50%; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.2s; outline:none;">
+            ${i}
+          </button>
+        `;
+      }
+      
+      const allActiveColor = isAllSelected ? 'var(--primary)' : 'var(--bg-input)';
+      const allBorderColor = isAllSelected ? 'var(--primary)' : 'var(--border)';
+      const allTextColor = isAllSelected ? '#fff' : 'var(--muted)';
+      html += `
+        <button type="button" class="client-select-btn-all ${isAllSelected ? 'selected' : ''}"
+          data-value="all"
+          onclick="toggleClientSelection(this, '${act.id}')"
+          style="background:${allActiveColor}; border:1px solid ${allBorderColor}; color:${allTextColor}; padding:0 12px; height:32px; border-radius:16px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.2s; outline:none; text-transform:uppercase;">
+          ${TRANSLATIONS[currentLang].allClients || 'All'}
+        </button>
+      </div>`;
+      
+      // We also store the actual value in a hidden input for syncActionFromDom
+      html += `<input type="hidden" class="action-target-client" value="${escapeHtml(act.targetClient || '1')}">`;
       return html;
+    }
+
+    function toggleClientSelection(btn, actionId) {
+      const card = document.querySelector(`[data-id="${actionId}"]`);
+      if (!card) return;
+      const hiddenInput = card.querySelector('.action-target-client');
+      if (!hiddenInput) return;
+      
+      const val = btn.getAttribute('data-value');
+      let currentVal = hiddenInput.value;
+      
+      let targets = [];
+      if (currentVal === 'all' || currentVal === 'both') {
+        targets = ['1','2','3','4','5','6','7','8'];
+      } else {
+        targets = currentVal.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      
+      if (val === 'all') {
+        if (btn.classList.contains('selected')) {
+          hiddenInput.value = '1';
+        } else {
+          hiddenInput.value = 'all';
+        }
+      } else {
+        if (targets.includes(val)) {
+          targets = targets.filter(t => t !== val);
+        } else {
+          targets.push(val);
+        }
+        
+        targets.sort((a, b) => parseInt(a) - parseInt(b));
+        
+        if (targets.length === 0) {
+          hiddenInput.value = '1';
+        } else if (targets.length === 8) {
+          hiddenInput.value = 'all';
+        } else {
+          hiddenInput.value = targets.join(',');
+        }
+      }
+      
+      const container = btn.closest('.client-selector-container');
+      const act = { id: actionId, targetClient: hiddenInput.value };
+      container.innerHTML = `
+        <label data-i18n="targetClient">${TRANSLATIONS[currentLang].targetClient}</label>
+        ${renderTargetClientSelector(act)}
+      `;
+      
+      saveCurrentProfile();
     }
 
     function renderTriggerValField(act) {
@@ -1695,6 +1969,18 @@
         const targetKeyInput = card.querySelector('.hold-target-key');
         act.targetKey = targetKeyInput ? targetKeyInput.value.trim() : '1';
       }
+
+      // Collect chain configuration
+      const chainSelects = card.querySelectorAll('.chain-target');
+      if (chainSelects.length > 0) {
+        act.chaining = act.chaining || {};
+        const chainEnabledEl = card.querySelector('.chain-enabled');
+        act.chaining._enabled = chainEnabledEl ? chainEnabledEl.checked : true;
+        chainSelects.forEach(sel => {
+          const ev = sel.getAttribute('data-event');
+          act.chaining[ev] = [...sel.selectedOptions].map(o => o.value);
+        });
+      }
     }
 
     function addNewAction() {
@@ -1715,7 +2001,8 @@
         jitter: 100,
         firstSteps: [],
         enabled: true,
-        targetClient: '1'
+        targetClient: '1',
+        chaining: { _enabled: false }
       });
 
       renderActions(profile.actions);
@@ -1771,9 +2058,21 @@
       return {
         targetUrlKeyword: document.getElementById('target-url-keyword').value.trim(),
         enableOverlay: document.getElementById('enable-overlay-checkbox').checked,
+        ghostMouseJitter: {
+          enabled: document.getElementById('ghost-mouse-enabled')?.checked || false,
+          intervalMin: parseInt(document.getElementById('ghost-mouse-interval-min')?.value || '8000', 10),
+          intervalMax: parseInt(document.getElementById('ghost-mouse-interval-max')?.value || '25000', 10),
+          maxOffset: parseInt(document.getElementById('ghost-mouse-max-offset')?.value || '12', 10)
+        },
         clientAliases: clientAliases,
         actions: actions
       };
+    }
+
+    function toggleGhostMouseSettings() {
+      const enabled = document.getElementById('ghost-mouse-enabled')?.checked;
+      const panel = document.getElementById('ghost-mouse-settings');
+      if (panel) panel.style.display = enabled ? 'flex' : 'none';
     }
 
     async function saveCurrentProfile() {
@@ -1965,15 +2264,20 @@
           const statusData = await statusRes.json();
           activeClients = statusData.activeClients || [1];
           
-          document.querySelectorAll('.action-target-client').forEach((select) => {
-            const actCard = select.closest('.group-card');
+          document.querySelectorAll('.client-selector-container').forEach((container) => {
+            const actCard = container.closest('.group-card');
             if (actCard) {
               const actId = actCard.getAttribute('data-id');
               const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === actId);
               if (act) {
-                const val = select.value;
-                select.innerHTML = renderTargetClientOptions(act);
-                select.value = val;
+                const hiddenInput = container.querySelector('.action-target-client');
+                if (hiddenInput) {
+                  act.targetClient = hiddenInput.value;
+                  container.innerHTML = `
+                    <label data-i18n="targetClient">${TRANSLATIONS[currentLang].targetClient}</label>
+                    ${renderTargetClientSelector(act)}
+                  `;
+                }
               }
             }
           });

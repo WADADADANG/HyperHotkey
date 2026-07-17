@@ -94,6 +94,12 @@
     "Flyff": {
       "targetUrlKeyword": "universe.flyff.com/play",
       "enableOverlay": true,
+      "ghostMouseJitter": {
+        "enabled": false,
+        "intervalMin": 8000,
+        "intervalMax": 25000,
+        "maxOffset": 12
+      },
       "clientAliases": {
         "1": "1",
         "2": "2",
@@ -102,7 +108,7 @@
       "actions": [
         {
           "id": "action_1783931275751_446",
-          "name": "Healing 1",
+          "name": "Heal 1",
           "mode": "loop",
           "trigger": {
             "type": "mouse",
@@ -111,28 +117,42 @@
           "keys": [
             "1"
           ],
-          "interval": 1500,
+          "interval": 1000,
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "2"
+          "targetClient": "2",
+          "chaining": {
+            "onStart": [
+              "action_1783931302136_90"
+            ],
+            "onEachCycle": [],
+            "onStop": [],
+            "_enabled": false
+          }
         },
         {
           "id": "action_1783931302136_90",
-          "name": "Healing 2",
+          "name": "Heal 2",
           "mode": "loop",
           "trigger": {
             "type": "mouse",
             "value": "5"
           },
           "keys": [
-            "1"
+            "2"
           ],
           "interval": 1500,
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "1"
+          "targetClient": "1",
+          "chaining": {
+            "onStart": [],
+            "onEachCycle": [],
+            "onStop": [],
+            "_enabled": false
+          }
         },
         {
           "id": "action_1784089828905_433",
@@ -150,67 +170,90 @@
           "firstSteps": [],
           "enabled": true,
           "targetClient": "3",
-          "targetKey": "5",
+          "targetKey": "3",
           "delayActivation": true,
-          "activationDelayMs": 1500
+          "activationDelayMs": 1500,
+          "chaining": {
+            "onKeyDown": [],
+            "onActivated": [],
+            "onKeyUp": [],
+            "_enabled": false
+          }
         },
         {
-          "id": "action_1784213432734_817",
-          "name": "Eat Food 1",
-          "mode": "forward",
+          "id": "action_1784286310769_750",
+          "name": "Skills Action",
+          "mode": "single_press",
           "trigger": {
             "type": "keyboard",
-            "value": "6"
+            "value": "NUMPAD DOT"
           },
           "keys": [
-            "1"
+            "C"
           ],
           "interval": 2000,
           "jitter": 100,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "1",
-          "targetKey": "2",
+          "targetClient": "1,2",
+          "chaining": {
+            "_enabled": false,
+            "onStart": [],
+            "onEachCycle": [],
+            "onStop": [],
+            "onFired": []
+          },
+          "targetKey": "C",
           "delayActivation": false,
           "activationDelayMs": 1000
         },
         {
-          "id": "action_1784213459087_105",
-          "name": "Eat Food 2",
-          "mode": "forward",
+          "id": "action_1784288712484_406",
+          "name": "Restore Mp",
+          "mode": "single_press",
           "trigger": {
             "type": "keyboard",
-            "value": "6"
+            "value": "7"
           },
           "keys": [
-            "1"
+            "4"
           ],
           "interval": 2000,
           "jitter": 100,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "2",
-          "targetKey": "2",
-          "delayActivation": false,
-          "activationDelayMs": 1000
+          "targetClient": "1,2,3",
+          "chaining": {
+            "_enabled": false,
+            "onStart": [],
+            "onEachCycle": [],
+            "onStop": [],
+            "onFired": []
+          }
         },
         {
-          "id": "action_1784213490153_340",
-          "name": "Eat Food 3",
-          "mode": "forward",
+          "id": "action_1784288771354_664",
+          "name": "Restore Hp",
+          "mode": "single_press",
           "trigger": {
             "type": "keyboard",
             "value": "6"
           },
-          "keys": [],
+          "keys": [
+            "5"
+          ],
           "interval": 2000,
           "jitter": 100,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "3",
-          "targetKey": "4",
-          "delayActivation": false,
-          "activationDelayMs": 1000
+          "targetClient": "1,2,3",
+          "chaining": {
+            "_enabled": false,
+            "onStart": [],
+            "onEachCycle": [],
+            "onStop": [],
+            "onFired": []
+          }
         }
       ]
     }

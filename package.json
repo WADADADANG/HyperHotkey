@@ -1,6 +1,6 @@
 {
   "name": "webgl-auto-clicker-cdp",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "description": "Background WebGL automation using Playwright CDP and node-global-key-listener",
   "main": "bot.js",
   "scripts": {
