@@ -70,37 +70,64 @@ const server = http.createServer((req, res) => {
 
     activeList.forEach(clientIdx => {
       const clientStr = String(clientIdx);
-      // Check if a buff sequence is currently running
+      const activeActions = global.activeActions || [];
+      const activeLoopStates = global.activeLoopStates || {};
+      const activeHoldStates = global.activeHoldStates || {};
+      const pressedRemapKeys = global.pressedRemapKeys || {};
+
+      // 1. Buff sequence running?
       if (global.isBuffSequenceRunning && global.isBuffSequenceRunning[clientStr]) {
-        const activeActions = global.activeActions || [];
         const buffAct = activeActions.find(a => a.mode === 'buff_sequence' && (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all'));
         clientStatuses[clientStr] = {
           status: buffAct ? buffAct.name : "Buffing",
           type: "buff"
         };
-      } else {
-        // Check if any loop actions targeting this client are running
-        const activeLoopStates = global.activeLoopStates || {};
-        const activeActions = global.activeActions || [];
-        const activeLoop = activeActions.find(a => 
-          a.mode === 'loop' && 
-          a.enabled && 
-          activeLoopStates[a.id] && 
-          activeLoopStates[a.id].running &&
+      // 2. Loop running?
+      } else if (activeActions.find(a =>
+        a.mode === 'loop' && a.enabled &&
+        activeLoopStates[a.id] && activeLoopStates[a.id].running &&
+        (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+      )) {
+        const activeLoop = activeActions.find(a =>
+          a.mode === 'loop' && a.enabled &&
+          activeLoopStates[a.id] && activeLoopStates[a.id].running &&
           (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
         );
-
-        if (activeLoop) {
-          clientStatuses[clientStr] = {
-            status: activeLoop.name,
-            type: "loop"
-          };
-        } else {
-          clientStatuses[clientStr] = {
-            status: "Standby",
-            type: "standby"
-          };
-        }
+        clientStatuses[clientStr] = {
+          status: activeLoop.name,
+          type: "loop"
+        };
+      // 3. Key Hold active?
+      } else if (activeActions.find(a =>
+        a.mode === 'key_hold' && a.enabled && activeHoldStates[a.id] &&
+        (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+      )) {
+        const activeHold = activeActions.find(a =>
+          a.mode === 'key_hold' && a.enabled && activeHoldStates[a.id] &&
+          (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+        );
+        clientStatuses[clientStr] = {
+          status: activeHold.name || `Hold: ${activeHold.targetKey}`,
+          type: "hold"
+        };
+      // 4. Key Forward active?
+      } else if (activeActions.find(a =>
+        a.mode === 'forward' && a.enabled && pressedRemapKeys[`${a.id}-${clientStr}`] &&
+        (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+      )) {
+        const activeForward = activeActions.find(a =>
+          a.mode === 'forward' && a.enabled && pressedRemapKeys[`${a.id}-${clientStr}`] &&
+          (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+        );
+        clientStatuses[clientStr] = {
+          status: activeForward.name || `${activeForward.trigger.value} ➜ ${activeForward.targetKey}`,
+          type: "forward"
+        };
+      } else {
+        clientStatuses[clientStr] = {
+          status: "Standby",
+          type: "standby"
+        };
       }
     });
 

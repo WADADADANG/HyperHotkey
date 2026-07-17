@@ -168,23 +168,29 @@ def update_ui(data):
         info = client_statuses.get(client_str, {"status": "Standby", "type": "standby"})
         status_text = info.get("status", "Standby")
         status_type = info.get("type", "standby")
-        
+
         # Limit text length to fit compact width
         if len(status_text) > 13:
             status_text = status_text[:11] + ".."
-            
+
         if status_type == "loop":
             color = "#10b981"  # green
             prefix = "🟢 "
         elif status_type == "buff":
             color = "#3b82f6"  # blue
             prefix = "🔵 "
+        elif status_type == "forward":
+            color = "#f59e0b"  # amber
+            prefix = "⚡ "
+        elif status_type == "hold":
+            color = "#a855f7"  # purple
+            prefix = "⚓ "
         else:
             color = "#64748b"  # gray
             prefix = "💤 "
-            
+
         lbl_status.config(text=f"{prefix}{status_text}", fg=color)
-        
+
         # Update name label text with alias if any
         lbl_name = name_label_widgets.get(idx)
         if lbl_name:
@@ -193,6 +199,7 @@ def update_ui(data):
             if len(display_name) > 15:
                 display_name = display_name[:13] + ".."
             lbl_name.config(text=display_name)
+
 
 def check_queue():
     try:

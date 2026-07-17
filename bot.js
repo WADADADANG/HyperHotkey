@@ -18,10 +18,47 @@ let targetUrlKeyword = 'universe.flyff.com'; // URL keyword to identify game tab
 
 let activeActions = [];
 let clientAliases = {};
+let pressedRemapKeys = {};
+let activeHoldStates = {};
+let forwardHoldTimers = {};
+let activeLoopStates = {};
+let isBuffSequenceRunning = {};
+global.activeLoopStates = activeLoopStates;
+global.isBuffSequenceRunning = isBuffSequenceRunning;
+global.pressedRemapKeys = pressedRemapKeys;
+global.activeHoldStates = activeHoldStates;
+let isSystemInitialized = false;
+let overlayProcess = null;
+const { spawn } = require('child_process');
+
+function releaseAllHeldKeys() {
+    for (let actionId in activeHoldStates) {
+        if (activeHoldStates[actionId]) {
+            const act = activeActions.find(a => a.id === actionId);
+            if (act && act.mode === 'key_hold') {
+                const targetKey = act.targetKey || '1';
+                const target = act.targetClient || '1';
+                let targets = (target === 'both' || target === 'all') ? activeClients : [parseInt(target, 10)];
+                for (let t of targets) {
+                    const page = clientPages[t];
+                    if (page) {
+                        page.keyboard.up(targetKey).catch(e => {});
+                    }
+                }
+            }
+            activeHoldStates[actionId] = false;
+        }
+    }
+    for (let key in forwardHoldTimers) {
+        clearTimeout(forwardHoldTimers[key]);
+        delete forwardHoldTimers[key];
+    }
+}
 
 // Helper to load config from JSON file
 function loadConfigFromFile() {
     try {
+        releaseAllHeldKeys();
         const configPath = path.join(__dirname, 'config.json');
         if (fs.existsSync(configPath)) {
             const data = fs.readFileSync(configPath, 'utf8');
@@ -152,15 +189,7 @@ watchConfigChanges();
 // ============================================================================
 // SYSTEM STATE & TIMERS
 // ============================================================================
-// Storage for randomized timeout references (Dynamic Jitter) per action ID
-let activeLoopStates = {};
-let isBuffSequenceRunning = {};
-global.activeLoopStates = activeLoopStates;
-global.isBuffSequenceRunning = isBuffSequenceRunning;
-
-let isSystemInitialized = false;
-const { spawn } = require('child_process');
-let overlayProcess = null;
+// (Variables hoisted to the top to avoid ReferenceError)
 
 function sendOverlayUpdate() {
     if (!overlayProcess) return;
@@ -188,10 +217,36 @@ function sendOverlayUpdate() {
                     type: "loop"
                 };
             } else {
-                clientStatuses[clientStr] = {
-                    status: "Standby",
-                    type: "standby"
-                };
+                const activeHold = activeActions.find(a =>
+                    a.mode === 'key_hold' &&
+                    a.enabled &&
+                    activeHoldStates[a.id] &&
+                    (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+                );
+                if (activeHold) {
+                    clientStatuses[clientStr] = {
+                        status: activeHold.name || `Hold: ${activeHold.targetKey}`,
+                        type: "hold"
+                    };
+                } else {
+                    const activeForward = activeActions.find(a =>
+                        a.mode === 'forward' &&
+                        a.enabled &&
+                        pressedRemapKeys[`${a.id}-${clientStr}`] &&
+                        (a.targetClient === clientStr || a.targetClient === 'both' || a.targetClient === 'all')
+                    );
+                    if (activeForward) {
+                        clientStatuses[clientStr] = {
+                            status: activeForward.name || `${activeForward.trigger.value} ➜ ${activeForward.targetKey}`,
+                            type: "forward"
+                        };
+                    } else {
+                        clientStatuses[clientStr] = {
+                            status: "Standby",
+                            type: "standby"
+                        };
+                    }
+                }
             }
         }
     });
@@ -362,7 +417,10 @@ function askClientsAndBrowser() {
 
 function isBlankPage(p) {
     const url = p.url();
-    return url === 'about:blank' || url === '' || url.includes('chrome://newtab') || url.includes('chrome-search://');
+    return url === 'about:blank' || url === '' ||
+        url.includes('chrome://newtab') || url.includes('chrome-search://') ||
+        url.includes('edge://newtab') || url.includes('edge://new-tab-page') ||
+        url.includes('ntp.msn.com/edge/ntp') || url.includes('about:newtab');
 }
 
 function migrateProfilesDirectory() {
@@ -410,9 +468,38 @@ async function launchBrowser(activeClientsList, choice) {
         headless: false,
         viewport: null,
         args: [
+            // === Window & Display ===
             '--start-maximized',
+            '--disable-infobars',
+            '--no-default-browser-check',
+            '--no-first-run',
+
+            // === Background Throttling Prevention ===
             '--disable-background-timer-throttling',
             '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+
+            // === GPU & Rendering Performance ===
+            '--enable-gpu-rasterization',
+            '--enable-zero-copy',
+            '--ignore-gpu-blocklist',
+            '--disable-gpu-process-crash-limit',
+
+            // === Reduce CPU/Memory Overhead ===
+            '--disable-extensions',
+            '--disable-sync',
+            '--disable-default-apps',
+            '--disable-background-networking',
+            '--disable-client-side-phishing-detection',
+            '--disable-hang-monitor',
+            '--disable-prompt-on-repost',
+            '--disable-translate',
+
+            // === Telemetry / Noise ===
+            '--metrics-recording-only',
+            '--disable-breakpad',
+
+            // === Process Management ===
             '--renderer-process-limit=1'
         ]
     };
@@ -460,13 +547,64 @@ async function launchBrowser(activeClientsList, choice) {
         const launchArgs = { ...launchOptions };
         if (channelVal) launchArgs.channel = channelVal;
         
-        // Firefox specific args
+        // Firefox specific args & user prefs
         if (choice === '3') {
-            launchArgs.args = [
-                '-start-maximized',
-                '-disable-background-timer-throttling',
-                '-disable-backgrounding-occluded-windows'
-            ];
+            launchArgs.args = ['-start-maximized'];
+
+            // Firefox performance prefs (equivalent to about:config tweaks)
+            launchArgs.firefoxUserPrefs = {
+                // === Disable Telemetry & Background Services ===
+                'toolkit.telemetry.enabled': false,
+                'toolkit.telemetry.unified': false,
+                'toolkit.telemetry.server': '',
+                'datareporting.healthreport.uploadEnabled': false,
+                'datareporting.policy.dataSubmissionEnabled': false,
+                'app.shield.optoutstudies.enabled': false,
+                'browser.ping-centre.telemetry': false,
+                'browser.newtabpage.activity-stream.feeds.telemetry': false,
+                'browser.newtabpage.activity-stream.telemetry': false,
+
+                // === Disable Sync & Accounts ===
+                'identity.fxaccounts.enabled': false,
+                'services.sync.enabled': false,
+
+                // === Disable First-Run & Welcome Pages ===
+                'browser.startup.firstrunSkipsHomepage': true,
+                'browser.startup.homepage_override.mstone': 'ignore',
+                'startup.homepage_welcome_url': '',
+                'browser.laterrun.enabled': false,
+                'browser.uitour.enabled': false,
+
+                // === GPU & Hardware Acceleration ===
+                'gfx.webrender.enabled': true,
+                'gfx.webrender.all': true,
+                'layers.acceleration.enabled': true,
+                'layers.gpu-process.enabled': true,
+                'layers.omtp.enabled': true,
+                'media.hardware-video-decoding.enabled': true,
+
+                // === Disable Background Networking ===
+                'network.prefetch-next': false,
+                'network.dns.disablePrefetch': true,
+                'network.http.speculative-parallel-limit': 0,
+                'browser.safebrowsing.malware.enabled': false,
+                'browser.safebrowsing.phishing.enabled': false,
+
+                // === Reduce UI Overhead ===
+                'browser.tabs.animate': false,
+                'browser.fullscreen.animate': false,
+                'ui.prefersReducedMotion': 1,
+                'accessibility.force_disabled': 1,
+
+                // === Smooth Scrolling ===
+                'general.smoothScroll': true,
+                'mousewheel.min_line_scroll_amount': 5,
+
+                // === Session & Crash Reporting ===
+                'browser.sessionstore.resume_from_crash': false,
+                'browser.crashReports.unsubmittedCheck.enabled': false
+            };
+
             // Firefox persistent path logic
             if (clientIndex === 1) {
                 launchArgs.profile = path.join(profilePath, 'playwright-nightly');
@@ -866,6 +1004,40 @@ async function runSinglePressAction(action) {
     }
 }
 
+async function toggleKeyHoldAction(action) {
+    const targetKey = action.targetKey || '1';
+    const target = action.targetClient || '1';
+    
+    let targets = [];
+    if (target === 'both' || target === 'all') {
+        targets = activeClients;
+    } else {
+        targets = [parseInt(target, 10)];
+    }
+
+    const isCurrentlyHeld = !!activeHoldStates[action.id];
+    const nextState = !isCurrentlyHeld;
+    activeHoldStates[action.id] = nextState;
+
+    console.log(`⚓ [Action] Toggle Key Hold for "${action.name}" (${targetKey}) on Client ${target} ➜ ${nextState ? 'DOWN' : 'UP'}`);
+
+    for (let t of targets) {
+        const page = clientPages[t];
+        if (!page) continue;
+        
+        try {
+            if (nextState) {
+                await page.keyboard.down(targetKey);
+            } else {
+                await page.keyboard.up(targetKey);
+            }
+        } catch (e) {
+            console.error(`[Action Error] Failed toggle key hold on Client ${t}:`, e.message);
+        }
+    }
+    sendOverlayUpdate();
+}
+
 // Unified trigger entry point
 function handleActionTrigger(act) {
     if (act.mode === 'loop') {
@@ -899,6 +1071,8 @@ function handleActionTrigger(act) {
         }
     } else if (act.mode === 'single_press') {
         runSinglePressAction(act).catch(err => console.error(`Error in runSinglePress:`, err));
+    } else if (act.mode === 'key_hold') {
+        toggleKeyHoldAction(act).catch(err => console.error(`Error in toggleKeyHoldAction:`, err));
     }
 }
 
@@ -914,7 +1088,6 @@ function startGlobalListeners() {
 
     // 1. Mouse Button Events Hook
     mouseEvents.on('mousedown', (event) => {
-        console.log(`[Global Mouse Captured] Clicked button: ${event.button}`);
         const hasAttachedPage = Object.values(clientPages).some(p => p !== null && p !== undefined);
         if (!hasAttachedPage) return;
 
@@ -933,24 +1106,100 @@ function startGlobalListeners() {
 
     // 2. Keyboard Events Hook
     keyboard.addListener(function (e, down) {
-        if (e.state !== "DOWN") return;
+        const isDown = e.state === "DOWN";
+        const isUp = e.state === "UP";
+        if (!isDown && !isUp) return;
+
         const hasAttachedPage = Object.values(clientPages).some(p => p !== null && p !== undefined);
         if (!hasAttachedPage) return;
 
-        // Find matching actions
-        const matchingActions = activeActions.filter(act =>
+        // 1. Handle normal actions (loop, buff_sequence, single_press) strictly on DOWN state
+        if (isDown) {
+            const matchingActions = activeActions.filter(act =>
+                act.enabled &&
+                act.mode !== 'forward' &&
+                act.trigger.type === 'keyboard' &&
+                act.trigger.value &&
+                act.trigger.value.toUpperCase() === e.name.toUpperCase()
+            );
+
+            if (matchingActions.length > 0) {
+                console.log(`[Global Key Captured] Triggered key: "${e.name}"`);
+            }
+
+            for (let act of matchingActions) {
+                handleActionTrigger(act);
+            }
+        }
+
+        // 2. Handle forward actions (down and up states for holding keys)
+        const forwardActions = activeActions.filter(act =>
             act.enabled &&
+            act.mode === 'forward' &&
             act.trigger.type === 'keyboard' &&
             act.trigger.value &&
             act.trigger.value.toUpperCase() === e.name.toUpperCase()
         );
 
-        if (matchingActions.length > 0) {
-            console.log(`[Global Key Captured] Triggered key: "${e.name}"`);
-        }
+        for (let act of forwardActions) {
+            const targetKey = act.targetKey || '5';
+            const target = act.targetClient || '1';
 
-        for (let act of matchingActions) {
-            handleActionTrigger(act);
+            let targets = [];
+            if (target === 'both' || target === 'all') {
+                targets = activeClients;
+            } else {
+                targets = [parseInt(target, 10)];
+            }
+
+            for (let clientIndex of targets) {
+                const page = clientPages[clientIndex];
+                if (!page) continue;
+
+                const trackingKey = `${act.id}-${clientIndex}`;
+                if (isDown) {
+                    if (!pressedRemapKeys[trackingKey] && !forwardHoldTimers[trackingKey]) {
+                        if (act.delayActivation) {
+                            const delay = act.activationDelayMs !== undefined ? parseInt(act.activationDelayMs, 10) : 1000;
+                            forwardHoldTimers[trackingKey] = setTimeout(() => {
+                                pressedRemapKeys[trackingKey] = true;
+                                delete forwardHoldTimers[trackingKey];
+                                console.log(`[Forward] [Client ${clientIndex}] Key Down (Delayed): "${targetKey}" (via Physical Key "${e.name}")`);
+                                page.keyboard.down(targetKey).catch(err => {
+                                    console.error(`[Forward Error] [Client ${clientIndex}] Failed keyboard.down("${targetKey}"):`, err.message);
+                                });
+                                sendOverlayUpdate();
+                            }, delay);
+                        } else {
+                            pressedRemapKeys[trackingKey] = true;
+                            console.log(`[Forward] [Client ${clientIndex}] Key Down: "${targetKey}" (via Physical Key "${e.name}")`);
+                            page.keyboard.down(targetKey).catch(err => {
+                                console.error(`[Forward Error] [Client ${clientIndex}] Failed keyboard.down("${targetKey}"):`, err.message);
+                            });
+                            sendOverlayUpdate();
+                        }
+                    }
+                } else if (isUp) {
+                    if (forwardHoldTimers[trackingKey]) {
+                        clearTimeout(forwardHoldTimers[trackingKey]);
+                        delete forwardHoldTimers[trackingKey];
+                    }
+                    if (pressedRemapKeys[trackingKey]) {
+                        delete pressedRemapKeys[trackingKey];
+                        console.log(`[Forward] [Client ${clientIndex}] Key Up: "${targetKey}" (via Physical Key "${e.name}")`);
+                        page.keyboard.up(targetKey).catch(err => {
+                            console.error(`[Forward Error] [Client ${clientIndex}] Failed keyboard.up("${targetKey}"):`, err.message);
+                        });
+                        // For delayed-activation actions: give overlay 120ms to render ⚡ before going back to Standby.
+                        // For normal (non-delayed) actions: update overlay immediately as before.
+                        if (act.delayActivation) {
+                            setTimeout(() => sendOverlayUpdate(), 120);
+                        } else {
+                            sendOverlayUpdate();
+                        }
+                    }
+                }
+            }
         }
     });
 

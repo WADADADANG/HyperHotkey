@@ -1,5 +1,5 @@
 {
-  "activeProfile": "Flyff 2",
+  "activeProfile": "Flyff",
   "profiles": {
     "Default": {
       "targetUrlKeyword": "universe.flyff.com/play",
@@ -91,7 +91,7 @@
         }
       ]
     },
-    "Flyff 2": {
+    "Flyff": {
       "targetUrlKeyword": "universe.flyff.com/play",
       "enableOverlay": true,
       "clientAliases": {
@@ -111,11 +111,11 @@
           "keys": [
             "1"
           ],
-          "interval": 4800,
+          "interval": 1500,
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "1"
+          "targetClient": "2"
         },
         {
           "id": "action_1783931302136_90",
@@ -132,24 +132,85 @@
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "2"
+          "targetClient": "1"
         },
         {
           "id": "action_1784089828905_433",
           "name": "Psykeeper AOE",
-          "mode": "loop",
+          "mode": "forward",
           "trigger": {
             "type": "keyboard",
-            "value": "NUMPAD MINUS"
+            "value": "1"
           },
           "keys": [
             "5"
           ],
-          "interval": 3200,
+          "interval": 1000,
           "jitter": 100,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "3"
+          "targetClient": "3",
+          "targetKey": "5",
+          "delayActivation": true,
+          "activationDelayMs": 1500
+        },
+        {
+          "id": "action_1784213432734_817",
+          "name": "Eat Food 1",
+          "mode": "forward",
+          "trigger": {
+            "type": "keyboard",
+            "value": "6"
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1",
+          "targetKey": "2",
+          "delayActivation": false,
+          "activationDelayMs": 1000
+        },
+        {
+          "id": "action_1784213459087_105",
+          "name": "Eat Food 2",
+          "mode": "forward",
+          "trigger": {
+            "type": "keyboard",
+            "value": "6"
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "2",
+          "targetKey": "2",
+          "delayActivation": false,
+          "activationDelayMs": 1000
+        },
+        {
+          "id": "action_1784213490153_340",
+          "name": "Eat Food 3",
+          "mode": "forward",
+          "trigger": {
+            "type": "keyboard",
+            "value": "6"
+          },
+          "keys": [],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "3",
+          "targetKey": "4",
+          "delayActivation": false,
+          "activationDelayMs": 1000
         }
       ]
     }

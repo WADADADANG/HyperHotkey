@@ -923,6 +923,12 @@
         modeLoop: "Repeat Loop (Runs continuously)",
         modeBuff: "Buff Sequence (Runs once sequentially)",
         modeSingle: "Single Key Press (Instantly presses key)",
+        modeForward: "Key Forwarder (Remaps and forwards down/up states)",
+        forwardTargetKeyLabel: "Target Key to send (Virtual Key)",
+        forwardDelayActivationLabel: "Require holding trigger key to activate",
+        forwardActivationDelayMsLabel: "Activation Hold Duration (ms)",
+        modeHold: "Toggle Key Hold (Holds key continuously in background)",
+        holdTargetKeyLabel: "Key to Hold (Virtual Key)",
 
         loopKeysLabel: "Key(s) to press (comma-separated)",
         loopJitterLabel: "Jitter (random timing +/- ms)",
@@ -1006,6 +1012,12 @@
         modeLoop: "ลูปทำงานซ้ำ (ทำงานต่อเนื่อง)",
         modeBuff: "บัฟตามลำดับ (กดทีละปุ่มเรียงลำดับ)",
         modeSingle: "กดครั้งเดียว (กดคีย์ทันทีเมื่อกด Hotkey)",
+        modeForward: "ส่งต่อการกดปุ่ม (Key Forwarder - ส่งต่อค้าง/ปล่อย)",
+        forwardTargetKeyLabel: "ปุ่มปลายทางที่จะส่งไป (Virtual Key)",
+        forwardDelayActivationLabel: "ต้องกดปุ่มลัดค้างไว้เพื่อทำงาน (Hold to Activate)",
+        forwardActivationDelayMsLabel: "ระยะเวลากดค้างก่อนทำงาน (มิลลิวินาที)",
+        modeHold: "ดึงค้างสแตนด์บาย (Toggle Key Hold - กดค้างแช่)",
+        holdTargetKeyLabel: "ปุ่มที่จะกดค้างไว้ (Virtual Key)",
 
         loopKeysLabel: "ปุ่มที่จะกดซ้ำ (คั่นด้วยเครื่องหมายจุลภาค ,)",
         loopJitterLabel: "ดีเลย์แบบสุ่ม (+/- มิลลิวินาที)",
@@ -1095,29 +1107,47 @@
     let currentEditProfile = 'Default';
     let activeClients = [1];
 
-    // Hotkey Recording State
+    // Hotkey & Key List Recording State
     let activeRecordingInput = null;
     let activeRecordingActionId = null;
+    let activeRecordingType = null; // 'hotkey', 'single_key', 'comma_keys'
 
-    function startRecordingHotkey(input, actionId) {
+    function startRecordingKey(input, actionId, type) {
+      if (activeRecordingInput && activeRecordingInput !== input) {
+        stopRecordingKey(activeRecordingInput);
+      }
       activeRecordingInput = input;
       activeRecordingActionId = actionId;
+      activeRecordingType = type;
+      
       input.value = '';
-      input.placeholder = 'Press any key...';
+      input.placeholder = type === 'comma_keys' ? 'Press keys sequentially...' : 'Press any key...';
       input.style.borderColor = 'var(--primary)';
       input.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.2)';
-
+      
       window.addEventListener('keydown', handleRecordingKeyDown, true);
     }
 
-    function stopRecordingHotkey(input) {
+    function stopRecordingKey(input) {
       if (activeRecordingInput === input) {
         window.removeEventListener('keydown', handleRecordingKeyDown, true);
-        activeRecordingInput = null;
-        activeRecordingActionId = null;
-        input.placeholder = 'Click to bind key...';
+        
+        let placeholderText = 'Click to bind key...';
+        if (activeRecordingType === 'comma_keys') {
+          placeholderText = currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...';
+        }
+        
+        input.placeholder = placeholderText;
         input.style.borderColor = 'var(--border)';
         input.style.boxShadow = 'none';
+        
+        // Save DOM values to config immediately
+        syncActionFromDom(activeRecordingActionId);
+        saveCurrentProfile();
+        
+        activeRecordingInput = null;
+        activeRecordingActionId = null;
+        activeRecordingType = null;
       }
     }
 
@@ -1137,30 +1167,38 @@
 
       if (restrictedKeys.includes(cleanKey)) {
         const msg = currentLang === 'en'
-          ? `⚠️ Key "${cleanKey}" is restricted and cannot be used as a hotkey!`
-          : `⚠️ ไม่สามารถใช้ปุ่ม "${cleanKey}" เป็นปุ่มลัดได้!`;
+          ? `⚠️ Key "${cleanKey}" is restricted!`
+          : `⚠️ ไม่สามารถใช้ปุ่ม "${cleanKey}" ได้!`;
         toast(msg, 'error');
-
-        // Clear input values
-        activeRecordingInput.value = '';
-        const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === activeRecordingActionId);
-        if (act) {
-          act.trigger.value = '';
-        }
-
         activeRecordingInput.blur();
         return;
       }
 
-      activeRecordingInput.value = cleanKey;
-
-      // Save to config immediately
-      const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === activeRecordingActionId);
-      if (act) {
-        act.trigger.value = cleanKey;
+      if (activeRecordingType === 'hotkey') {
+        activeRecordingInput.value = cleanKey;
+        const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === activeRecordingActionId);
+        if (act) {
+          act.trigger.value = cleanKey;
+        }
+        activeRecordingInput.blur();
+      } else if (activeRecordingType === 'single_key') {
+        activeRecordingInput.value = cleanKey;
+        const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === activeRecordingActionId);
+        if (act) {
+          act.targetKey = cleanKey;
+        }
+        activeRecordingInput.blur();
+      } else if (activeRecordingType === 'comma_keys') {
+        const currentVal = activeRecordingInput.value.trim();
+        if (currentVal === '') {
+          activeRecordingInput.value = cleanKey;
+        } else {
+          const keys = currentVal.split(',').map(s => s.trim());
+          if (keys[keys.length - 1] !== cleanKey) {
+            activeRecordingInput.value = currentVal + ', ' + cleanKey;
+          }
+        }
       }
-
-      activeRecordingInput.blur();
     }
 
     function mapJsKeyToGlobalListenerKey(e) {
@@ -1409,6 +1447,8 @@
               <option value="loop" ${act.mode === 'loop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeLoop}</option>
               <option value="buff_sequence" ${act.mode === 'buff_sequence' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeBuff}</option>
               <option value="single_press" ${act.mode === 'single_press' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeSingle}</option>
+              <option value="forward" ${act.mode === 'forward' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeForward}</option>
+              <option value="key_hold" ${act.mode === 'key_hold' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeHold}</option>
             </select>
           </div>
           <div class="field">
@@ -1459,7 +1499,7 @@
       } else {
         const placeholderText = activeRecordingActionId === act.id ? TRANSLATIONS[currentLang].pressAnyKey : TRANSLATIONS[currentLang].clickToBind;
         return `
-      <input type="text" class="action-trigger-val" value="${escapeHtml(act.trigger.value || '')}" placeholder="${placeholderText}" readonly onfocus="startRecordingHotkey(this, '${act.id}')" onblur="stopRecordingHotkey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%; cursor:pointer; text-align:center;">
+      <input type="text" class="action-trigger-val" value="${escapeHtml(act.trigger.value || '')}" placeholder="${placeholderText}" readonly onfocus="startRecordingKey(this, '${act.id}', 'hotkey')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%; cursor:pointer; text-align:center;">
     `;
       }
     }
@@ -1472,7 +1512,7 @@
         <div class="field-row">
           <div class="field">
             <label>${TRANSLATIONS[currentLang].loopKeysLabel}</label>
-            <input type="text" class="loop-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'e.g. 2, 4' : 'เช่น 2, 4'}" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+            <input type="text" class="loop-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...'}" readonly onfocus="startRecordingKey(this, '${act.id}', 'comma_keys')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; cursor:pointer;">
           </div>
           <div class="field">
             <label>${TRANSLATIONS[currentLang].loopJitterLabel}</label>
@@ -1514,7 +1554,7 @@
         </div>
         <div class="field">
           <label>${TRANSLATIONS[currentLang].buffKeysLabel}</label>
-          <input type="text" class="buff-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'e.g. F3, 1, 2, 3' : 'เช่น F3, 1, 2, 3'}" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+          <input type="text" class="buff-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...'}" readonly onfocus="startRecordingKey(this, '${act.id}', 'comma_keys')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; cursor:pointer;">
         </div>
       </div>
     `;
@@ -1523,7 +1563,36 @@
       <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
         <div class="field">
           <label>${TRANSLATIONS[currentLang].singleKeysLabel}</label>
-          <input type="text" class="single-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'e.g. Space, F1' : 'เช่น Space, F1'}" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+          <input type="text" class="single-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...'}" readonly onfocus="startRecordingKey(this, '${act.id}', 'comma_keys')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; cursor:pointer;">
+        </div>
+      </div>
+    `;
+      } else if (act.mode === 'forward') {
+        const isDelayEnabled = !!act.delayActivation;
+        html = `
+      <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
+        <div class="field">
+          <label>${TRANSLATIONS[currentLang].forwardTargetKeyLabel}</label>
+          <input type="text" class="forward-target-key" value="${escapeHtml(act.targetKey || '5')}" placeholder="${currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...'}" readonly onfocus="startRecordingKey(this, '${act.id}', 'single_key')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; text-align:center; cursor:pointer;">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text); cursor:pointer;">
+            <input type="checkbox" class="forward-delay-activation" ${isDelayEnabled ? 'checked' : ''} onchange="toggleForwardDelayDisplay('${act.id}', this.checked)" style="accent-color:var(--primary); cursor:pointer;">
+            ${TRANSLATIONS[currentLang].forwardDelayActivationLabel}
+          </label>
+          <div class="forward-delay-ms-container-${act.id}" style="display:${isDelayEnabled ? 'flex' : 'none'}; flex-direction:column; gap:4px; margin-top:2px;">
+            <label style="font-size:11px; color:var(--muted);">${TRANSLATIONS[currentLang].forwardActivationDelayMsLabel}</label>
+            <input type="number" class="forward-activation-delay-ms" value="${act.activationDelayMs ?? 1000}" min="100" step="100" placeholder="1000" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width: 120px;">
+          </div>
+        </div>
+      </div>
+    `;
+      } else if (act.mode === 'key_hold') {
+        html = `
+      <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
+        <div class="field">
+          <label>${TRANSLATIONS[currentLang].holdTargetKeyLabel}</label>
+          <input type="text" class="hold-target-key" value="${escapeHtml(act.targetKey || '1')}" placeholder="${currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...'}" readonly onfocus="startRecordingKey(this, '${act.id}', 'single_key')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; text-align:center; cursor:pointer;">
         </div>
       </div>
     `;
@@ -1578,6 +1647,13 @@
       container.innerHTML = renderModeSpecificFields(act);
     }
 
+    function toggleForwardDelayDisplay(actionId, isChecked) {
+      const container = document.querySelector(`.forward-delay-ms-container-${actionId}`);
+      if (container) {
+        container.style.display = isChecked ? 'flex' : 'none';
+      }
+    }
+
     function syncActionFromDom(actionId) {
       const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === actionId);
       if (!act) return;
@@ -1608,6 +1684,16 @@
       } else if (act.mode === 'single_press') {
         const keysInput = card.querySelector('.single-keys');
         act.keys = keysInput ? keysInput.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+      } else if (act.mode === 'forward') {
+        const targetKeyInput = card.querySelector('.forward-target-key');
+        act.targetKey = targetKeyInput ? targetKeyInput.value.trim() : '5';
+        const delayCheck = card.querySelector('.forward-delay-activation');
+        act.delayActivation = delayCheck ? delayCheck.checked : false;
+        const delayMsInput = card.querySelector('.forward-activation-delay-ms');
+        act.activationDelayMs = delayMsInput ? parseInt(delayMsInput.value, 10) || 1000 : 1000;
+      } else if (act.mode === 'key_hold') {
+        const targetKeyInput = card.querySelector('.hold-target-key');
+        act.targetKey = targetKeyInput ? targetKeyInput.value.trim() : '1';
       }
     }
 
