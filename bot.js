@@ -18,6 +18,9 @@ let targetUrlKeyword = 'universe.flyff.com'; // URL keyword to identify game tab
 
 let activeActions = [];
 let clientAliases = {};
+let clientUserAgents = {};
+let suspendHotkey = "";
+global.isSuspended = false;
 let pressedRemapKeys = {};
 let activeHoldStates = {};
 let forwardHoldTimers = {};
@@ -95,6 +98,7 @@ function loadConfigFromFile() {
 
             // Load target URL keyword
             targetUrlKeyword = profile.targetUrlKeyword || 'universe.flyff.com';
+            suspendHotkey = profile.suspendHotkey || '';
 
             // Load actions array
             if (profile.actions && Array.isArray(profile.actions)) {
@@ -106,6 +110,9 @@ function loadConfigFromFile() {
 
             // Load client aliases
             clientAliases = profile.clientAliases || {};
+
+            // Load client User-Agents
+            clientUserAgents = profile.clientUserAgents || {};
 
             // Load Ghost Mouse Jitter config
             if (profile.ghostMouseJitter) {
@@ -282,13 +289,72 @@ function sendOverlayUpdate() {
             }
         }
     });
-    const payload = JSON.stringify({ activeClients: activeList, clientStatuses, clientAliases });
+    const payload = JSON.stringify({ activeClients: activeList, clientStatuses, clientAliases, isSuspended: !!global.isSuspended });
     try {
         overlayProcess.stdin.write(payload + "\n");
     } catch (err) {
         // Ignored
     }
 }
+
+global.toggleSuspendState = function(forcedState) {
+    if (forcedState !== undefined) {
+        global.isSuspended = forcedState;
+    } else {
+        global.isSuspended = !global.isSuspended;
+    }
+    
+    console.log(`\n[System Pause/Resume] Bot is now ${global.isSuspended ? '⏸️ PAUSED/SUSPENDED' : '▶️ ACTIVE/RESUMED'}`);
+    
+    if (global.isSuspended) {
+        // Stop all loops
+        stopAllLoops();
+        
+        // Release all key holds
+        for (let actionId in activeHoldStates) {
+            if (activeHoldStates[actionId]) {
+                activeHoldStates[actionId] = false;
+                const act = activeActions.find(a => a.id === actionId);
+                if (act) {
+                    const target = act.targetClient || '1';
+                    let targets = getActionTargets(target).map(x => parseInt(x, 10));
+                    for (let t of targets) {
+                        const page = clientPages[t];
+                        if (page) {
+                            page.keyboard.up(act.targetKey || '1').catch(e => {});
+                        }
+                    }
+                }
+            }
+        }
+        // Release all remapped/forward keys
+        for (let key in pressedRemapKeys) {
+            if (pressedRemapKeys[key]) {
+                delete pressedRemapKeys[key];
+                const parts = key.split('-');
+                if (parts.length === 2) {
+                    const actId = parts[0];
+                    const clientIndex = parseInt(parts[1], 10);
+                    const act = activeActions.find(a => a.id === actId);
+                    const page = clientPages[clientIndex];
+                    if (act && page) {
+                        page.keyboard.up(act.targetKey || '5').catch(e => {});
+                    }
+                }
+            }
+        }
+        // Clear all forward hold timers
+        for (let key in forwardHoldTimers) {
+            if (forwardHoldTimers[key]) {
+                clearTimeout(forwardHoldTimers[key]);
+                delete forwardHoldTimers[key];
+            }
+        }
+    }
+    
+    sendOverlayUpdate();
+    return global.isSuspended;
+};
 
 function syncOverlayProcess(enableOverlay) {
     if (!isSystemInitialized) return; // Delay overlay launch until system initialization is complete
@@ -505,6 +571,7 @@ async function launchBrowser(activeClientsList, choice) {
             '--disable-infobars',
             '--no-default-browser-check',
             '--no-first-run',
+            '--disable-blink-features=AutomationControlled',
 
             // === Background Throttling Prevention ===
             '--disable-background-timer-throttling',
@@ -578,6 +645,13 @@ async function launchBrowser(activeClientsList, choice) {
         const profilePath = path.join(profilesDir, profileName);
         const launchArgs = { ...launchOptions };
         if (channelVal) launchArgs.channel = channelVal;
+
+        // Apply custom User-Agent if defined in clientUserAgents configuration
+        const customUa = clientUserAgents[String(clientIndex)];
+        if (customUa && customUa.trim() !== '') {
+            console.log(`[System] [Client ${clientIndex}] Setting custom User-Agent: "${customUa}"`);
+            launchArgs.userAgent = customUa.trim();
+        }
         
         // Firefox specific args & user prefs
         if (choice === '3') {
@@ -634,7 +708,11 @@ async function launchBrowser(activeClientsList, choice) {
 
                 // === Session & Crash Reporting ===
                 'browser.sessionstore.resume_from_crash': false,
-                'browser.crashReports.unsubmittedCheck.enabled': false
+                'browser.crashReports.unsubmittedCheck.enabled': false,
+
+                // === Prevent Mouse Back/Forward History Navigation ===
+                'mousebutton.4th.enabled': false,
+                'mousebutton.5th.enabled': false
             };
 
             // Firefox persistent path logic
@@ -700,6 +778,17 @@ async function launchBrowser(activeClientsList, choice) {
         // 3. Add Webdriver evasion and dynamic title observer
         await browserCtx.addInitScript(({ index, initialPrefix }) => {
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+
+            // Prevent mouse back/forward buttons (Mouse 4 and Mouse 5) from navigating away from the page
+            const preventMouseNav = (e) => {
+                if (e.button === 3 || e.button === 4) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            };
+            window.addEventListener('mousedown', preventMouseNav, true);
+            window.addEventListener('mouseup', preventMouseNav, true);
+            window.addEventListener('click', preventMouseNav, true);
             
             window.__clientPrefix = initialPrefix;
             
@@ -975,7 +1064,8 @@ async function startLoopAction(action, callStack) {
         activeLoopStates[action.id].running = true;
     }
 
-    fireChain(action, 'onStart', callStack);
+    await fireChain(action, 'onBeforeStart', callStack);
+    await fireChain(action, 'onStart', callStack);
 
     // Run first steps if any
     if (action.firstSteps && action.firstSteps.length > 0) {
@@ -986,6 +1076,8 @@ async function startLoopAction(action, callStack) {
             await new Promise(res => setTimeout(res, step.delay));
         }
     }
+
+    await fireChain(action, 'onAfterStart', callStack);
 
     // Start the interval loop
     runLoopStep(action);
@@ -1040,7 +1132,7 @@ async function runLoopStep(action, callStack) {
         }
     }
 
-    fireChain(action, 'onEachCycle', callStack);
+    await fireChain(action, 'onEachCycle', callStack);
 
     const baseInterval = action.interval || 3000;
     const jitterMax = action.jitter || 0;
@@ -1064,7 +1156,9 @@ async function runBuffSequenceAction(action, callStack) {
         console.log(`🔵 [Action] Buff Sequence Started: "${action.name}" on Client ${t}...`);
         stopLoopsForClient(t);
     }
-    fireChain(action, 'onStart', callStack);
+    await fireChain(action, 'onBeforeStart', callStack);
+    await fireChain(action, 'onStart', callStack);
+    await fireChain(action, 'onAfterStart', callStack);
     sendOverlayUpdate();
 
     const delay = action.delayBuff || 800;
@@ -1079,7 +1173,11 @@ async function runBuffSequenceAction(action, callStack) {
         isBuffSequenceRunning[String(t)] = false;
         console.log(`⚪ [Action] Finished Buff Sequence: "${action.name}" on Client ${t}`);
     }
-    fireChain(action, 'onComplete', callStack);
+    if (action.delayAfter && action.delayAfter > 0) {
+        console.log(` - Waiting delayAfter: ${action.delayAfter}ms...`);
+        await new Promise(res => setTimeout(res, action.delayAfter));
+    }
+    await fireChain(action, 'onComplete', callStack);
     sendOverlayUpdate();
 }
 
@@ -1092,7 +1190,11 @@ async function runSinglePressAction(action, callStack) {
             await sendKey(action, key);
         }
     }
-    fireChain(action, 'onFired', callStack);
+    if (action.delayAfter && action.delayAfter > 0) {
+        console.log(` - Waiting delayAfter: ${action.delayAfter}ms...`);
+        await new Promise(res => setTimeout(res, action.delayAfter));
+    }
+    await fireChain(action, 'onFired', callStack);
 }
 
 async function toggleKeyHoldAction(action, callStack) {
@@ -1154,6 +1256,8 @@ function handleActionTrigger(act) {
         runSinglePressAction(act).catch(err => console.error(`Error in runSinglePress:`, err));
     } else if (act.mode === 'key_hold') {
         toggleKeyHoldAction(act).catch(err => console.error(`Error in toggleKeyHoldAction:`, err));
+    } else if (act.mode === 'action_control') {
+        runActionControl(act).catch(err => console.error(`Error in runActionControl:`, err));
     }
 }
 
@@ -1163,7 +1267,7 @@ function handleActionTrigger(act) {
 
 // Fire chained actions for a given source action and event name.
 // callStack prevents infinite loops (A→B→A).
-function fireChain(sourceAction, eventName, callStack = new Set()) {
+async function fireChain(sourceAction, eventName, callStack = new Set()) {
     const chains = sourceAction.chaining;
     if (!chains || chains._enabled !== true) return; // Chain disabled globally unless explicitly true
     if (!chains[eventName] || !chains[eventName].length) return;
@@ -1182,30 +1286,94 @@ function fireChain(sourceAction, eventName, callStack = new Set()) {
             continue;
         }
         console.log(`[Chain] "${sourceAction.name}" [${eventName}] → "${targetAction.name}"`);
-        runChainedAction(targetAction, callStack);
+        await runChainedAction(targetAction, callStack);
     }
 }
 
 // Run a target action directly (bypasses hotkey requirement).
-function runChainedAction(action, callStack) {
+async function runChainedAction(action, callStack) {
     if (action.mode === 'loop') {
         const state = activeLoopStates[action.id];
         if (state && state.running) {
             stopLoopAction(action.id, action.name);
         } else {
-            startLoopAction(action, callStack).catch(err => console.error(`[Chain Error] startLoopAction:`, err));
+            await startLoopAction(action, callStack).catch(err => console.error(`[Chain Error] startLoopAction:`, err));
         }
     } else if (action.mode === 'buff_sequence') {
         const target = action.targetClient || '1';
         let targets = getActionTargets(target).map(x => parseInt(x, 10));
         let alreadyRunning = targets.some(t => isBuffSequenceRunning[String(t)]);
         if (!alreadyRunning) {
-            runBuffSequenceAction(action, callStack).catch(err => console.error(`[Chain Error] runBuffSequenceAction:`, err));
+            await runBuffSequenceAction(action, callStack).catch(err => console.error(`[Chain Error] runBuffSequenceAction:`, err));
         }
     } else if (action.mode === 'single_press') {
-        runSinglePressAction(action, callStack).catch(err => console.error(`[Chain Error] runSinglePressAction:`, err));
+        await runSinglePressAction(action, callStack).catch(err => console.error(`[Chain Error] runSinglePressAction:`, err));
     } else if (action.mode === 'key_hold') {
-        toggleKeyHoldAction(action, callStack).catch(err => console.error(`[Chain Error] toggleKeyHoldAction:`, err));
+        await toggleKeyHoldAction(action, callStack).catch(err => console.error(`[Chain Error] toggleKeyHoldAction:`, err));
+    } else if (action.mode === 'action_control') {
+        await runActionControl(action, callStack).catch(err => console.error(`[Chain Error] runActionControl:`, err));
+    }
+}
+
+async function runActionControl(act, callStack) {
+    const targetIds = act.controlTargetIds || (act.controlTargetId ? [act.controlTargetId] : []);
+    const op = act.controlOperation || 'toggle';
+    if (!targetIds.length) return;
+
+    // Prevent circular execution stacks within the control command chain
+    const stackKey = `${act.id}:control`;
+    const resolvedStack = callStack || new Set();
+    if (resolvedStack.has(stackKey)) {
+        console.warn(`[Action Control] ⚠️ Circular control loop detected: "${act.name}" control stack — skipping.`);
+        return;
+    }
+    resolvedStack.add(stackKey);
+
+    for (const targetId of targetIds) {
+        const targetAction = activeActions.find(a => a.id === targetId);
+        if (!targetAction || !targetAction.enabled) {
+            console.log(`[Action Control] Target action "${targetId}" is missing or disabled — skipping.`);
+            continue;
+        }
+
+        console.log(`[Action Control] Sourced from "${act.name}": Controlling "${targetAction.name}" (Operation: ${op})`);
+
+        if (targetAction.mode === 'loop') {
+            const state = activeLoopStates[targetAction.id];
+            const isRunning = state && state.running;
+            if (op === 'start') {
+                if (!isRunning) await startLoopAction(targetAction, resolvedStack).catch(e => console.error(e));
+            } else if (op === 'stop') {
+                if (isRunning) stopLoopAction(targetAction.id, targetAction.name);
+            } else { // toggle
+                if (isRunning) stopLoopAction(targetAction.id, targetAction.name);
+                else await startLoopAction(targetAction, resolvedStack).catch(e => console.error(e));
+            }
+        } else if (targetAction.mode === 'key_hold') {
+            const isCurrentlyHeld = !!activeHoldStates[targetAction.id];
+            if (op === 'start') {
+                if (!isCurrentlyHeld) await toggleKeyHoldAction(targetAction, resolvedStack).catch(e => console.error(e));
+            } else if (op === 'stop') {
+                if (isCurrentlyHeld) await toggleKeyHoldAction(targetAction, resolvedStack).catch(e => console.error(e));
+            } else { // toggle
+                await toggleKeyHoldAction(targetAction, resolvedStack).catch(e => console.error(e));
+            }
+        } else if (targetAction.mode === 'buff_sequence') {
+            const target = targetAction.targetClient || '1';
+            let targets = getActionTargets(target).map(x => parseInt(x, 10));
+            let alreadyRunning = targets.some(t => isBuffSequenceRunning[String(t)]);
+            if (op === 'start' || op === 'toggle') {
+                if (!alreadyRunning) {
+                    await runBuffSequenceAction(targetAction, resolvedStack).catch(err => console.error(err));
+                }
+            }
+        } else if (targetAction.mode === 'single_press') {
+            if (op === 'start' || op === 'toggle') {
+                await runSinglePressAction(targetAction, resolvedStack).catch(err => console.error(err));
+            }
+        } else if (targetAction.mode === 'action_control') {
+            await runActionControl(targetAction, resolvedStack).catch(err => console.error(err));
+        }
     }
 }
 
@@ -1221,6 +1389,8 @@ function startGlobalListeners() {
 
     // 1. Mouse Button Events Hook
     mouseEvents.on('mousedown', (event) => {
+        if (global.isSuspended) return;
+
         const hasAttachedPage = Object.values(clientPages).some(p => p !== null && p !== undefined);
         if (!hasAttachedPage) return;
 
@@ -1242,6 +1412,14 @@ function startGlobalListeners() {
         const isDown = e.state === "DOWN";
         const isUp = e.state === "UP";
         if (!isDown && !isUp) return;
+
+        // Handle global suspend hotkey toggle
+        if (isDown && suspendHotkey && e.name && e.name.toUpperCase() === suspendHotkey.toUpperCase()) {
+            global.toggleSuspendState();
+            return;
+        }
+
+        if (global.isSuspended) return;
 
         const hasAttachedPage = Object.values(clientPages).some(p => p !== null && p !== undefined);
         if (!hasAttachedPage) return;

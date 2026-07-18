@@ -1,10 +1,7 @@
 node_modules/
-chrome-profile/
-chrome-profile-2/
-firefox-profile/
-firefox-profile-2/
 *.log
 *.bak
 .DS_Store
 profiles/
 __pycache__/
+config.json

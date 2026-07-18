@@ -133,8 +133,19 @@ const server = http.createServer((req, res) => {
 
     return sendJSON(res, 200, {
       activeClients: activeList,
-      clientStatuses: clientStatuses
+      clientStatuses: clientStatuses,
+      isSuspended: !!global.isSuspended
     });
+  }
+
+  // --- POST /api/suspend/toggle → toggle suspend state ---
+  if (urlPath === '/api/suspend/toggle' && req.method === 'POST') {
+    if (typeof global.toggleSuspendState === 'function') {
+      const newState = global.toggleSuspendState();
+      return sendJSON(res, 200, { success: true, isSuspended: newState });
+    } else {
+      return sendJSON(res, 500, { error: 'Suspend toggler not initialized' });
+    }
   }
 
   // --- POST /api/overlay/disable → toggle off overlay config ---

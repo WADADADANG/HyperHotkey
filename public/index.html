@@ -294,6 +294,11 @@
       transition: all 0.2s ease;
     }
 
+    .group-card.dragging {
+      opacity: 0.45;
+      border: 1px dashed var(--primary) !important;
+    }
+
     .group-header {
       padding: 14px 20px;
       display: flex;
@@ -779,6 +784,21 @@
           </label>
         </div>
         <div
+          style="display:flex; flex-direction:column; gap:8px; margin-top:10px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+            <label style="font-size:11px; letter-spacing:0.5px; font-weight:700; color:var(--muted);" data-i18n="suspendHotkeyTitle">GLOBAL PAUSE HOTKEY</label>
+            <button id="gui-suspend-btn" class="btn btn-ghost" onclick="toggleSuspendState()" style="padding: 4px 10px; font-size: 10px; margin-left: auto; border-color: #ef4444; color: #ef4444; font-weight:700; border-radius:6px; background:rgba(239,68,68,0.07); cursor:pointer; transition: all 0.2s;">
+              🔴 Pause Bot
+            </button>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; width:100%;">
+            <input type="text" id="suspend-hotkey-input" readonly placeholder="Click to bind key..."
+              style="flex:1; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:6px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; height:34px; text-align:center; font-weight:bold; cursor:pointer;"
+              onfocus="startRecordingSuspendHotkey(this)" onblur="stopRecordingKey(this)">
+            <button class="btn btn-ghost" onclick="clearSuspendHotkey()" style="height:34px; padding:0 12px; border-color:var(--border); color:var(--muted); border-radius:8px;">✕</button>
+          </div>
+        </div>
+        <div
           style="display:flex; width:100%; align-items:center; gap:12px; margin-top:10px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
           <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); cursor:pointer; font-weight:600;">
             <input type="checkbox" id="ghost-mouse-enabled" style="accent-color:#a855f7; cursor:pointer;" onchange="toggleGhostMouseSettings(); saveCurrentProfile()">
@@ -821,6 +841,12 @@
             <input type="text" id="client-alias-7" placeholder="จอ 7" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;" onchange="saveCurrentProfile()">
             <input type="text" id="client-alias-8" placeholder="จอ 8" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;" onchange="saveCurrentProfile()">
           </div>
+        </div>
+        <div
+          style="display:flex; width:100%; align-items:center; gap:12px; margin-top:12px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
+          <button class="btn btn-ghost" onclick="openAntiDetectModal()" style="width:100%; border-color:#06b6d4; color:#06b6d4; background:rgba(6,182,212,0.05); height:34px; font-size:12px; font-weight:700; border-radius:8px; cursor:pointer; justify-content:center; display:flex; align-items:center;" data-i18n="antiDetectBtn">
+            🌐 Anti-Detect & User-Agent Settings
+          </button>
         </div>
       </div>
 
@@ -897,6 +923,28 @@
     </div>
   </div>
 
+  <!-- ════════ ANTI-DETECT MODAL ════════ -->
+  <div class="modal-bg" id="antidetect-modal">
+    <div class="modal" style="max-width: 650px; width: 90%; max-height: 85vh; display: flex; flex-direction: column;">
+      <h2 data-i18n="antiDetectModalTitle">Anti-Detect & User-Agent Settings</h2>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:12px; line-height: 1.5;" data-i18n="antiDetectModalDesc">
+        Configure custom User-Agent strings per client screen to simulate independent browser installations. Webdriver flags are automatically bypassed.
+      </div>
+      <div style="flex:1; overflow-y:auto; padding-right:6px; display:flex; flex-direction:column; gap:12px; max-height: 50vh;" id="antidetect-client-list">
+        <!-- Render 8 client rows dynamically -->
+      </div>
+      <div class="modal-footer" style="margin-top:16px; display:flex; gap:10px; justify-content:space-between; width:100%;">
+        <button class="btn btn-ghost" onclick="randomizeAllUserAgents()" style="border-color:#a855f7; color:#a855f7; background:rgba(168,85,247,0.05); height:34px; font-weight:700;">
+          🎲 Random All
+        </button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-ghost" onclick="closeAntiDetectModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveAntiDetectSettings()" data-i18n="btnSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ════════ TOAST ════════ -->
   <div class="toast-wrap" id="toast-wrap"></div>
 
@@ -916,6 +964,14 @@
         deleteProfileBtn: "✕ Delete",
         targetUrlKeyword: "TARGET URL KEYWORD",
         enableOverlayLabel: "Enable Desktop Status Overlay",
+        suspendHotkeyTitle: "GLOBAL PAUSE HOTKEY",
+        antiDetectBtn: "🌐 Anti-Detect & User-Agent Settings",
+        antiDetectModalTitle: "Anti-Detect & User-Agent Settings",
+        antiDetectModalDesc: "Configure custom User-Agent strings per client screen to simulate independent browser installations. Webdriver flags are automatically bypassed.",
+        btnRandomAll: "🎲 Random All",
+        btnSave: "Save",
+        toastSavedAntiDetect: "✓ Anti-Detect settings saved!",
+        toastAntiDetectRestart: "⚠️ Please restart the bot system for User-Agent changes to take effect!",
         clientAliasesTitle: "CLIENT ALIASES (OPTIONAL)",
         addCustomAction: "➕ Add Custom Action",
         applySave: "💾 Apply & Save Profile",
@@ -964,6 +1020,13 @@
         forwardActivationDelayMsLabel: "Activation Hold Duration (ms)",
         modeHold: "Toggle Key Hold (Holds key continuously in background)",
         holdTargetKeyLabel: "Key to Hold (Virtual Key)",
+        modeControl: "Action Control (Controls other actions)",
+        controlTargetLabel: "Target Action to Control",
+        controlTargetHint: "Select target actions (Ctrl+Click to select multiple)",
+        controlOperationLabel: "Operation to Perform",
+        controlOpStart: "🟢 Start (Activate)",
+        controlOpStop: "🔴 Stop (Deactivate)",
+        controlOpToggle: "🔄 Toggle (Switch state)",
 
         loopKeysLabel: "Key(s) to press (comma-separated)",
         loopJitterLabel: "Jitter (random timing +/- ms)",
@@ -1005,6 +1068,14 @@
         deleteProfileBtn: "✕ ลบโปรไฟล์",
         targetUrlKeyword: "คีย์เวิร์ด URL เป้าหมาย",
         enableOverlayLabel: "เปิดใช้งานหน้าจอแสดงสถานะบนเดสก์ท็อป",
+        suspendHotkeyTitle: "ปุ่มลัด เปิด/ปิด ออโต้ทั้งหมด",
+        antiDetectBtn: "🌐 ตั้งค่าความปลอดภัย & User-Agent แยกจอ",
+        antiDetectModalTitle: "ตั้งค่าความปลอดภัย & User-Agent แยกจอ",
+        antiDetectModalDesc: "ตั้งค่ารหัสตัวตนเบราว์เซอร์ (User-Agent) แยกแต่ละหน้าจอ เพื่อจำลองการเข้าเล่นเกมด้วยคอมพิวเตอร์และเบราว์เซอร์ต่างเครื่องกัน (ซ่อนสถานะ Webdriver อัตโนมัติ)",
+        btnRandomAll: "🎲 สุ่มทุกจอ",
+        btnSave: "บันทึก",
+        toastSavedAntiDetect: "✓ บันทึกค่าความปลอดภัยเบราว์เซอร์สำเร็จ!",
+        toastAntiDetectRestart: "⚠️ กรุณารันระบบใหม่เพื่อให้ค่า User-Agent มีผล!",
         clientAliasesTitle: "ฉายาประจำหน้าจอ (ไม่บังคับ)",
         addCustomAction: "➕ เพิ่มคำสั่งใหม่",
         applySave: "💾 บันทึกและใช้งานโปรไฟล์",
@@ -1053,6 +1124,13 @@
         forwardActivationDelayMsLabel: "ระยะเวลากดค้างก่อนทำงาน (มิลลิวินาที)",
         modeHold: "ดึงค้างสแตนด์บาย (Toggle Key Hold - กดค้างแช่)",
         holdTargetKeyLabel: "ปุ่มที่จะกดค้างไว้ (Virtual Key)",
+        modeControl: "ควบคุมคำสั่งอื่น (สั่งการ Action อื่น)",
+        controlTargetLabel: "Action เป้าหมายที่ต้องการควบคุม",
+        controlTargetHint: "เลือก Action ปลายทาง (Ctrl+Click เพื่อเลือกหลายตัว)",
+        controlOperationLabel: "คำสั่งที่จะให้ดำเนินการ",
+        controlOpStart: "🟢 Start (เปิดทำงาน)",
+        controlOpStop: "🔴 Stop (หยุดทำงาน)",
+        controlOpToggle: "🔄 Toggle (สลับเปิด/ปิด)",
 
         loopKeysLabel: "ปุ่มที่จะกดซ้ำ (คั่นด้วยเครื่องหมายจุลภาค ,)",
         loopJitterLabel: "ดีเลย์แบบสุ่ม (+/- มิลลิวินาที)",
@@ -1170,6 +1248,8 @@
         let placeholderText = 'Click to bind key...';
         if (activeRecordingType === 'comma_keys') {
           placeholderText = currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...';
+        } else if (activeRecordingType === 'suspend_hotkey') {
+          placeholderText = currentLang === 'en' ? 'Click to bind key...' : 'คลิกเพื่อบันทึกปุ่ม...';
         }
         
         input.placeholder = placeholderText;
@@ -1177,13 +1257,48 @@
         input.style.boxShadow = 'none';
         
         // Save DOM values to config immediately
-        syncActionFromDom(activeRecordingActionId);
+        if (activeRecordingType !== 'suspend_hotkey') {
+          syncActionFromDom(activeRecordingActionId);
+        } else {
+          const profile = fullConfig.profiles[currentEditProfile];
+          if (profile) {
+            profile.suspendHotkey = input.value.trim();
+          }
+        }
         saveCurrentProfile();
         
         activeRecordingInput = null;
         activeRecordingActionId = null;
         activeRecordingType = null;
       }
+    }
+
+    function startRecordingSuspendHotkey(input) {
+      if (activeRecordingInput && activeRecordingInput !== input) {
+        stopRecordingKey(activeRecordingInput);
+      }
+      activeRecordingInput = input;
+      activeRecordingActionId = null;
+      activeRecordingType = 'suspend_hotkey';
+      
+      input.value = '';
+      input.placeholder = currentLang === 'en' ? 'Press any key...' : 'กดปุ่มลัดเพื่อระบุ...';
+      input.style.borderColor = 'var(--primary)';
+      input.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.2)';
+      
+      window.addEventListener('keydown', handleRecordingKeyDown, true);
+    }
+
+    function clearSuspendHotkey() {
+      const input = document.getElementById('suspend-hotkey-input');
+      if (input) {
+        input.value = '';
+      }
+      const profile = fullConfig.profiles[currentEditProfile];
+      if (profile) {
+        profile.suspendHotkey = '';
+      }
+      saveCurrentProfile();
     }
 
     function handleRecordingKeyDown(e) {
@@ -1214,6 +1329,13 @@
         const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === activeRecordingActionId);
         if (act) {
           act.trigger.value = cleanKey;
+        }
+        activeRecordingInput.blur();
+      } else if (activeRecordingType === 'suspend_hotkey') {
+        activeRecordingInput.value = cleanKey;
+        const profile = fullConfig.profiles[currentEditProfile];
+        if (profile) {
+          profile.suspendHotkey = cleanKey;
         }
         activeRecordingInput.blur();
       } else if (activeRecordingType === 'single_key') {
@@ -1416,6 +1538,9 @@
       const checkbox = document.getElementById('enable-overlay-checkbox');
       if (checkbox) checkbox.checked = !!p.enableOverlay;
 
+      const suspendInput = document.getElementById('suspend-hotkey-input');
+      if (suspendInput) suspendInput.value = p.suspendHotkey || '';
+
       // Load Ghost Mouse Jitter settings
       const gmj = p.ghostMouseJitter || {};
       const gmEnabled = document.getElementById('ghost-mouse-enabled');
@@ -1457,11 +1582,54 @@
         card.className = 'group-card';
         card.setAttribute('data-id', act.id);
         card.style.borderLeft = `4px solid ${cardColor}`;
+        card.draggable = true;
+
+        let isDraggingFromHandle = false;
+        card.addEventListener('mousedown', (e) => {
+          if (e.target.classList.contains('drag-handle')) {
+            isDraggingFromHandle = true;
+          } else {
+            isDraggingFromHandle = false;
+          }
+        });
+
+        card.addEventListener('dragstart', (e) => {
+          if (!isDraggingFromHandle) {
+            e.preventDefault();
+            return;
+          }
+          card.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', act.id);
+        });
+
+        card.addEventListener('dragend', () => {
+          card.classList.remove('dragging');
+          const cardElements = [...container.querySelectorAll('.group-card')];
+          const newOrderIds = cardElements.map(el => el.getAttribute('data-id'));
+          const profileActions = fullConfig.profiles[currentEditProfile].actions;
+          const sortedActions = newOrderIds.map(id => profileActions.find(a => a.id === id)).filter(Boolean);
+          fullConfig.profiles[currentEditProfile].actions = sortedActions;
+          saveCurrentProfile();
+          renderActions(sortedActions);
+        });
+
+        card.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          const draggingCard = container.querySelector('.dragging');
+          if (!draggingCard || draggingCard === card) return;
+
+          const rect = card.getBoundingClientRect();
+          const next = (e.clientY - rect.top) > (rect.height / 2);
+          container.insertBefore(draggingCard, next ? card.nextSibling : card);
+        });
 
         const isExpanded = expandedActions.has(act.id);
 
         let headerHTML = `
       <div class="group-header" onclick="toggleActionAccordion('${act.id}')" style="display:flex; justify-content:space-between; align-items:center; width:100%; gap: 12px; padding: 10px 16px; cursor:pointer; user-select:none; background:rgba(255,255,255,0.015); transition:background 0.2s;">
+        <span class="drag-handle" style="cursor: grab; color: var(--muted); font-size: 14px; margin-right: 4px; user-select: none;" onclick="event.stopPropagation()">⋮⋮</span>
         <span class="action-arrow-${act.id}" style="font-size:10px; color:var(--muted); transition:transform 0.2s; transform:rotate(${isExpanded ? '90' : '0'}deg); width:12px; display:inline-block;">▶</span>
         <div class="group-dot" style="background:${cardColor}"></div>
         
@@ -1514,7 +1682,7 @@
         </div>
 
         <div class="field-row">
-          <div class="field">
+          <div class="field" style="${act.mode === 'action_control' ? 'grid-column: span 2;' : ''}">
             <label>${TRANSLATIONS[currentLang].actionMode}</label>
             <select class="action-mode" onchange="onModeChange('${act.id}')" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%;">
               <option value="loop" ${act.mode === 'loop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeLoop}</option>
@@ -1522,9 +1690,10 @@
               <option value="single_press" ${act.mode === 'single_press' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeSingle}</option>
               <option value="forward" ${act.mode === 'forward' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeForward}</option>
               <option value="key_hold" ${act.mode === 'key_hold' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeHold}</option>
+              <option value="action_control" ${act.mode === 'action_control' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeControl || 'Action Control'}</option>
             </select>
           </div>
-          <div class="field client-selector-container">
+          <div class="field client-selector-container" style="display: ${act.mode === 'action_control' ? 'none' : 'block'};">
             <label data-i18n="targetClient">${TRANSLATIONS[currentLang].targetClient}</label>
             ${renderTargetClientSelector(act)}
           </div>
@@ -1534,7 +1703,9 @@
           ${renderModeSpecificFields(act)}
         </div>
 
-        ${renderChainSection(act)}
+        <div class="chain-section-container-${act.id}">
+          ${renderChainSection(act)}
+        </div>
       </div>
     `;
 
@@ -1546,8 +1717,8 @@
     // Returns available chain events for a given action mode
     function getChainEventsForMode(mode) {
       const map = {
-        loop:          ['onStart', 'onEachCycle', 'onStop'],
-        buff_sequence: ['onStart', 'onComplete'],
+        loop:          ['onBeforeStart', 'onAfterStart', 'onEachCycle', 'onStop'],
+        buff_sequence: ['onBeforeStart', 'onAfterStart', 'onComplete'],
         single_press:  ['onFired'],
         forward:       ['onKeyDown', 'onActivated', 'onKeyUp'],
         key_hold:      ['onEnable', 'onDisable']
@@ -1610,15 +1781,15 @@
       const chainedCount = events.reduce((n, ev) => n + (chains[ev] || []).length, 0);
 
       // Build options for target action dropdown (all OTHER actions)
-      const otherActions = collectProfile().actions || [];
+      const otherActions = fullConfig.profiles[currentEditProfile].actions || [];
 
       let rows = events.map(ev => {
         const selected = (chains[ev] || []);
         return `
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-            <span style="font-size:11px; color:#a855f7; font-family:'JetBrains Mono'; width:110px; flex-shrink:0;">${ev}</span>
+          <div style="display:flex; flex-direction:column; gap:4px; flex:1; min-width:140px;">
+            <span style="font-size:11px; color:#a855f7; font-family:'JetBrains Mono'; font-weight:700;">${ev}</span>
             <select class="chain-target" data-event="${ev}" multiple
-              style="flex:1; background:var(--bg-input); border:1px solid rgba(168,85,247,0.3); border-radius:6px; padding:4px 6px; color:var(--text); font-size:11px; min-height:32px; outline:none;"
+              style="background:var(--bg-input); border:1px solid rgba(168,85,247,0.3); border-radius:6px; padding:4px 6px; color:var(--text); font-size:11px; height:100px; outline:none; width:100%;"
               onchange="saveCurrentProfile()">
               ${otherActions.filter(a => a.id !== act.id).map(a =>
                 `<option value="${a.id}" ${selected.includes(a.id) ? 'selected' : ''}>${escapeHtml(a.name)}</option>`
@@ -1653,7 +1824,7 @@
           <div class="chain-body" style="overflow:hidden; transition:max-height 0.25s ease, opacity 0.2s; max-height:${isExpanded ? '600px' : '0'}; opacity:${isExpanded ? '1' : '0'};">
             <div style="padding-top:10px;">
               <div style="font-size:10px; color:var(--muted); margin-bottom:8px;">เลือก Action ที่จะ Trigger อัตโนมัติเมื่อเกิด event (Ctrl+Click เพื่อเลือกหลายตัว)</div>
-              <div class="chain-rows" style="opacity:${chainEnabled ? '1' : '0.35'}; pointer-events:${chainEnabled ? '' : 'none'}; transition:opacity 0.2s;">
+              <div class="chain-rows" style="display:flex; gap:12px; flex-wrap:wrap; opacity:${chainEnabled ? '1' : '0.35'}; pointer-events:${chainEnabled ? '' : 'none'}; transition:opacity 0.2s;">
                 ${rows}
               </div>
             </div>
@@ -1770,6 +1941,11 @@
         <option value="5" ${act.trigger.value == '5' ? 'selected' : ''}>${TRANSLATIONS[currentLang].mouseButton5}</option>
       </select>
     `;
+      } else if (act.trigger.type === 'none') {
+        const msg = currentLang === 'en' ? 'Disabled (Chain only)' : 'ใช้ไม่ได้ (ทำงานผ่าน Chain เท่านั้น)';
+        return `
+      <input type="text" class="action-trigger-val" value="" placeholder="${msg}" readonly disabled style="background:rgba(239, 68, 68, 0.05); border:1px solid rgba(239, 68, 68, 0.25); border-radius:8px; padding:9px 12px; color:rgba(239, 68, 68, 0.85); font-family:'Outfit'; font-size:13px; outline:none; width:100%; cursor:not-allowed; text-align:center; font-weight:600;">
+    `;
       } else {
         const placeholderText = activeRecordingActionId === act.id ? TRANSLATIONS[currentLang].pressAnyKey : TRANSLATIONS[currentLang].clickToBind;
         return `
@@ -1822,9 +1998,15 @@
       } else if (act.mode === 'buff_sequence') {
         html = `
       <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
-        <div class="field">
-          <label>${TRANSLATIONS[currentLang].buffDelayLabel}</label>
-          <input type="number" class="buff-delay" value="${act.delayBuff ?? 800}" min="50" step="50" placeholder="800" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+        <div class="field-row">
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].buffDelayLabel}</label>
+            <input type="number" class="buff-delay" value="${act.delayBuff ?? 800}" min="50" step="50" placeholder="800" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%;">
+          </div>
+          <div class="field">
+            <label>${currentLang === 'en' ? 'Delay After Sequence (ms)' : 'หน่วงเวลาหลังจบชุด (มิลลิวินาที)'}</label>
+            <input type="number" class="buff-delay-after" value="${act.delayAfter ?? 0}" min="0" placeholder="e.g. 500" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%;">
+          </div>
         </div>
         <div class="field">
           <label>${TRANSLATIONS[currentLang].buffKeysLabel}</label>
@@ -1835,9 +2017,15 @@
       } else if (act.mode === 'single_press') {
         html = `
       <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
-        <div class="field">
-          <label>${TRANSLATIONS[currentLang].singleKeysLabel}</label>
-          <input type="text" class="single-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...'}" readonly onfocus="startRecordingKey(this, '${act.id}', 'comma_keys')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; cursor:pointer;">
+        <div class="field-row">
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].singleKeysLabel}</label>
+            <input type="text" class="single-keys" value="${escapeHtml((act.keys || []).join(', '))}" placeholder="${currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...'}" readonly onfocus="startRecordingKey(this, '${act.id}', 'comma_keys')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; cursor:pointer; width:100%;">
+          </div>
+          <div class="field">
+            <label>${currentLang === 'en' ? 'Delay After Press (ms)' : 'หน่วงเวลาหลังกด (มิลลิวินาที)'}</label>
+            <input type="number" class="single-delay-after" value="${act.delayAfter ?? 0}" min="0" placeholder="e.g. 500" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%;">
+          </div>
         </div>
       </div>
     `;
@@ -1870,6 +2058,34 @@
         </div>
       </div>
     `;
+      } else if (act.mode === 'action_control') {
+        const otherActions = fullConfig.profiles[currentEditProfile].actions || [];
+        const selectedTargets = act.controlTargetIds || (act.controlTargetId ? [act.controlTargetId] : []);
+        const targetOpts = otherActions.filter(a => a.id !== act.id).map(a =>
+          `<option value="${a.id}" ${selectedTargets.includes(a.id) ? 'selected' : ''}>${escapeHtml(a.name)}</option>`
+        ).join('');
+        html = `
+        <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
+        <div class="field-row">
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].controlTargetLabel}</label>
+            <div style="font-size:10px; color:var(--muted); margin-bottom:4px;">${TRANSLATIONS[currentLang].controlTargetHint}</div>
+            <select class="control-target-ids" multiple style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%; min-height:120px;" onchange="saveCurrentProfile()">
+              ${targetOpts}
+            </select>
+          </div>
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].controlOperationLabel}</label>
+            <div style="font-size:10px; color:transparent; margin-bottom:4px; user-select:none;">placeholder</div>
+            <select class="control-operation" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%; height:38px;" onchange="saveCurrentProfile()">
+              <option value="start" ${act.controlOperation === 'start' ? 'selected' : ''}>${TRANSLATIONS[currentLang].controlOpStart}</option>
+              <option value="stop" ${act.controlOperation === 'stop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].controlOpStop}</option>
+              <option value="toggle" ${act.controlOperation === 'toggle' || !act.controlOperation ? 'selected' : ''}>${TRANSLATIONS[currentLang].controlOpToggle}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    `;
       }
       return html;
     }
@@ -1896,7 +2112,7 @@
 
       const select = document.querySelector(`[data-id="${actionId}"] .action-trigger-type`);
       act.trigger.type = select.value;
-      act.trigger.value = select.value === 'mouse' ? '4' : 'F9';
+      act.trigger.value = select.value === 'mouse' ? '4' : (select.value === 'none' ? '' : 'F9');
 
       const container = document.querySelector(`.trigger-val-container-${actionId}`);
       container.innerHTML = renderTriggerValField(act);
@@ -1918,7 +2134,19 @@
       act.mode = select.value;
 
       const container = document.querySelector(`.mode-specific-container-${actionId}`);
-      container.innerHTML = renderModeSpecificFields(act);
+      if (container) container.innerHTML = renderModeSpecificFields(act);
+
+      const chainContainer = document.querySelector(`.chain-section-container-${actionId}`);
+      if (chainContainer) chainContainer.innerHTML = renderChainSection(act);
+
+      const clientSelector = document.querySelector(`[data-id="${actionId}"] .client-selector-container`);
+      const modeSelectField = select.closest('.field');
+      if (clientSelector) {
+        clientSelector.style.display = act.mode === 'action_control' ? 'none' : 'block';
+      }
+      if (modeSelectField) {
+        modeSelectField.style.gridColumn = act.mode === 'action_control' ? 'span 2' : '';
+      }
     }
 
     function toggleForwardDelayDisplay(actionId, isChecked) {
@@ -1940,34 +2168,49 @@
       act.trigger.type = card.querySelector('.action-trigger-type').value;
       act.trigger.value = card.querySelector('.action-trigger-val').value.trim();
       act.mode = card.querySelector('.action-mode').value;
-      act.targetClient = card.querySelector('.action-target-client').value;
+      const targetClientInput = card.querySelector('.action-target-client');
+      act.targetClient = targetClientInput ? targetClientInput.value : (act.targetClient || '1');
 
       if (act.mode === 'loop') {
         const keysInput = card.querySelector('.loop-keys');
         act.keys = keysInput ? keysInput.value.split(',').map(s => s.trim()).filter(Boolean) : [];
-        act.jitter = parseInt(card.querySelector('.loop-jitter').value) || 0;
-        act.interval = parseInt(card.querySelector('.loop-interval').value) || 3000;
+        const jitterInput = card.querySelector('.loop-jitter');
+        act.jitter = jitterInput ? parseInt(jitterInput.value) || 0 : (act.jitter ?? 250);
+        const intervalInput = card.querySelector('.loop-interval');
+        act.interval = intervalInput ? parseInt(intervalInput.value) || 3000 : (act.interval ?? 3000);
 
         const fsKeys = [...card.querySelectorAll(`.fs-key-${actionId}`)].map(i => i.value.trim());
         const fsDelays = [...card.querySelectorAll(`.fs-delay-${actionId}`)].map(i => parseInt(i.value) || 0);
-        act.firstSteps = fsKeys.map((k, i) => ({ key: k, delay: fsDelays[i] }));
+        if (fsKeys.length > 0) {
+          act.firstSteps = fsKeys.map((k, i) => ({ key: k, delay: fsDelays[i] }));
+        }
       } else if (act.mode === 'buff_sequence') {
-        act.delayBuff = parseInt(card.querySelector('.buff-delay').value) || 800;
+        const delayInput = card.querySelector('.buff-delay');
+        act.delayBuff = delayInput ? parseInt(delayInput.value) || 800 : (act.delayBuff ?? 800);
         const keysInput = card.querySelector('.buff-keys');
         act.keys = keysInput ? keysInput.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const delayAfterInput = card.querySelector('.buff-delay-after');
+        act.delayAfter = delayAfterInput ? parseInt(delayAfterInput.value, 10) || 0 : 0;
       } else if (act.mode === 'single_press') {
         const keysInput = card.querySelector('.single-keys');
         act.keys = keysInput ? keysInput.value.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const delayAfterInput = card.querySelector('.single-delay-after');
+        act.delayAfter = delayAfterInput ? parseInt(delayAfterInput.value, 10) || 0 : 0;
       } else if (act.mode === 'forward') {
         const targetKeyInput = card.querySelector('.forward-target-key');
-        act.targetKey = targetKeyInput ? targetKeyInput.value.trim() : '5';
+        if (targetKeyInput) act.targetKey = targetKeyInput.value.trim();
         const delayCheck = card.querySelector('.forward-delay-activation');
-        act.delayActivation = delayCheck ? delayCheck.checked : false;
+        if (delayCheck) act.delayActivation = delayCheck.checked;
         const delayMsInput = card.querySelector('.forward-activation-delay-ms');
-        act.activationDelayMs = delayMsInput ? parseInt(delayMsInput.value, 10) || 1000 : 1000;
+        if (delayMsInput) act.activationDelayMs = parseInt(delayMsInput.value, 10) || 1000;
       } else if (act.mode === 'key_hold') {
         const targetKeyInput = card.querySelector('.hold-target-key');
-        act.targetKey = targetKeyInput ? targetKeyInput.value.trim() : '1';
+        if (targetKeyInput) act.targetKey = targetKeyInput.value.trim();
+      } else if (act.mode === 'action_control') {
+        const targetSelect = card.querySelector('.control-target-ids');
+        if (targetSelect) act.controlTargetIds = [...targetSelect.selectedOptions].map(o => o.value);
+        const opSelect = card.querySelector('.control-operation');
+        if (opSelect) act.controlOperation = opSelect.value;
       }
 
       // Collect chain configuration
@@ -2043,6 +2286,135 @@
       const container = document.querySelector(`.mode-specific-container-${actionId}`);
       container.innerHTML = renderModeSpecificFields(act);
     }
+    async function toggleSuspendState() {
+      try {
+        const res = await fetch('/api/suspend/toggle', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          updateSuspendButtonUI(data.isSuspended);
+          toast(
+            data.isSuspended
+              ? (currentLang === 'en' ? '⏸️ Auto-actions paused!' : '⏸️ หยุดการทำงานออโต้ทั้งหมดชั่วคราวแล้ว!')
+              : (currentLang === 'en' ? '▶️ Auto-actions resumed!' : '▶️ ออโต้ทั้งหมดทำงานต่อตามปกติแล้ว!'),
+            'info'
+          );
+        }
+      } catch (err) {
+        console.error("Failed to toggle suspend state:", err);
+      }
+    }
+
+    function updateSuspendButtonUI(isSuspended) {
+      const btn = document.getElementById('gui-suspend-btn');
+      if (!btn) return;
+      if (isSuspended) {
+        btn.textContent = currentLang === 'en' ? '🟢 Resume Bot' : '🟢 ทำงานต่อ';
+        btn.style.borderColor = '#10b981';
+        btn.style.color = '#10b981';
+        btn.style.background = 'rgba(16,185,129,0.07)';
+      } else {
+        btn.textContent = currentLang === 'en' ? '🔴 Pause Bot' : '🔴 หยุดออโต้ทั้งหมด';
+        btn.style.borderColor = '#ef4444';
+        btn.style.color = '#ef4444';
+        btn.style.background = 'rgba(239,68,68,0.07)';
+      }
+    }
+    const USER_AGENT_POOL = [
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15",
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    ];
+
+    function openAntiDetectModal() {
+      const modal = document.getElementById('antidetect-modal');
+      const listContainer = document.getElementById('antidetect-client-list');
+      if (!modal || !listContainer) return;
+
+      const profile = fullConfig.profiles[currentEditProfile];
+      const aliases = profile.clientAliases || {};
+      const userAgents = profile.clientUserAgents || {};
+
+      listContainer.innerHTML = '';
+      for (let i = 1; i <= 8; i++) {
+        const alias = aliases[String(i)] || `Client ${i}`;
+        const ua = userAgents[String(i)] || '';
+
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.flexDirection = 'column';
+        row.style.gap = '6px';
+        row.style.borderBottom = '1px dashed rgba(255,255,255,0.05)';
+        row.style.paddingBottom = '10px';
+
+        row.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <span style="font-size:12px; font-weight:700; color:var(--text);">${escapeHtml(alias)}</span>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-ghost" onclick="randomizeUserAgent(${i})" style="padding:2px 8px; font-size:11px; border-color:#a855f7; color:#a855f7; background:rgba(168,85,247,0.05); height:24px; cursor:pointer;">🎲 Random</button>
+              <button class="btn btn-ghost" onclick="clearUserAgent(${i})" style="padding:2px 8px; font-size:11px; border-color:var(--border); color:var(--muted); height:24px; cursor:pointer;">✕ Clear</button>
+            </div>
+          </div>
+          <input type="text" id="anti-ua-${i}" value="${escapeHtml(ua)}" placeholder="${currentLang === 'en' ? 'Default Browser User-Agent (Empty)' : 'ใช้ค่าเริ่มต้นของเบราว์เซอร์ (ค่าว่าง)'}"
+            style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-family:'JetBrains Mono'; font-size:11px; outline:none; width:100%; height:32px;">
+        `;
+        listContainer.appendChild(row);
+      }
+
+      modal.classList.add('show');
+    }
+
+    function closeAntiDetectModal() {
+      const modal = document.getElementById('antidetect-modal');
+      if (modal) modal.classList.remove('show');
+    }
+
+    function randomizeUserAgent(idx) {
+      const input = document.getElementById(`anti-ua-${idx}`);
+      if (input) {
+        const rand = USER_AGENT_POOL[Math.floor(Math.random() * USER_AGENT_POOL.length)];
+        input.value = rand;
+      }
+    }
+
+    function randomizeAllUserAgents() {
+      for (let i = 1; i <= 8; i++) {
+        randomizeUserAgent(i);
+      }
+    }
+
+    function clearUserAgent(idx) {
+      const input = document.getElementById(`anti-ua-${idx}`);
+      if (input) {
+        input.value = '';
+      }
+    }
+
+    function saveAntiDetectSettings() {
+      const profile = fullConfig.profiles[currentEditProfile];
+      if (!profile) return;
+      if (!profile.clientUserAgents) profile.clientUserAgents = {};
+
+      for (let i = 1; i <= 8; i++) {
+        const input = document.getElementById(`anti-ua-${i}`);
+        if (input) {
+          profile.clientUserAgents[String(i)] = input.value.trim();
+        }
+      }
+
+      saveCurrentProfile();
+      closeAntiDetectModal();
+      toast(TRANSLATIONS[currentLang].toastSavedAntiDetect, 'success');
+      setTimeout(() => {
+        toast(TRANSLATIONS[currentLang].toastAntiDetectRestart, 'error');
+      }, 2000);
+    }
 
     function collectProfile() {
       const actions = fullConfig.profiles[currentEditProfile].actions;
@@ -2058,6 +2430,7 @@
       return {
         targetUrlKeyword: document.getElementById('target-url-keyword').value.trim(),
         enableOverlay: document.getElementById('enable-overlay-checkbox').checked,
+        suspendHotkey: document.getElementById('suspend-hotkey-input')?.value.trim() || '',
         ghostMouseJitter: {
           enabled: document.getElementById('ghost-mouse-enabled')?.checked || false,
           intervalMin: parseInt(document.getElementById('ghost-mouse-interval-min')?.value || '8000', 10),
@@ -2065,6 +2438,7 @@
           maxOffset: parseInt(document.getElementById('ghost-mouse-max-offset')?.value || '12', 10)
         },
         clientAliases: clientAliases,
+        clientUserAgents: fullConfig.profiles[currentEditProfile].clientUserAgents || {},
         actions: actions
       };
     }
@@ -2222,6 +2596,7 @@
           const statusRes = await fetch('/api/status', { cache: 'no-store' });
           const statusData = await statusRes.json();
           activeClients = statusData.activeClients || [1];
+          updateSuspendButtonUI(statusData.isSuspended);
         } catch (err) {
           console.warn("Failed to fetch active clients status:", err);
           activeClients = [1];
@@ -2263,6 +2638,7 @@
           const statusRes = await fetch('/api/status', { cache: 'no-store' });
           const statusData = await statusRes.json();
           activeClients = statusData.activeClients || [1];
+          updateSuspendButtonUI(statusData.isSuspended);
           
           document.querySelectorAll('.client-selector-container').forEach((container) => {
             const actCard = container.closest('.group-card');
@@ -2366,6 +2742,17 @@
       clearTimeout(keyTimer);
       keyTimer = setTimeout(() => el.classList.remove('active'), 500);
     }
+    // Enhance multi-select dropdowns to toggle options on click without needing Ctrl key
+    window.addEventListener('mousedown', (e) => {
+      if (e.target.tagName === 'OPTION' && e.target.parentNode.multiple) {
+        e.preventDefault();
+        const select = e.target.parentNode;
+        const scroll = select.scrollTop;
+        e.target.selected = !e.target.selected;
+        setTimeout(() => { select.scrollTop = scroll; }, 0);
+        select.dispatchEvent(new Event('change'));
+      }
+    }, true);
 
     window.addEventListener('keydown', e => {
       if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') return;

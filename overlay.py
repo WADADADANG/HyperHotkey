@@ -105,14 +105,16 @@ status_frame.bind("<B1-Motion>", drag)
 current_active_clients = []
 label_widgets = {} # client_idx -> label widget reference
 name_label_widgets = {} # client_idx -> name label reference
+empty_state_widget = None
 
 def update_ui(data):
-    global current_active_clients, label_widgets, name_label_widgets
+    global current_active_clients, label_widgets, name_label_widgets, empty_state_widget
     
     active_clients = data.get("activeClients", [])
     client_statuses = data.get("clientStatuses", {})
     client_aliases = data.get("clientAliases", {})
-    log_debug(f"update_ui: active_clients={active_clients}, client_statuses={client_statuses}, client_aliases={client_aliases}")
+    is_suspended = data.get("isSuspended", False)
+    log_debug(f"update_ui: active_clients={active_clients}, client_statuses={client_statuses}, client_aliases={client_aliases}, is_suspended={is_suspended}")
     
     # Check if active clients array changed
     sorted_active = sorted(active_clients)
@@ -123,6 +125,7 @@ def update_ui(data):
             widget.destroy()
         label_widgets.clear()
         name_label_widgets.clear()
+        empty_state_widget = None
         
         current_active_clients = sorted_active
         
@@ -132,6 +135,7 @@ def update_ui(data):
             lbl.pack(pady=5)
             lbl.bind("<Button-1>", start_drag)
             lbl.bind("<B1-Motion>", drag)
+            empty_state_widget = lbl
             
             # Dynamic height for empty state
             height = 50
@@ -163,17 +167,30 @@ def update_ui(data):
         main_frame.place(x=0, y=0, width=width, height=height)
         
     # Update text & colors for active widgets
+    if empty_state_widget:
+        lbl_text = "🔴 BOT PAUSED" if is_suspended else "Standby"
+        lbl_color = "#ef4444" if is_suspended else "#64748b"
+        lbl_font = ("Segoe UI", 9, "bold") if is_suspended else ("Segoe UI", 9, "italic")
+        empty_state_widget.config(text=lbl_text, fg=lbl_color, font=lbl_font)
+
     for idx, lbl_status in label_widgets.items():
         client_str = str(idx)
         info = client_statuses.get(client_str, {"status": "Standby", "type": "standby"})
         status_text = info.get("status", "Standby")
         status_type = info.get("type", "standby")
 
+        if is_suspended:
+            status_text = "PAUSED"
+            status_type = "suspended"
+
         # Limit text length to fit compact width
         if len(status_text) > 13:
             status_text = status_text[:11] + ".."
 
-        if status_type == "loop":
+        if is_suspended:
+            color = "#ef4444"  # red
+            prefix = "🔴 "
+        elif status_type == "loop":
             color = "#10b981"  # green
             prefix = "🟢 "
         elif status_type == "buff":

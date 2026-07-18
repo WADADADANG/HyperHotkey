@@ -1,99 +1,71 @@
 {
-  "activeProfile": "Flyff",
+  "activeProfile": "Default",
   "profiles": {
     "Default": {
       "targetUrlKeyword": "universe.flyff.com/play",
+      "enableOverlay": false,
+      "ghostMouseJitter": {
+        "enabled": false,
+        "intervalMin": 8000,
+        "intervalMax": 25000,
+        "maxOffset": 12
+      },
+      "clientAliases": {},
       "actions": [
         {
           "id": "action_1",
-          "name": "Healing Loop",
+          "name": "Heal",
           "mode": "loop",
           "trigger": {
             "type": "mouse",
             "value": "5"
           },
           "keys": [
-            "2"
+            "1"
           ],
-          "interval": 3000,
+          "interval": 2000,
           "jitter": 250,
-          "firstSteps": [
-            {
-              "key": "3",
-              "delay": 500
-            }
-          ],
+          "firstSteps": [],
           "enabled": true,
-          "targetClient": "1"
+          "targetClient": "1",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          }
         },
         {
           "id": "action_2",
-          "name": "Mini Healing Loop",
+          "name": "Heal  Rain",
           "mode": "loop",
           "trigger": {
             "type": "mouse",
             "value": "4"
           },
           "keys": [
-            "1"
+            "2"
           ],
-          "interval": 5000,
+          "interval": 2000,
           "jitter": 150,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "1"
-        },
-        {
-          "id": "action_3",
-          "name": "Between Healing Loop",
-          "mode": "loop",
-          "trigger": {
-            "type": "keyboard",
-            "value": "HOME"
-          },
-          "keys": [
-            "3"
-          ],
-          "interval": 40000,
-          "jitter": 2000,
-          "firstSteps": [],
-          "enabled": false,
-          "targetClient": "1"
-        },
-        {
-          "id": "action_4",
-          "name": "Buff Sequence",
-          "mode": "buff_sequence",
-          "trigger": {
-            "type": "keyboard",
-            "value": "INSERT"
-          },
-          "keys": [
-            "F3",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "7",
-            "F4",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "F1"
-          ],
-          "delayBuff": 800,
-          "enabled": false,
-          "targetClient": "1"
+          "targetClient": "1",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          }
         }
       ]
     },
     "Flyff": {
       "targetUrlKeyword": "universe.flyff.com/play",
       "enableOverlay": true,
+      "suspendHotkey": "END",
       "ghostMouseJitter": {
         "enabled": false,
         "intervalMin": 8000,
@@ -101,10 +73,11 @@
         "maxOffset": 12
       },
       "clientAliases": {
-        "1": "1",
-        "2": "2",
+        "1": "Client 11",
+        "2": "2Client 2",
         "3": "3"
       },
+      "clientUserAgents": {},
       "actions": [
         {
           "id": "action_1783931275751_446",
@@ -121,19 +94,21 @@
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "2",
+          "targetClient": "1",
           "chaining": {
-            "onStart": [
-              "action_1783931302136_90"
-            ],
+            "onStart": [],
             "onEachCycle": [],
             "onStop": [],
-            "_enabled": false
+            "_enabled": true,
+            "onBeforeStart": [
+              "action_1784352664191_478"
+            ],
+            "onAfterStart": []
           }
         },
         {
-          "id": "action_1783931302136_90",
-          "name": "Heal 2",
+          "id": "action_1784368366653_569",
+          "name": "Heal Rain Both",
           "mode": "loop",
           "trigger": {
             "type": "mouse",
@@ -142,16 +117,20 @@
           "keys": [
             "2"
           ],
-          "interval": 1500,
+          "interval": 1300,
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "1",
+          "targetClient": "1,2",
           "chaining": {
-            "onStart": [],
+            "_enabled": true,
+            "onBeforeStart": [
+              "action_1784349623998_842",
+              "action_1784368588592_660"
+            ],
+            "onAfterStart": [],
             "onEachCycle": [],
-            "onStop": [],
-            "_enabled": false
+            "onStop": []
           }
         },
         {
@@ -205,7 +184,8 @@
           },
           "targetKey": "C",
           "delayActivation": false,
-          "activationDelayMs": 1000
+          "activationDelayMs": 1000,
+          "delayAfter": 0
         },
         {
           "id": "action_1784288712484_406",
@@ -229,7 +209,8 @@
             "onEachCycle": [],
             "onStop": [],
             "onFired": []
-          }
+          },
+          "delayAfter": 0
         },
         {
           "id": "action_1784288771354_664",
@@ -253,7 +234,90 @@
             "onEachCycle": [],
             "onStop": [],
             "onFired": []
-          }
+          },
+          "delayAfter": 0
+        },
+        {
+          "id": "action_1784349623998_842",
+          "name": "AC Stop Heal",
+          "mode": "action_control",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1,2",
+          "chaining": {
+            "_enabled": false,
+            "onStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          },
+          "controlTargetId": "action_1783931275751_446",
+          "controlOperation": "stop",
+          "controlTargetIds": [
+            "action_1783931275751_446"
+          ]
+        },
+        {
+          "id": "action_1784352664191_478",
+          "name": "AC Stop Heal Rain 1",
+          "mode": "action_control",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          },
+          "controlTargetIds": [
+            "action_1784368366653_569"
+          ],
+          "controlOperation": "stop"
+        },
+        {
+          "id": "action_1784368588592_660",
+          "name": "Buff GT 2",
+          "mode": "single_press",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "6"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "2",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": [],
+            "onFired": []
+          },
+          "delayAfter": 150
         }
       ]
     }
