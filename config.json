@@ -73,15 +73,20 @@
         "maxOffset": 12
       },
       "clientAliases": {
-        "1": "Client 11",
-        "2": "2Client 2",
-        "3": "3"
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4": "4",
+        "5": "5",
+        "6": "6",
+        "7": "7",
+        "8": "8"
       },
       "clientUserAgents": {},
       "actions": [
         {
           "id": "action_1783931275751_446",
-          "name": "Heal 1",
+          "name": "Heal",
           "mode": "loop",
           "trigger": {
             "type": "mouse",
@@ -90,7 +95,7 @@
           "keys": [
             "1"
           ],
-          "interval": 1000,
+          "interval": 800,
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
@@ -117,7 +122,7 @@
           "keys": [
             "2"
           ],
-          "interval": 1300,
+          "interval": 800,
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
@@ -267,7 +272,7 @@
         },
         {
           "id": "action_1784352664191_478",
-          "name": "AC Stop Heal Rain 1",
+          "name": "AC Stop Heal Rain Both",
           "mode": "action_control",
           "trigger": {
             "type": "none",
@@ -295,7 +300,7 @@
         },
         {
           "id": "action_1784368588592_660",
-          "name": "Buff GT 2",
+          "name": "Buff GT",
           "mode": "single_press",
           "trigger": {
             "type": "none",
@@ -317,7 +322,59 @@
             "onStop": [],
             "onFired": []
           },
-          "delayAfter": 150
+          "delayAfter": 80
+        },
+        {
+          "id": "action_1784451866245_184",
+          "name": "Buff HGuard",
+          "mode": "single_press",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "7"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": [],
+            "onFired": []
+          },
+          "delayAfter": 80
+        },
+        {
+          "id": "action_1784468429631_624",
+          "name": "Fly",
+          "mode": "single_press",
+          "trigger": {
+            "type": "keyboard",
+            "value": "NUMPAD 0"
+          },
+          "keys": [
+            "0"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1,2,3",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": [],
+            "onFired": []
+          },
+          "delayAfter": 0
         }
       ]
     }
