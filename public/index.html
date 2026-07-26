@@ -768,6 +768,7 @@
           <span id="active-profile-badge" class="profile-active-badge">● Active</span>
           <button class="btn btn-activate" onclick="activateProfile()" data-i18n="setActive">✓ Set Active</button>
           <button class="btn btn-ghost" onclick="openNewProfileModal()" data-i18n="newProfileBtn">+ New</button>
+          <button class="btn btn-ghost" onclick="openRenameProfileModal()" data-i18n="renameProfileBtn" style="border-color:#3b82f6; color:#3b82f6; background:rgba(59,130,246,0.08);">✏️ Rename</button>
           <button class="btn btn-danger" onclick="deleteProfile()" data-i18n="deleteProfileBtn">✕ Delete</button>
         </div>
         <div
@@ -778,16 +779,20 @@
         </div>
         <div
           style="display:flex; width:100%; align-items:center; gap:12px; margin-top:10px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
-          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); cursor:pointer; font-weight:600;">
-            <input type="checkbox" id="enable-overlay-checkbox" style="accent-color:var(--primary); cursor:pointer;" onchange="saveCurrentProfile()">
+          <label
+            style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); cursor:pointer; font-weight:600;">
+            <input type="checkbox" id="enable-overlay-checkbox" style="accent-color:var(--primary); cursor:pointer;"
+              onchange="saveCurrentProfile()">
             <span data-i18n="enableOverlayLabel">Enable Desktop Status Overlay</span>
           </label>
         </div>
         <div
           style="display:flex; flex-direction:column; gap:8px; margin-top:10px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
           <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-            <label style="font-size:11px; letter-spacing:0.5px; font-weight:700; color:var(--muted);" data-i18n="suspendHotkeyTitle">GLOBAL PAUSE HOTKEY</label>
-            <button id="gui-suspend-btn" class="btn btn-ghost" onclick="toggleSuspendState()" style="padding: 4px 10px; font-size: 10px; margin-left: auto; border-color: #ef4444; color: #ef4444; font-weight:700; border-radius:6px; background:rgba(239,68,68,0.07); cursor:pointer; transition: all 0.2s;">
+            <label style="font-size:11px; letter-spacing:0.5px; font-weight:700; color:var(--muted);"
+              data-i18n="suspendHotkeyTitle">GLOBAL PAUSE HOTKEY</label>
+            <button id="gui-suspend-btn" class="btn btn-ghost" onclick="toggleSuspendState()"
+              style="padding: 4px 10px; font-size: 10px; margin-left: auto; border-color: #ef4444; color: #ef4444; font-weight:700; border-radius:6px; background:rgba(239,68,68,0.07); cursor:pointer; transition: all 0.2s;">
               🔴 Pause Bot
             </button>
           </div>
@@ -795,18 +800,23 @@
             <input type="text" id="suspend-hotkey-input" readonly placeholder="Click to bind key..."
               style="flex:1; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:6px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; height:34px; text-align:center; font-weight:bold; cursor:pointer;"
               onfocus="startRecordingSuspendHotkey(this)" onblur="stopRecordingKey(this)">
-            <button class="btn btn-ghost" onclick="clearSuspendHotkey()" style="height:34px; padding:0 12px; border-color:var(--border); color:var(--muted); border-radius:8px;">✕</button>
+            <button class="btn btn-ghost" onclick="clearSuspendHotkey()"
+              style="height:34px; padding:0 12px; border-color:var(--border); color:var(--muted); border-radius:8px;">✕</button>
           </div>
         </div>
         <div
           style="display:flex; width:100%; align-items:center; gap:12px; margin-top:10px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
-          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); cursor:pointer; font-weight:600;">
-            <input type="checkbox" id="ghost-mouse-enabled" style="accent-color:#a855f7; cursor:pointer;" onchange="toggleGhostMouseSettings(); saveCurrentProfile()">
+          <label
+            style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); cursor:pointer; font-weight:600;">
+            <input type="checkbox" id="ghost-mouse-enabled" style="accent-color:#a855f7; cursor:pointer;"
+              onchange="toggleGhostMouseSettings(); saveCurrentProfile()">
             <span>🖱️ Ghost Mouse Jitter</span>
           </label>
         </div>
-        <div id="ghost-mouse-settings" style="display:none; margin-top:8px; padding:10px; background:rgba(168,85,247,0.07); border:1px solid rgba(168,85,247,0.2); border-radius:8px; gap:10px; flex-direction:column;">
-          <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">สุ่มขยับเมาส์เล็กน้อยในแท็บเกมเพื่อสร้าง <code>mousemove</code> event ป้องกันการตรวจจับ</div>
+        <div id="ghost-mouse-settings"
+          style="display:none; margin-top:8px; padding:10px; background:rgba(168,85,247,0.07); border:1px solid rgba(168,85,247,0.2); border-radius:8px; gap:10px; flex-direction:column;">
+          <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">สุ่มขยับเมาส์เล็กน้อยในแท็บเกมเพื่อสร้าง
+            <code>mousemove</code> event ป้องกันการตรวจจับ</div>
           <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
             <label style="font-size:11px; color:var(--muted); display:flex; flex-direction:column; gap:4px;">
               Min Interval (ms)
@@ -828,24 +838,46 @@
             </label>
           </div>
         </div>
-        <div
-          style="margin-top:12px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
-          <label style="font-size:11px; letter-spacing:0.5px; color:var(--muted); font-weight:600;" data-i18n="clientAliasesTitle">CLIENT ALIASES (OPTIONAL)</label>
+        <div style="margin-top:12px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
+          <label style="font-size:11px; letter-spacing:0.5px; color:var(--muted); font-weight:600;"
+            data-i18n="clientAliasesTitle">CLIENT ALIASES (OPTIONAL)</label>
           <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-top:6px;">
-            <input type="text" id="client-alias-1" placeholder="จอ 1" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;" onchange="saveCurrentProfile()">
-            <input type="text" id="client-alias-2" placeholder="จอ 2" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;" onchange="saveCurrentProfile()">
-            <input type="text" id="client-alias-3" placeholder="จอ 3" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;" onchange="saveCurrentProfile()">
-            <input type="text" id="client-alias-4" placeholder="จอ 4" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;" onchange="saveCurrentProfile()">
-            <input type="text" id="client-alias-5" placeholder="จอ 5" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;" onchange="saveCurrentProfile()">
-            <input type="text" id="client-alias-6" placeholder="จอ 6" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;" onchange="saveCurrentProfile()">
-            <input type="text" id="client-alias-7" placeholder="จอ 7" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;" onchange="saveCurrentProfile()">
-            <input type="text" id="client-alias-8" placeholder="จอ 8" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;" onchange="saveCurrentProfile()">
+            <input type="text" id="client-alias-1" placeholder="จอ 1"
+              style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;"
+              onchange="saveCurrentProfile()">
+            <input type="text" id="client-alias-2" placeholder="จอ 2"
+              style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;"
+              onchange="saveCurrentProfile()">
+            <input type="text" id="client-alias-3" placeholder="จอ 3"
+              style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;"
+              onchange="saveCurrentProfile()">
+            <input type="text" id="client-alias-4" placeholder="จอ 4"
+              style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;"
+              onchange="saveCurrentProfile()">
+            <input type="text" id="client-alias-5" placeholder="จอ 5"
+              style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;"
+              onchange="saveCurrentProfile()">
+            <input type="text" id="client-alias-6" placeholder="จอ 6"
+              style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;"
+              onchange="saveCurrentProfile()">
+            <input type="text" id="client-alias-7" placeholder="จอ 7"
+              style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;"
+              onchange="saveCurrentProfile()">
+            <input type="text" id="client-alias-8" placeholder="จอ 8"
+              style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-size:11px; outline:none; text-align:center; height:28px;"
+              onchange="saveCurrentProfile()">
           </div>
         </div>
-        <div
-          style="display:flex; width:100%; align-items:center; gap:12px; margin-top:12px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
-          <button class="btn btn-ghost" onclick="openAntiDetectModal()" style="width:100%; border-color:#06b6d4; color:#06b6d4; background:rgba(6,182,212,0.05); height:34px; font-size:12px; font-weight:700; border-radius:8px; cursor:pointer; justify-content:center; display:flex; align-items:center;" data-i18n="antiDetectBtn">
-            🌐 Anti-Detect & User-Agent Settings
+        <div style="display:grid; grid-template-columns: 1fr 1fr; width:100%; gap:10px; margin-top:12px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;">
+          <button class="btn btn-ghost" onclick="openAntiDetectModal()"
+            style="border-color:#06b6d4; color:#06b6d4; background:rgba(6,182,212,0.05); height:34px; font-size:12px; font-weight:700; border-radius:8px; cursor:pointer; justify-content:center; display:flex; align-items:center;"
+            data-i18n="antiDetectBtn">
+            🌐 Anti-Detect Settings
+          </button>
+          <button class="btn btn-ghost" onclick="openProxyModal()"
+            style="border-color:#a855f7; color:#a855f7; background:rgba(168,85,247,0.07); height:34px; font-size:12px; font-weight:700; border-radius:8px; cursor:pointer; justify-content:center; display:flex; align-items:center;"
+            data-i18n="proxySettingsBtn">
+            🛡️ IP / Proxy Settings
           </button>
         </div>
       </div>
@@ -909,6 +941,22 @@
     </div>
   </div>
 
+  <!-- ════════ RENAME PROFILE MODAL ════════ -->
+  <div class="modal-bg" id="rename-profile-modal">
+    <div class="modal">
+      <h2 data-i18n="modalRenameTitle">Rename Profile</h2>
+      <div class="field">
+        <label data-i18n="modalRenameName">New Profile Name</label>
+        <input type="text" id="rename-profile-name" placeholder="e.g. Flyff-Main"
+          onkeydown="if(event.key==='Enter')confirmRenameProfile()">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeRenameProfileModal()" data-i18n="btnCancel">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmRenameProfile()" data-i18n="btnSave">Save</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ════════ CUSTOM CONFIRM MODAL ════════ -->
   <div class="modal-bg" id="confirm-modal">
     <div class="modal" style="max-width: 400px;">
@@ -927,20 +975,78 @@
   <div class="modal-bg" id="antidetect-modal">
     <div class="modal" style="max-width: 650px; width: 90%; max-height: 85vh; display: flex; flex-direction: column;">
       <h2 data-i18n="antiDetectModalTitle">Anti-Detect & User-Agent Settings</h2>
-      <div style="font-size:12px; color:var(--muted); margin-bottom:12px; line-height: 1.5;" data-i18n="antiDetectModalDesc">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:10px; line-height: 1.5;" data-i18n="antiDetectModalDesc">
         Configure custom User-Agent strings per client screen to simulate independent browser installations. Webdriver flags are automatically bypassed.
+      </div>
+      <div style="background:rgba(234,179,8,0.1); border:1px solid rgba(234,179,8,0.3); color:#facc15; border-radius:8px; padding:8px 12px; font-size:11px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:8px;" data-i18n="antiDetectNotice">
+        ⚠️ หมายเหตุ: เมื่อตั้งค่าหรือแก้ไขเสร็จแล้ว ต้องปิดและเปิดเบราว์เซอร์ใหม่อีกครั้งเพื่อให้ค่ามีผล!
       </div>
       <div style="flex:1; overflow-y:auto; padding-right:6px; display:flex; flex-direction:column; gap:12px; max-height: 50vh;" id="antidetect-client-list">
         <!-- Render 8 client rows dynamically -->
       </div>
       <div class="modal-footer" style="margin-top:16px; display:flex; gap:10px; justify-content:space-between; width:100%;">
-        <button class="btn btn-ghost" onclick="randomizeAllUserAgents()" style="border-color:#a855f7; color:#a855f7; background:rgba(168,85,247,0.05); height:34px; font-weight:700;">
+        <button class="btn btn-ghost" onclick="randomizeAllUserAgents()" style="border-color:#a855f7; color:#a855f7; background:rgba(168,85,247,0.05); height:34px; font-weight:700;" data-i18n="btnRandomAll">
           🎲 Random All
         </button>
         <div style="display:flex; gap:10px;">
-          <button class="btn btn-ghost" onclick="closeAntiDetectModal()">Cancel</button>
+          <button class="btn btn-ghost" onclick="closeAntiDetectModal()" data-i18n="btnCancel">Cancel</button>
           <button class="btn btn-primary" onclick="saveAntiDetectSettings()" data-i18n="btnSave">Save</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ PROXY SETTINGS MODAL ════════ -->
+  <div class="modal-bg" id="proxy-modal" onclick="if(event.target===this) closeProxyModal()">
+    <div class="modal" style="max-width: 650px; width: 90%; max-height: 85vh; display: flex; flex-direction: column;">
+      <h2 data-i18n="proxyModalTitle">Per-Client IP / Proxy Settings</h2>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:10px; line-height: 1.5;" data-i18n="proxyModalDesc">
+        Configure an independent Proxy IP per client screen (Client 1 - 8) to prevent IP detection. Formats: http://ip:port, socks5://ip:port, or ip:port:user:pass
+      </div>
+      <div style="background:rgba(234,179,8,0.1); border:1px solid rgba(234,179,8,0.3); color:#facc15; border-radius:8px; padding:8px 12px; font-size:11px; font-weight:600; margin-bottom:12px; display:flex; align-items:center; gap:8px;" data-i18n="proxyNotice">
+        ⚠️ หมายเหตุ: เมื่อตั้งค่าหรือแก้ไขเสร็จแล้ว ต้องปิดและเปิดเบราว์เซอร์ใหม่อีกครั้งเพื่อให้ค่า Proxy มีผล!
+      </div>
+      <div style="flex:1; overflow-y:auto; padding-right:6px; display:flex; flex-direction:column; gap:12px; max-height: 50vh;" id="proxy-client-list">
+        <!-- Render 8 client proxy rows dynamically -->
+      </div>
+      <div class="modal-footer" style="margin-top:16px; display:flex; gap:10px; justify-content:flex-end; width:100%;">
+        <button class="btn btn-ghost" onclick="closeProxyModal()" data-i18n="btnCancel">Cancel</button>
+        <button class="btn btn-primary" onclick="saveProxySettings()" data-i18n="btnSave">Save</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-bg" id="skill-picker-modal" onclick="if(event.target===this) closeSkillPickerModal()">
+    <div class="modal" style="max-width: 680px; width: 92%; max-height: 85vh; display: flex; flex-direction: column; padding: 20px 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border); padding-bottom:12px; margin-bottom:14px;">
+        <h2 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
+          <span>⏱️</span>
+          <span id="skill-picker-modal-title" data-i18n="skillPickerModalTitle">Select Skill Cooldown Guard</span>
+        </h2>
+        <button class="btn btn-ghost" onclick="closeSkillPickerModal()" style="padding:4px 10px; font-size:12px;">✕</button>
+      </div>
+
+      <!-- Class Filter Tabs & Search Bar -->
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+        <!-- Class Filter Tabs -->
+        <div id="skill-picker-class-tabs" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+        
+        <!-- Search Input -->
+        <input type="text" id="skill-picker-search" placeholder="🔍 Search skill name or description..." oninput="renderSkillPickerGrid()" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; outline:none; width:100%;">
+      </div>
+
+      <!-- Options Row (Clear or Custom Duration) -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:12px;">
+        <button class="btn btn-ghost" id="skill-picker-clear-btn" onclick="selectSkillForAction('')" style="border-color:rgba(239,68,68,0.3); color:#ef4444; background:rgba(239,68,68,0.05); justify-content:center; display:flex; align-items:center; gap:6px;" data-i18n="skillPickerClearBtn">
+          🚫 None (Clear Cooldown)
+        </button>
+        <button class="btn btn-ghost" id="skill-picker-custom-btn" onclick="selectSkillForAction('custom')" style="border-color:rgba(168,85,247,0.4); color:#a855f7; background:rgba(168,85,247,0.07); justify-content:center; display:flex; align-items:center; gap:6px;" data-i18n="skillPickerCustomBtn">
+          ⚙️ Custom Duration
+        </button>
+      </div>
+
+      <!-- Skill Grid List -->
+      <div id="skill-picker-grid" style="flex:1; overflow-y:auto; padding-right:4px; display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:10px; max-height: 50vh;">
+        <!-- Rendered dynamically -->
       </div>
     </div>
   </div>
@@ -984,6 +1090,10 @@
         modalCreateTitle: "Create New Profile",
         modalProfileName: "Profile Name",
         modalCopyFrom: "Copy Settings From",
+        modalRenameTitle: "Rename Profile",
+        modalRenameName: "New Profile Name",
+        renameProfileBtn: "✏️ Rename",
+        toastProfileRenamed: "✓ Profile renamed to \"{name}\"!",
         btnCancel: "Cancel",
         btnCreate: "Create Profile",
 
@@ -1057,7 +1167,27 @@
         activeStatus: "● Active",
         inactiveStatus: "● Inactive",
         confirmDeleteTitle: "Confirm Deletion",
-        confirmYesBtn: "Yes, Delete"
+        confirmYesBtn: "Yes, Delete",
+        skillPickerModalTitle: "Select Skill Cooldown Guard",
+        skillPickerClearBtn: "🚫 None (Clear Cooldown)",
+        skillPickerCustomBtn: "⚙️ Custom Duration",
+        skillCooldownGuardLabel: "Skill Cooldown Guard",
+        customCooldownMsLabel: "Custom Cooldown (ms):",
+        customCooldownCardTitle: "Custom Cooldown Duration",
+        customCooldownSpecifyHint: "Specify duration below...",
+        noSkillSelectedText: "-- None (No Cooldown Check) --",
+        clickToSelectSkillHint: "Click to select skill / item cooldown...",
+        selectSkillBtnText: "Select...",
+        changeSkillBtnText: "Change...",
+        antiDetectBtn: "🌐 Anti-Detect Settings",
+        proxySettingsBtn: "🛡️ IP / Proxy Settings",
+        proxyModalTitle: "Per-Client IP / Proxy Settings",
+        proxyModalDesc: "Configure an independent Proxy IP per client screen (Client 1 - 8) to prevent IP detection. Formats: http://ip:port, socks5://ip:port, or ip:port:user:pass",
+        proxyInputPlaceholder: "e.g. http://123.45.67.89:8080 or 123.45.67.89:8080:user:pass (Empty for Direct)",
+        antiDetectNotice: "⚠️ Note: After saving changes, you must close and re-open browser sessions for new settings to take effect.",
+        proxyNotice: "⚠️ Note: After saving changes, you must close and re-open browser sessions for new Proxy settings to take effect.",
+        toastSavedProxy: "✓ Saved IP / Proxy settings!",
+        toastSavedAntiDetect: "✓ Saved Anti-Detect User-Agent settings!"
       },
       th: {
         appTitle: "ศูนย์ควบคุมบอทอัตโนมัติ",
@@ -1088,6 +1218,10 @@
         modalCreateTitle: "สร้างโปรไฟล์ใหม่",
         modalProfileName: "ชื่อโปรไฟล์",
         modalCopyFrom: "คัดลอกการตั้งค่าจาก",
+        modalRenameTitle: "เปลี่ยนชื่อโปรไฟล์",
+        modalRenameName: "ชื่อโปรไฟล์ใหม่",
+        renameProfileBtn: "✏️ เปลี่ยนชื่อ",
+        toastProfileRenamed: "✓ เปลี่ยนชื่อโปรไฟล์เป็น \"{name}\" สำเร็จ!",
         btnCancel: "ยกเลิก",
         btnCreate: "สร้างโปรไฟล์",
 
@@ -1161,7 +1295,27 @@
         activeStatus: "● ใช้งานอยู่",
         inactiveStatus: "● ไม่ได้ใช้งาน",
         confirmDeleteTitle: "ยืนยันการลบ",
-        confirmYesBtn: "ใช่, ลบออก"
+        confirmYesBtn: "ใช่, ลบออก",
+        skillPickerModalTitle: "เลือกสกิล/ไอเทม เพื่อป้องกันคูลดาวน์",
+        skillPickerClearBtn: "🚫 ไม่ระบุ (ไม่ใช้คูลดาวน์)",
+        skillPickerCustomBtn: "⚙️ กำหนดเวลาเอง",
+        skillCooldownGuardLabel: "ป้องกันคูลดาวน์สกิล (Skill Cooldown Guard)",
+        customCooldownMsLabel: "เวลาคูลดาวน์กำหนดเอง (ms):",
+        customCooldownCardTitle: "กำหนดเวลาคูลดาวน์เอง",
+        customCooldownSpecifyHint: "ระบุเวลาคูลดาวน์ด้านล่าง...",
+        noSkillSelectedText: "-- ไม่ระบุ (ไม่เช็กคูลดาวน์) --",
+        clickToSelectSkillHint: "คลิกเพื่อเลือกสกิล หรือ ไอเทมที่มีคูลดาวน์...",
+        selectSkillBtnText: "เลือกสกิล...",
+        changeSkillBtnText: "เปลี่ยน...",
+        antiDetectBtn: "🌐 Anti-Detect Settings",
+        proxySettingsBtn: "🛡️ ตั้งค่า IP / Proxy แยกจอ",
+        proxyModalTitle: "ตั้งค่า IP / Proxy แยกจอ (Per-Client Proxy)",
+        proxyModalDesc: "กำหนด IP / Proxy แยกอิสระสำหรับเบราว์เซอร์แต่ละจอ (Client 1 - 8) เพื่อป้องกันการตรวจจับ IP ซ้ำ รูปแบบที่รองรับ: http://ip:port, socks5://ip:port หรือ ip:port:user:pass",
+        proxyInputPlaceholder: "ตัวอย่าง http://123.45.67.89:8080 หรือ 123.45.67.89:8080:user:pass (ว่างไว้ = ต่อตรง)",
+        antiDetectNotice: "⚠️ หมายเหตุ: เมื่อตั้งค่าหรือแก้ไขเสร็จแล้ว ต้องปิดและเปิดเบราว์เซอร์ใหม่อีกครั้งเพื่อให้ค่ามีผล!",
+        proxyNotice: "⚠️ หมายเหตุ: เมื่อตั้งค่าหรือแก้ไขเสร็จแล้ว ต้องปิดและเปิดเบราว์เซอร์ใหม่อีกครั้งเพื่อให้ค่า Proxy มีผล!",
+        toastSavedProxy: "✓ บันทึกการตั้งค่า IP / Proxy เรียบร้อยแล้ว!",
+        toastSavedAntiDetect: "✓ บันทึกการตั้งค่า Anti-Detect User-Agent เรียบร้อยแล้ว!"
       }
     };
 
@@ -1232,30 +1386,30 @@
       activeRecordingInput = input;
       activeRecordingActionId = actionId;
       activeRecordingType = type;
-      
+
       input.value = '';
       input.placeholder = type === 'comma_keys' ? 'Press keys sequentially...' : 'Press any key...';
       input.style.borderColor = 'var(--primary)';
       input.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.2)';
-      
+
       window.addEventListener('keydown', handleRecordingKeyDown, true);
     }
 
     function stopRecordingKey(input) {
       if (activeRecordingInput === input) {
         window.removeEventListener('keydown', handleRecordingKeyDown, true);
-        
+
         let placeholderText = 'Click to bind key...';
         if (activeRecordingType === 'comma_keys') {
           placeholderText = currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...';
         } else if (activeRecordingType === 'suspend_hotkey') {
           placeholderText = currentLang === 'en' ? 'Click to bind key...' : 'คลิกเพื่อบันทึกปุ่ม...';
         }
-        
+
         input.placeholder = placeholderText;
         input.style.borderColor = 'var(--border)';
         input.style.boxShadow = 'none';
-        
+
         // Save DOM values to config immediately
         if (activeRecordingType !== 'suspend_hotkey') {
           syncActionFromDom(activeRecordingActionId);
@@ -1266,7 +1420,7 @@
           }
         }
         saveCurrentProfile();
-        
+
         activeRecordingInput = null;
         activeRecordingActionId = null;
         activeRecordingType = null;
@@ -1280,12 +1434,12 @@
       activeRecordingInput = input;
       activeRecordingActionId = null;
       activeRecordingType = 'suspend_hotkey';
-      
+
       input.value = '';
       input.placeholder = currentLang === 'en' ? 'Press any key...' : 'กดปุ่มลัดเพื่อระบุ...';
       input.style.borderColor = 'var(--primary)';
       input.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.2)';
-      
+
       window.addEventListener('keydown', handleRecordingKeyDown, true);
     }
 
@@ -1570,6 +1724,221 @@
       return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    let allCooldownPresets = {};
+    let allCooldownPresetsById = {};
+    let allClassIcons = {};
+
+    async function fetchCooldownPresets() {
+      try {
+        const res = await fetch('/api/cooldown-presets');
+        const data = await res.json();
+        if (data.success) {
+          allCooldownPresets = data.presets || {};
+          allCooldownPresetsById = data.presetsById || {};
+          allClassIcons = data.classIcons || {};
+        }
+      } catch (e) {
+        console.warn("Failed to fetch cooldown presets:", e);
+      }
+    }
+
+    function renderCustomSkillCardContent(presetId, customMs) {
+      const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+      if (presetId === 'custom') {
+        const msText = customMs ? `${customMs}ms (${(customMs / 1000).toFixed(1)}s)` : t.customCooldownSpecifyHint;
+        return `
+          <div style="width:32px; height:32px; border-radius:8px; background:rgba(168,85,247,0.2); display:flex; align-items:center; justify-content:center; font-size:16px;">⚙️</div>
+          <div style="display:flex; flex-direction:column; flex:1;">
+            <span style="font-size:13px; font-weight:700; color:#a855f7;">${t.customCooldownCardTitle}</span>
+            <span style="font-size:11px; color:var(--muted);">⏱️ ${msText}</span>
+          </div>
+          <span style="font-size:12px; color:#a855f7; font-weight:600;">${t.changeSkillBtnText} ➔</span>
+        `;
+      }
+      if (!presetId || !allCooldownPresetsById[presetId]) {
+        return `
+          <div style="width:32px; height:32px; border-radius:8px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; font-size:16px;">🚫</div>
+          <div style="display:flex; flex-direction:column; flex:1;">
+            <span style="font-size:13px; font-weight:600; color:var(--text);">${t.noSkillSelectedText}</span>
+            <span style="font-size:11px; color:var(--muted);">${t.clickToSelectSkillHint}</span>
+          </div>
+          <span style="font-size:12px; color:var(--primary); font-weight:600;">${t.selectSkillBtnText} ➔</span>
+        `;
+      }
+      const item = allCooldownPresetsById[presetId];
+      const effectiveMs = customMs > 0 ? customMs : (item.cooldownMs || 0);
+      const isCustomOverride = customMs > 0 && customMs !== item.cooldownMs;
+      const cdText = effectiveMs ? `${effectiveMs / 1000}s (${effectiveMs}ms)${isCustomOverride ? ' • Custom' : ''}` : 'No Cooldown';
+      const imgHTML = item.image ? `<img src="${escapeHtml(item.image)}" style="width:32px; height:32px; object-fit:contain; border-radius:6px; background:rgba(0,0,0,0.3); padding:2px; border:1px solid rgba(16,185,129,0.4);" onError="this.style.display='none'">` : `<div style="width:32px; height:32px; border-radius:6px; background:rgba(16,185,129,0.2); display:flex; align-items:center; justify-content:center;">✨</div>`;
+
+      return `
+        ${imgHTML}
+        <div style="display:flex; flex-direction:column; flex:1;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:13px; font-weight:700; color:#fff;">${escapeHtml(item.name)}</span>
+            <span style="font-size:10px; background:${isCustomOverride ? 'rgba(168,85,247,0.2)' : 'rgba(16,185,129,0.2)'}; border:1px solid ${isCustomOverride ? 'rgba(168,85,247,0.4)' : 'rgba(16,185,129,0.4)'}; color:${isCustomOverride ? '#a855f7' : '#10b981'}; border-radius:4px; padding:1px 6px; font-weight:700;">⏱️ ${cdText}</span>
+          </div>
+          <span style="font-size:11px; color:var(--muted);">${escapeHtml(item.class || 'Skill')} ${item.description ? '• ' + escapeHtml(item.description) : ''}</span>
+        </div>
+        <span style="font-size:12px; color:#10b981; font-weight:600;">${t.changeSkillBtnText} ➔</span>
+      `;
+    }
+
+    let activePickerActionId = null;
+    let activePickerClassTab = 'All';
+
+    function openSkillPickerModal(actionId) {
+      activePickerActionId = actionId;
+      const modal = document.getElementById('skill-picker-modal');
+      const searchInput = document.getElementById('skill-picker-search');
+      const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.placeholder = t.skillPickerSearchPlaceholder || '🔍 Search skill name or description...';
+      }
+      const titleEl = document.getElementById('skill-picker-modal-title');
+      if (titleEl) titleEl.textContent = t.skillPickerModalTitle || 'Select Skill Cooldown Guard';
+      const clearBtn = document.getElementById('skill-picker-clear-btn');
+      if (clearBtn) clearBtn.textContent = t.skillPickerClearBtn || '🚫 None (Clear Cooldown)';
+      const customBtn = document.getElementById('skill-picker-custom-btn');
+      if (customBtn) customBtn.textContent = t.skillPickerCustomBtn || '⚙️ Custom Duration';
+
+      const act = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === actionId);
+      if (act && act.cooldownPresetId && allCooldownPresetsById[act.cooldownPresetId]) {
+        activePickerClassTab = allCooldownPresetsById[act.cooldownPresetId].class || 'All';
+      } else {
+        activePickerClassTab = 'All';
+      }
+
+      renderSkillPickerClassTabs();
+      renderSkillPickerGrid();
+      modal.classList.add('show');
+    }
+
+    function closeSkillPickerModal() {
+      const modal = document.getElementById('skill-picker-modal');
+      if (modal) modal.classList.remove('show');
+      activePickerActionId = null;
+    }
+
+    function renderSkillPickerClassTabs() {
+      const container = document.getElementById('skill-picker-class-tabs');
+      if (!container) return;
+
+      const classes = ['All', ...Object.keys(allCooldownPresets)];
+      let html = '';
+
+      classes.forEach(c => {
+        const isSel = c === activePickerClassTab;
+        const btnBg = isSel ? 'var(--primary)' : 'var(--bg-input)';
+        const btnBorder = isSel ? 'var(--primary)' : 'var(--border)';
+        const btnColor = isSel ? '#fff' : 'var(--muted)';
+
+        let label = '';
+        if (c === 'All') {
+          label = currentLang === 'en' ? '✨ All Skills' : '✨ สกิลทั้งหมด';
+        } else if (allClassIcons[c]) {
+          label = `<img src="${escapeHtml(allClassIcons[c])}" style="width:16px; height:16px; object-fit:contain; border-radius:3px;" onError="this.style.display='none'"> ${escapeHtml(c)}`;
+        } else {
+          label = `⚔️ ${escapeHtml(c)}`;
+        }
+
+        html += `
+          <button type="button" onclick="selectPickerClassTab('${c}')" style="background:${btnBg}; border:1px solid ${btnBorder}; color:${btnColor}; padding:4px 12px; border-radius:16px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; outline:none; display:inline-flex; align-items:center; gap:6px;">
+            ${label}
+          </button>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function selectPickerClassTab(className) {
+      activePickerClassTab = className;
+      renderSkillPickerClassTabs();
+      renderSkillPickerGrid();
+    }
+
+    function renderSkillPickerGrid() {
+      const container = document.getElementById('skill-picker-grid');
+      const searchVal = (document.getElementById('skill-picker-search')?.value || '').toLowerCase().trim();
+      if (!container) return;
+
+      let items = [];
+      if (activePickerClassTab === 'All') {
+        for (const c in allCooldownPresets) {
+          items.push(...(allCooldownPresets[c] || []));
+        }
+      } else {
+        items = allCooldownPresets[activePickerClassTab] || [];
+      }
+
+      if (searchVal) {
+        items = items.filter(i => 
+          (i.name || '').toLowerCase().includes(searchVal) || 
+          (i.description || '').toLowerCase().includes(searchVal) ||
+          (i.class || '').toLowerCase().includes(searchVal)
+        );
+      }
+
+      if (!items.length) {
+        container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:30px; color:var(--muted); font-size:13px;">❌ ไม่พบสกิลที่ตรงกับคำค้นหา</div>`;
+        return;
+      }
+
+      let html = '';
+      const currentAct = fullConfig.profiles[currentEditProfile].actions.find(a => a.id === activePickerActionId);
+      const currentPresetId = currentAct ? currentAct.cooldownPresetId : '';
+
+      items.forEach(item => {
+        const isSelected = item.id === currentPresetId;
+        const cdText = item.cooldownMs ? `${item.cooldownMs / 1000}s` : 'No Cooldown';
+        const borderStyle = isSelected ? '2px solid #10b981' : '1px solid var(--border)';
+        const bgStyle = isSelected ? 'rgba(16,185,129,0.1)' : 'var(--bg-input)';
+
+        const imgTag = item.image 
+          ? `<img src="${escapeHtml(item.image)}" style="width:36px; height:36px; object-fit:contain; border-radius:6px; background:rgba(0,0,0,0.3); padding:2px; border:1px solid rgba(255,255,255,0.1);" onError="this.style.display='none'">`
+          : `<div style="width:36px; height:36px; border-radius:6px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; font-size:16px;">✨</div>`;
+
+        html += `
+          <div class="skill-picker-card" onclick="selectSkillForAction('${item.id}')" style="background:${bgStyle}; border:${borderStyle}; border-radius:10px; padding:10px 12px; cursor:pointer; display:flex; gap:10px; align-items:center; transition:all 0.2s;">
+            ${imgTag}
+            <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:13px; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(item.name)}</span>
+                <span style="font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:4px; padding:1px 5px; flex-shrink:0;">⏱️ ${cdText}</span>
+              </div>
+              <span style="font-size:11px; color:var(--muted); line-height:1.3; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(item.description || '')}">${escapeHtml(item.description || item.class || '')}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function selectSkillForAction(presetId) {
+      if (!activePickerActionId) return;
+      const hiddenInput = document.getElementById(`cooldown-preset-input-${activePickerActionId}`);
+      if (hiddenInput) hiddenInput.value = presetId;
+
+      syncActionFromDom(activePickerActionId);
+      saveCurrentProfile();
+      renderActions(fullConfig.profiles[currentEditProfile].actions);
+      closeSkillPickerModal();
+    }
+
+    function renderSkillBadge(presetId) {
+      if (!presetId || !allCooldownPresetsById[presetId]) return '';
+      const item = allCooldownPresetsById[presetId];
+      const cdSec = item.cooldownMs ? (item.cooldownMs / 1000) + 's' : '0s';
+      const imgTag = item.image ? `<img src="${escapeHtml(item.image)}" style="width:16px; height:16px; object-fit:contain; border-radius:3px;" onError="this.style.display='none'">` : '';
+      return `<span style="display:inline-flex; align-items:center; gap:4px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:4px; padding:2px 8px; color:#10b981; font-size:11px; font-weight:700;">
+        ${imgTag} ${escapeHtml(item.name)} (${cdSec})
+      </span>`;
+    }
+
     function renderActions(actions) {
       const container = document.getElementById('actions-container');
       container.innerHTML = '';
@@ -1651,6 +2020,12 @@
           <span>
             🎯 จอ: ${getActionTargetsList(act.targetClient).join(', ')}
           </span>
+          ${act.cooldownPresetId && allCooldownPresetsById[act.cooldownPresetId] ? `
+            <span style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:4px; padding:2px 6px; color:#10b981; font-size:10px; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+              ${allCooldownPresetsById[act.cooldownPresetId].image ? `<img src="${escapeHtml(allCooldownPresetsById[act.cooldownPresetId].image)}" style="width:12px; height:12px; object-fit:contain;" onError="this.style.display='none'">` : '⏱️'}
+              ${escapeHtml(allCooldownPresetsById[act.cooldownPresetId].name)} (${allCooldownPresetsById[act.cooldownPresetId].cooldownMs ? (allCooldownPresetsById[act.cooldownPresetId].cooldownMs/1000)+'s' : '0s'})
+            </span>
+          ` : ''}
         </div>
 
         <div style="display:flex; align-items:center; gap:12px;" onclick="event.stopPropagation()">
@@ -1661,6 +2036,9 @@
         </div>
       </div>
     `;
+
+        const currentSkill = act.cooldownPresetId ? allCooldownPresetsById[act.cooldownPresetId] : null;
+        const selectedClass = currentSkill ? currentSkill.class : '';
 
         let bodyHTML = `
       <div class="group-body" style="padding:${isExpanded ? '18px 20px' : '0'}; max-height:${isExpanded ? '1500px' : '0'}; opacity:${isExpanded ? '1' : '0'}; overflow:hidden; transition: max-height 0.25s ease-out, opacity 0.2s, padding 0.25s ease-out; display:flex; flex-direction:column; gap:14px;">
@@ -1699,6 +2077,34 @@
           </div>
         </div>
 
+        <div class="field-row" style="margin-top:2px;">
+          <div class="field" style="grid-column: span 2;">
+            <label style="display:flex; align-items:center; justify-content:space-between; width:100%; margin-bottom:6px;">
+              <span>⏱️ ${TRANSLATIONS[currentLang].skillCooldownGuardLabel}</span>
+            </label>
+            <input type="hidden" class="action-cooldown-preset" id="cooldown-preset-input-${act.id}" value="${escapeHtml(act.cooldownPresetId || '')}">
+            
+            <div class="custom-skill-select-card ${act.cooldownPresetId ? 'active' : ''}" 
+                 onclick="openSkillPickerModal('${act.id}')"
+                 style="background:var(--bg-input); border:1px solid ${act.cooldownPresetId === 'custom' ? '#a855f7' : (act.cooldownPresetId && allCooldownPresetsById[act.cooldownPresetId] ? '#10b981' : 'var(--border)')}; border-radius:10px; padding:10px 14px; cursor:pointer; display:flex; align-items:center; gap:12px; transition:all 0.2s;">
+              ${renderCustomSkillCardContent(act.cooldownPresetId, act.customCooldownMs)}
+            </div>
+
+            <!-- Custom Cooldown Duration Input Box -->
+            <div class="custom-cd-input-row-${act.id}" style="display:${act.cooldownPresetId ? 'flex' : 'none'}; align-items:center; gap:10px; margin-top:8px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:6px 12px;">
+              <label style="font-size:11px; color:var(--muted); font-weight:600; white-space:nowrap;">
+                ⏱️ ${TRANSLATIONS[currentLang].customCooldownMsLabel}
+              </label>
+              <input type="number" class="action-custom-cooldown-ms" min="0" max="600000" step="100" 
+                     value="${act.customCooldownMs || ''}" 
+                     placeholder="${act.cooldownPresetId && allCooldownPresetsById[act.cooldownPresetId] ? 'Preset: ' + (allCooldownPresetsById[act.cooldownPresetId].cooldownMs || 0) + 'ms' : 'e.g. 5000'}"
+                     onchange="saveCurrentProfile(); renderActions(fullConfig.profiles[currentEditProfile].actions);"
+                     style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--text); font-family:'Outfit'; font-size:12px; outline:none; flex:1;">
+              <span style="font-size:11px; color:#a855f7; font-weight:bold;">${act.customCooldownMs ? ((parseInt(act.customCooldownMs)/1000).toFixed(1) + 's') : ''}</span>
+            </div>
+          </div>
+        </div>
+
         <div class="mode-specific-container-${act.id}">
           ${renderModeSpecificFields(act)}
         </div>
@@ -1717,11 +2123,11 @@
     // Returns available chain events for a given action mode
     function getChainEventsForMode(mode) {
       const map = {
-        loop:          ['onBeforeStart', 'onAfterStart', 'onEachCycle', 'onStop'],
+        loop: ['onBeforeStart', 'onAfterStart', 'onEachCycle', 'onStop'],
         buff_sequence: ['onBeforeStart', 'onAfterStart', 'onComplete'],
-        single_press:  ['onFired'],
-        forward:       ['onKeyDown', 'onActivated', 'onKeyUp'],
-        key_hold:      ['onEnable', 'onDisable']
+        single_press: ['onFired'],
+        forward: ['onKeyDown', 'onActivated', 'onKeyUp'],
+        key_hold: ['onEnable', 'onDisable']
       };
       return map[mode] || [];
     }
@@ -1736,7 +2142,7 @@
       const body = card.querySelector('.group-body');
       const arrow = card.querySelector(`.action-arrow-${actionId}`);
       if (!body) return;
-      
+
       const isOpen = expandedActions.has(actionId);
       if (isOpen) {
         expandedActions.delete(actionId);
@@ -1792,8 +2198,8 @@
               style="background:var(--bg-input); border:1px solid rgba(168,85,247,0.3); border-radius:6px; padding:4px 6px; color:var(--text); font-size:11px; height:100px; outline:none; width:100%;"
               onchange="saveCurrentProfile()">
               ${otherActions.filter(a => a.id !== act.id).map(a =>
-                `<option value="${a.id}" ${selected.includes(a.id) ? 'selected' : ''}>${escapeHtml(a.name)}</option>`
-              ).join('')}
+          `<option value="${a.id}" ${selected.includes(a.id) ? 'selected' : ''}>${escapeHtml(a.name)}</option>`
+        ).join('')}
             </select>
           </div>`;
       }).join('');
@@ -1835,7 +2241,7 @@
     function getActionTargetsList(targetClientString) {
       if (!targetClientString) return ['1'];
       if (targetClientString === 'all' || targetClientString === 'both') {
-        return ['1','2','3','4','5','6','7','8'];
+        return ['1', '2', '3', '4', '5', '6', '7', '8'];
       }
       return targetClientString.split(',').map(s => s.trim()).filter(Boolean);
     }
@@ -1843,9 +2249,9 @@
     function renderTargetClientSelector(act) {
       const selectedTargets = getActionTargetsList(act.targetClient);
       const isAllSelected = act.targetClient === 'all' || act.targetClient === 'both';
-      
+
       let html = `<div class="client-btn-group" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">`;
-      
+
       for (let i = 1; i <= 8; i++) {
         const isActive = activeClients.includes(i);
         const isSelected = isAllSelected || selectedTargets.includes(String(i));
@@ -1854,7 +2260,7 @@
         const textColor = isSelected ? '#fff' : 'var(--muted)';
         const opacity = isActive ? '1' : '0.5';
         const titleText = isActive ? `Client ${i}` : `Client ${i} (Offline)`;
-        
+
         html += `
           <button type="button" class="client-select-btn ${isSelected ? 'selected' : ''}" 
             data-value="${i}"
@@ -1865,7 +2271,7 @@
           </button>
         `;
       }
-      
+
       const allActiveColor = isAllSelected ? 'var(--primary)' : 'var(--bg-input)';
       const allBorderColor = isAllSelected ? 'var(--primary)' : 'var(--border)';
       const allTextColor = isAllSelected ? '#fff' : 'var(--muted)';
@@ -1877,7 +2283,7 @@
           ${TRANSLATIONS[currentLang].allClients || 'All'}
         </button>
       </div>`;
-      
+
       // We also store the actual value in a hidden input for syncActionFromDom
       html += `<input type="hidden" class="action-target-client" value="${escapeHtml(act.targetClient || '1')}">`;
       return html;
@@ -1888,17 +2294,17 @@
       if (!card) return;
       const hiddenInput = card.querySelector('.action-target-client');
       if (!hiddenInput) return;
-      
+
       const val = btn.getAttribute('data-value');
       let currentVal = hiddenInput.value;
-      
+
       let targets = [];
       if (currentVal === 'all' || currentVal === 'both') {
-        targets = ['1','2','3','4','5','6','7','8'];
+        targets = ['1', '2', '3', '4', '5', '6', '7', '8'];
       } else {
         targets = currentVal.split(',').map(s => s.trim()).filter(Boolean);
       }
-      
+
       if (val === 'all') {
         if (btn.classList.contains('selected')) {
           hiddenInput.value = '1';
@@ -1911,9 +2317,9 @@
         } else {
           targets.push(val);
         }
-        
+
         targets.sort((a, b) => parseInt(a) - parseInt(b));
-        
+
         if (targets.length === 0) {
           hiddenInput.value = '1';
         } else if (targets.length === 8) {
@@ -1922,14 +2328,14 @@
           hiddenInput.value = targets.join(',');
         }
       }
-      
+
       const container = btn.closest('.client-selector-container');
       const act = { id: actionId, targetClient: hiddenInput.value };
       container.innerHTML = `
         <label data-i18n="targetClient">${TRANSLATIONS[currentLang].targetClient}</label>
         ${renderTargetClientSelector(act)}
       `;
-      
+
       saveCurrentProfile();
     }
 
@@ -1978,7 +2384,7 @@
           <div class="field">
             <label>${TRANSLATIONS[currentLang].loopQuickAdjust}</label>
             <div class="range-row">
-              <input type="range" id="interval-range-${act.id}" min="100" max="10000" step="100" value="${act.interval ?? 3000}" oninput="syncInput('interval-range-${act.id}', 'interval-input-${act.id}')">
+              <input type="range" id="interval-range-${act.id}" min="100" max="30000" step="100" value="${act.interval ?? 3000}" oninput="syncInput('interval-range-${act.id}', 'interval-input-${act.id}')">
               <span class="range-val" id="interval-range-${act.id}-label">${act.interval ?? 3000}ms</span>
             </div>
           </div>
@@ -2170,6 +2576,13 @@
       act.mode = card.querySelector('.action-mode').value;
       const targetClientInput = card.querySelector('.action-target-client');
       act.targetClient = targetClientInput ? targetClientInput.value : (act.targetClient || '1');
+      const cdSelect = card.querySelector('.action-cooldown-preset');
+      if (cdSelect) act.cooldownPresetId = cdSelect.value;
+      const customCdInput = card.querySelector('.action-custom-cooldown-ms');
+      if (customCdInput) {
+        const val = parseInt(customCdInput.value, 10);
+        act.customCooldownMs = (!isNaN(val) && val > 0) ? val : 0;
+      }
 
       if (act.mode === 'loop') {
         const keysInput = card.querySelector('.loop-keys');
@@ -2272,7 +2685,7 @@
       act.firstSteps.push({ key: '', delay: 500 });
 
       const container = document.querySelector(`.mode-specific-container-${actionId}`);
-      container.innerHTML = renderModeSpecificFields(act);
+      if (container) container.innerHTML = renderModeSpecificFields(act);
     }
 
     function removeFirstStepFromAction(actionId, stepIdx) {
@@ -2284,8 +2697,9 @@
       act.firstSteps.splice(stepIdx, 1);
 
       const container = document.querySelector(`.mode-specific-container-${actionId}`);
-      container.innerHTML = renderModeSpecificFields(act);
+      if (container) container.innerHTML = renderModeSpecificFields(act);
     }
+
     async function toggleSuspendState() {
       try {
         const res = await fetch('/api/suspend/toggle', { method: 'POST' });
@@ -2319,6 +2733,7 @@
         btn.style.background = 'rgba(239,68,68,0.07)';
       }
     }
+
     const USER_AGENT_POOL = [
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -2410,15 +2825,86 @@
 
       saveCurrentProfile();
       closeAntiDetectModal();
-      toast(TRANSLATIONS[currentLang].toastSavedAntiDetect, 'success');
+      toast(TRANSLATIONS[currentLang].toastSavedAntiDetect || '✓ Saved Anti-Detect User-Agent settings!', 'success');
       setTimeout(() => {
-        toast(TRANSLATIONS[currentLang].toastAntiDetectRestart, 'error');
+        toast(TRANSLATIONS[currentLang].toastAntiDetectRestart || 'Note: Restart browser session to apply changes', 'info');
       }, 2000);
+    }
+
+    function openProxyModal() {
+      const modal = document.getElementById('proxy-modal');
+      const listContainer = document.getElementById('proxy-client-list');
+      if (!modal || !listContainer) return;
+
+      const profile = fullConfig.profiles[currentEditProfile];
+      const aliases = profile.clientAliases || {};
+      const proxies = profile.clientProxies || {};
+      const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+
+      listContainer.innerHTML = '';
+      for (let i = 1; i <= 8; i++) {
+        const alias = aliases[String(i)] || `Client ${i}`;
+        const proxyVal = proxies[String(i)] || '';
+
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.flexDirection = 'column';
+        row.style.gap = '6px';
+        row.style.borderBottom = '1px dashed rgba(255,255,255,0.05)';
+        row.style.paddingBottom = '10px';
+
+        row.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <span style="font-size:12px; font-weight:700; color:var(--text);">${escapeHtml(alias)}</span>
+            <button class="btn btn-ghost" onclick="clearProxy(${i})" style="padding:2px 8px; font-size:11px; border-color:var(--border); color:var(--muted); height:24px; cursor:pointer;">✕ Clear</button>
+          </div>
+          <input type="text" id="proxy-input-${i}" value="${escapeHtml(proxyVal)}" placeholder="${t.proxyInputPlaceholder || 'http://ip:port or socks5://ip:port or ip:port:user:pass'}"
+            style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-family:'JetBrains Mono'; font-size:11px; outline:none; width:100%; height:32px;">
+        `;
+        listContainer.appendChild(row);
+      }
+
+      modal.classList.add('show');
+    }
+
+    function closeProxyModal() {
+      const modal = document.getElementById('proxy-modal');
+      if (modal) modal.classList.remove('show');
+    }
+
+    function clearProxy(idx) {
+      const input = document.getElementById(`proxy-input-${idx}`);
+      if (input) input.value = '';
+    }
+
+    function saveProxySettings() {
+      const profile = fullConfig.profiles[currentEditProfile];
+      if (!profile) return;
+      if (!profile.clientProxies) profile.clientProxies = {};
+
+      for (let i = 1; i <= 8; i++) {
+        const input = document.getElementById(`proxy-input-${i}`);
+        if (input) {
+          profile.clientProxies[String(i)] = input.value.trim();
+        }
+      }
+
+      saveCurrentProfile();
+      closeProxyModal();
+      toast(TRANSLATIONS[currentLang].toastSavedProxy || '✓ Saved IP / Proxy settings!', 'success');
+      setTimeout(() => {
+        if (currentLang === 'en') {
+          toast('Note: Proxy settings will apply when launching new browser sessions.', 'info');
+        } else {
+          toast('หมายเหตุ: การตั้งค่า IP/Proxy จะมีผลเมื่อเปิดเบราว์เซอร์รอบใหม่', 'info');
+        }
+      }, 1500);
     }
 
     function collectProfile() {
       const actions = fullConfig.profiles[currentEditProfile].actions;
       actions.forEach(act => syncActionFromDom(act.id));
+
       const clientAliases = {};
       for (let i = 1; i <= 8; i++) {
         const el = document.getElementById(`client-alias-${i}`);
@@ -2439,6 +2925,7 @@
         },
         clientAliases: clientAliases,
         clientUserAgents: fullConfig.profiles[currentEditProfile].clientUserAgents || {},
+        clientProxies: fullConfig.profiles[currentEditProfile].clientProxies || {},
         actions: actions
       };
     }
@@ -2536,6 +3023,53 @@
     }
 
     // ═══════════════════════════════════════════════════════
+    // RENAME PROFILE MODAL
+    // ═══════════════════════════════════════════════════════
+    function openRenameProfileModal() {
+      const input = document.getElementById('rename-profile-name');
+      if (input) input.value = currentEditProfile;
+      document.getElementById('rename-profile-modal').classList.add('show');
+      setTimeout(() => input && input.focus(), 100);
+    }
+
+    function closeRenameProfileModal() {
+      document.getElementById('rename-profile-modal').classList.remove('show');
+    }
+
+    async function confirmRenameProfile() {
+      const newName = document.getElementById('rename-profile-name').value.trim();
+      if (!newName) {
+        toast(TRANSLATIONS[currentLang].toastEnterProfileName, 'error');
+        return;
+      }
+      if (newName === currentEditProfile) {
+        closeRenameProfileModal();
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/profile/rename', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oldName: currentEditProfile, newName })
+        });
+        const data = await res.json();
+        if (data.success) {
+          await loadAllConfig();
+          currentEditProfile = newName;
+          populateProfileDropdowns();
+          loadProfileToUI(fullConfig.profiles[newName]);
+          closeRenameProfileModal();
+          toast((TRANSLATIONS[currentLang].toastProfileRenamed || '✓ Profile renamed!').replace('{name}', newName), 'success');
+        } else {
+          toast((currentLang === 'en' ? 'Error: ' : 'ข้อผิดพลาด: ') + (data.error || ''), 'error');
+        }
+      } catch (e) {
+        toast(TRANSLATIONS[currentLang].toastNetworkError.replace(': ', ''), 'error');
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
     // CUSTOM CONFIRM DIALOG
     // ═══════════════════════════════════════════════════════
     let customConfirmCallback = null;
@@ -2610,6 +3144,7 @@
     // INIT
     // ═══════════════════════════════════════════════════════
     (async function init() {
+      await fetchCooldownPresets();
       await loadAllConfig();
       updateLanguageUI();
 
@@ -2618,14 +3153,14 @@
         try {
           const res = await fetch('/api/config', { cache: 'no-store' });
           const newConfig = await res.json();
-          
+
           const checkbox = document.getElementById('enable-overlay-checkbox');
           const currentProfile = newConfig.profiles[currentEditProfile];
           if (currentProfile) {
             if (checkbox) checkbox.checked = !!currentProfile.enableOverlay;
-            
+
             // Only update alias inputs if none of them is currently focused
-            const anyAliasFocused = Array.from({length: 8}, (_, i) => document.getElementById(`client-alias-${i+1}`)).some(el => el === document.activeElement);
+            const anyAliasFocused = Array.from({ length: 8 }, (_, i) => document.getElementById(`client-alias-${i + 1}`)).some(el => el === document.activeElement);
             if (!anyAliasFocused) {
               const aliases = currentProfile.clientAliases || {};
               for (let i = 1; i <= 8; i++) {
@@ -2634,12 +3169,12 @@
               }
             }
           }
-          
+
           const statusRes = await fetch('/api/status', { cache: 'no-store' });
           const statusData = await statusRes.json();
           activeClients = statusData.activeClients || [1];
           updateSuspendButtonUI(statusData.isSuspended);
-          
+
           document.querySelectorAll('.client-selector-container').forEach((container) => {
             const actCard = container.closest('.group-card');
             if (actCard) {

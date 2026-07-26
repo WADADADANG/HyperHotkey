@@ -6,10 +6,13 @@ const fs = require('fs');
 // Start the control panel server
 require('./test-server.js');
 
+const { getCooldownPresetsById } = require('./cooldown-manager');
+
 let keyboard, mouseEvents;
 let clientPages = {};    // clientIndex -> page
 let clientContexts = {}; // clientIndex -> browserContext
 let activeClients = [];  // Array of active client indices, e.g. [2, 4]
+let clientCooldowns = {}; // clientIndex -> { [presetId]: expireTimestamp, [presetId_lastCycle]: lastCycleTimestamp }
 
 // ============================================================================
 // CONFIGURATION VARIABLES
@@ -19,6 +22,44 @@ let targetUrlKeyword = 'universe.flyff.com'; // URL keyword to identify game tab
 let activeActions = [];
 let clientAliases = {};
 let clientUserAgents = {};
+let clientProxies = {};
+
+function parseProxyString(rawStr) {
+    if (!rawStr || typeof rawStr !== 'string' || !rawStr.trim()) return null;
+    let str = rawStr.trim();
+    
+    if (str.startsWith('http://') || str.startsWith('https://') || str.startsWith('socks5://')) {
+        try {
+            const u = new URL(str);
+            const proxyObj = {
+                server: `${u.protocol}//${u.hostname}${u.port ? ':' + u.port : ''}`
+            };
+            if (u.username) proxyObj.username = decodeURIComponent(u.username);
+            if (u.password) proxyObj.password = decodeURIComponent(u.password);
+            return proxyObj;
+        } catch (e) {
+            return { server: str };
+        }
+    }
+
+    const parts = str.split(':');
+    if (parts.length === 4) {
+        const [ip, port, username, password] = parts;
+        return {
+            server: `http://${ip}:${port}`,
+            username: username,
+            password: password
+        };
+    }
+    if (parts.length === 2) {
+        const [ip, port] = parts;
+        return {
+            server: `http://${ip}:${port}`
+        };
+    }
+
+    return { server: str.startsWith('http') ? str : `http://${str}` };
+}
 let suspendHotkey = "";
 global.isSuspended = false;
 let pressedRemapKeys = {};
@@ -113,6 +154,9 @@ function loadConfigFromFile() {
 
             // Load client User-Agents
             clientUserAgents = profile.clientUserAgents || {};
+
+            // Load client Proxies
+            clientProxies = profile.clientProxies || {};
 
             // Load Ghost Mouse Jitter config
             if (profile.ghostMouseJitter) {
@@ -652,6 +696,16 @@ async function launchBrowser(activeClientsList, choice) {
             console.log(`[System] [Client ${clientIndex}] Setting custom User-Agent: "${customUa}"`);
             launchArgs.userAgent = customUa.trim();
         }
+
+        // Apply custom Proxy if defined in clientProxies configuration
+        const customProxyStr = clientProxies[String(clientIndex)];
+        if (customProxyStr && customProxyStr.trim() !== '') {
+            const proxyObj = parseProxyString(customProxyStr);
+            if (proxyObj) {
+                console.log(`[System] [Client ${clientIndex}] Setting custom Proxy: "${proxyObj.server}"`);
+                launchArgs.proxy = proxyObj;
+            }
+        }
         
         // Firefox specific args & user prefs
         if (choice === '3') {
@@ -1009,6 +1063,49 @@ async function sendKey(action, key) {
 
     if (isBuffSequenceRunning[String(targetIdx)] && action.mode === 'loop') {
         return; // Skip loops if buff sequence is running on this client
+    }
+
+    // Cooldown Prevention Check per client
+    let activeCooldownMs = 0;
+    let cdKeyId = action.cooldownPresetId || ('custom_' + action.id);
+    let cdLabel = action.name;
+
+    if (action.customCooldownMs && parseInt(action.customCooldownMs) > 0) {
+        activeCooldownMs = parseInt(action.customCooldownMs);
+        if (action.cooldownPresetId && action.cooldownPresetId !== 'custom') {
+            const presetsById = getCooldownPresetsById();
+            const preset = presetsById[action.cooldownPresetId];
+            cdLabel = preset ? `${preset.name} (Custom ${activeCooldownMs}ms)` : `Custom (${activeCooldownMs}ms)`;
+        } else {
+            cdLabel = `Custom (${activeCooldownMs}ms)`;
+        }
+    } else if (action.cooldownPresetId && action.cooldownPresetId !== 'custom') {
+        const presetsById = getCooldownPresetsById();
+        const preset = presetsById[action.cooldownPresetId];
+        if (preset && preset.cooldownMs > 0) {
+            activeCooldownMs = preset.cooldownMs;
+            cdLabel = preset.name;
+        }
+    }
+
+    if (activeCooldownMs > 0) {
+        clientCooldowns[targetIdx] = clientCooldowns[targetIdx] || {};
+        const now = Date.now();
+        const expireTime = clientCooldowns[targetIdx][cdKeyId] || 0;
+        const lastCycle = clientCooldowns[targetIdx][cdKeyId + '_lastCycle'] || 0;
+
+        // If cooldown is currently active AND it's not part of the same action burst (< 1500ms)
+        if (now < expireTime && (now - lastCycle) > 1500) {
+            const remainingSec = ((expireTime - now) / 1000).toFixed(1);
+            console.log(`[Cooldown] [${clientName}] ⏱️ Skipped "${action.name}" (${cdLabel}) - Skill on cooldown (${remainingSec}s remaining)`);
+            return; // Skip sending key!
+        }
+
+        // Update timestamp for new action trigger burst
+        if ((now - lastCycle) >= 1500) {
+            clientCooldowns[targetIdx][cdKeyId + '_lastCycle'] = now;
+            clientCooldowns[targetIdx][cdKeyId] = now + activeCooldownMs;
+        }
     }
 
     try {

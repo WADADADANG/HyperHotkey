@@ -1,0 +1,23 @@
+[
+    {
+        "id": "skill_vagrant_clean-hit",
+        "name": "Clean Hit",
+        "cooldownMs": 0,
+        "image": "/images/skills/vagrant/clean-hit.png",
+        "description": "A powerful, downward strike."
+    },
+    {
+        "id": "skill_vagrant_flurry",
+        "name": "Flurry",
+        "cooldownMs": 0,
+        "image": "/images/skills/vagrant/flurry.png",
+        "description": "Rapid, stabbing attack."
+    },
+    {
+        "id": "skill_vagrant_over-cutter",
+        "name": "Over Cutter",
+        "cooldownMs": 0,
+        "image": "/images/skills/vagrant/over-cutter.png",
+        "description": "Powerful, upward, finishing move."
+    }
+]

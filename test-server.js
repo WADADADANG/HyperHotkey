@@ -42,6 +42,8 @@ function sendJSON(res, status, data) {
   res.end(JSON.stringify(data, null, 2));
 }
 
+const { getCooldownPresets, getCooldownPresetsById, getClassIcons } = require('./cooldown-manager');
+
 const server = http.createServer((req, res) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -52,8 +54,14 @@ const server = http.createServer((req, res) => {
 
   const urlPath = req.url.split('?')[0];
   // Mute periodic polling logs to prevent console noise
-  if (!(req.method === 'GET' && (urlPath === '/api/status' || urlPath === '/api/config'))) {
+  if (!(req.method === 'GET' && (urlPath === '/api/status' || urlPath === '/api/config' || urlPath === '/api/cooldown-presets'))) {
     console.log(`[Server] ${req.method} ${urlPath}`);
+  }
+
+  // --- GET /api/cooldown-presets → list all skill cooldown presets ---
+  if (urlPath === '/api/cooldown-presets' && req.method === 'GET') {
+    const presets = getCooldownPresets();
+    return sendJSON(res, 200, { success: true, presets, presetsById: getCooldownPresetsById(), classIcons: getClassIcons() });
   }
 
   // --- GET /api/config → full config ---
@@ -228,6 +236,42 @@ const server = http.createServer((req, res) => {
         if (config.activeProfile === name) config.activeProfile = 'Default';
         writeConfig(config);
         console.log(`[Server] Deleted profile: ${name}`);
+        sendJSON(res, 200, { success: true });
+      } catch (e) {
+        sendJSON(res, 400, { error: 'Invalid payload' });
+      }
+    });
+    return;
+  }
+
+  // --- POST /api/profile/rename → rename profile ---
+  if (urlPath === '/api/profile/rename' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const { oldName, newName } = JSON.parse(body);
+        if (!oldName || !newName || newName.trim() === '') {
+          return sendJSON(res, 400, { error: 'Profile name required' });
+        }
+        const trimmedNew = newName.trim();
+        const config = readConfig();
+        if (!config.profiles[oldName]) {
+          return sendJSON(res, 404, { error: 'Profile not found' });
+        }
+        if (oldName !== trimmedNew && config.profiles[trimmedNew]) {
+          return sendJSON(res, 409, { error: 'A profile with that name already exists' });
+        }
+
+        if (oldName !== trimmedNew) {
+          config.profiles[trimmedNew] = config.profiles[oldName];
+          delete config.profiles[oldName];
+          if (config.activeProfile === oldName) {
+            config.activeProfile = trimmedNew;
+          }
+          writeConfig(config);
+          console.log(`[Server] Renamed profile "${oldName}" to "${trimmedNew}"`);
+        }
         sendJSON(res, 200, { success: true });
       } catch (e) {
         sendJSON(res, 400, { error: 'Invalid payload' });

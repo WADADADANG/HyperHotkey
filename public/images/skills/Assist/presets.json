@@ -1,0 +1,128 @@
+[
+    {
+        "id": "skill_assist_moon-beam",
+        "name": "Moon Beam",
+        "cooldownMs": 3000,
+        "image": "/images/skills/assist/moon-beam.png",
+        "description": "Calls upon the moon to weaken the target. All damage done to the target while this de-buff is active is increased."
+    },
+    {
+        "id": "skill_assist_heal",
+        "name": "Heal",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/heal.png",
+        "description": "Recover the HP of a target."
+    },
+    {
+        "id": "skill_assist_patience",
+        "name": "Patience",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/patience.png",
+        "description": "Increases maximum HP of the target."
+    },
+    {
+        "id": "skill_assist_resurrection",
+        "name": "resurrection",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/resurrection.png",
+        "description": "Resurrects a dead player."
+    },
+    {
+        "id": "skill_assist_circle-healing",
+        "name": "Circle Healing",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/circle-healing.png",
+        "description": "Heals party members close to you."
+    },
+    {
+        "id": "skill_assist_prevention",
+        "name": "Prevention",
+        "cooldownMs": 8000,
+        "image": "/images/skills/assist/prevention.png",
+        "description": "Recovers your own HP when it reaches below a certain point."
+    },
+    {
+        "id": "skill_assist_quick-step",
+        "name": "Quick Step",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/quick-step.png",
+        "description": "Increases the walk speed of a target."
+    },
+    {
+        "id": "skill_assist_haste",
+        "name": "Haste",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/haste.png",
+        "description": "Increases attack speed and decreases casting time of a target."
+    },
+    {
+        "id": "skill_assist_cats-reflex",
+        "name": "Cats Reflex",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/cats-reflex.png",
+        "description": "Increases the block rate of a target."
+    },
+    {
+        "id": "skill_assist_cannon-ball",
+        "name": "Cannon Ball",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/cannon-ball.png",
+        "description": "Increases DEX of the target."
+    },
+    {
+        "id": "skill_assist_mental-sign",
+        "name": "Mental Sign",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/mental-sign.png",
+        "description": "Increases INT of the target."
+    },
+    {
+        "id": "skill_assist_heap-up",
+        "name": "Heap Up",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/heap-up.png",
+        "description": "Increases STA of the target."
+    },
+    {
+        "id": "skill_assist_beef-up",
+        "name": "beef Up",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/beef-up.png",
+        "description": "Increases striking power of a target."
+    },
+    {
+        "id": "skill_assist_accuracy",
+        "name": "Accuracy",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/accuracy.png",
+        "description": "Increases Accuracy of the target."
+    },
+    {
+        "id": "skill_assist_temping-hole",
+        "name": "Temping Hole",
+        "cooldownMs": 1000,
+        "image": "/images/skills/assist/temping-hole.png",
+        "description": "Powerful, straight punch."
+    },
+    {
+        "id": "skill_assist_stonehand",
+        "name": "Stonehand",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/stonehand.png",
+        "description": "All attacks gain the chance to stun."
+    },
+    {
+        "id": "skill_assist_burst-crack",
+        "name": "Burst Crack",
+        "cooldownMs": 0,
+        "image": "/images/skills/assist/burst-crack.png",
+        "description": "Pounds the ground and damages enemies around you."
+    },
+    {
+        "id": "skill_assist_power-fist",
+        "name": "Power Fist",
+        "cooldownMs": 7000,
+        "image": "/images/skills/assist/power-fist.png",
+        "description": "Three concentrated power strikes."
+    }
+]

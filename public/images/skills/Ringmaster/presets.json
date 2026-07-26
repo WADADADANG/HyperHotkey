@@ -1,0 +1,65 @@
+[
+    {
+        "id": "skill_ringmaster_protect",
+        "name": "Protect",
+        "cooldownMs": 0,
+        "image": "/images/skills/Ringmaster/protect.png",
+        "description": "Decreases the damage from physical & magical attacks on a target."
+    },
+    {
+        "id": "skill_ringmaster_holyguard",
+        "name": "Holyguard",
+        "cooldownMs": 75000,
+        "image": "/images/skills/Ringmaster/holyguard.png",
+        "description": "Protects the target from incoming critical hits for a limited amount of time."
+    },
+    {
+        "id": "skill_ringmaster_geburah-tiphreth",
+        "name": "Geburah Tiphreth",
+        "cooldownMs": 0,
+        "image": "/images/skills/Ringmaster/geburah-tiphreth.png",
+        "description": "Protects the target from incoming critical hits for a limited amount of time."
+    },
+    {
+        "id": "skill_ringmaster_holycross",
+        "name": "holycross",
+        "cooldownMs": 0,
+        "image": "/images/skills/Ringmaster/holycross.png",
+        "description": "Target enemy takes double damage in the next attack."
+    },
+    {
+        "id": "skill_ringmaster_spirit-fortune",
+        "name": "Spirit Fortune",
+        "cooldownMs": 0,
+        "image": "/images/skills/Ringmaster/spirit-fortune.png",
+        "description": "Increases striking power of a target."
+    },
+    {
+        "id": "skill_ringmaster_merkaba-hanzelrusha",
+        "name": "Merkaba Hanzelrusha",
+        "cooldownMs": 7000,
+        "image": "/images/skills/Ringmaster/merkaba-hanzelrusha.png",
+        "description": "Enemies take damage over time in an area around you."
+    },
+    {
+        "id": "skill_ringmaster_heal-rain",
+        "name": "Heal Rain",
+        "cooldownMs": 0,
+        "image": "/images/skills/Ringmaster/heal-rain.png",
+        "description": "Recovers HP for party members near you."
+    },
+    {
+        "id": "skill_ringmaster_gvur-tialla",
+        "name": "Gvur Tialla",
+        "cooldownMs": 5000,
+        "image": "/images/skills/Ringmaster/gvur-tialla.png",
+        "description": "Removes de-buffs from a target."
+    },
+    {
+        "id": "skill_ringmaster_barrier-of-life",
+        "name": "Barrier Of Life",
+        "cooldownMs": 18000,
+        "image": "/images/skills/Ringmaster/barrier-of-life.png",
+        "description": "Removes de-buffs from a target."
+    }
+]
