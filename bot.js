@@ -611,8 +611,8 @@ async function launchBrowser(activeClientsList, choice) {
         viewport: null,
         args: [
             // === Window & Display ===
-            '--start-maximized',
             '--disable-infobars',
+            '--test-type',
             '--no-default-browser-check',
             '--no-first-run',
             '--disable-blink-features=AutomationControlled',
@@ -637,6 +637,10 @@ async function launchBrowser(activeClientsList, choice) {
             '--disable-hang-monitor',
             '--disable-prompt-on-repost',
             '--disable-translate',
+            '--js-flags=--max-old-space-size=512',
+            '--disk-cache-size=52428800',
+            '--media-cache-size=52428800',
+            '--disable-site-isolation-trials',
 
             // === Telemetry / Noise ===
             '--metrics-recording-only',
@@ -709,10 +713,19 @@ async function launchBrowser(activeClientsList, choice) {
         
         // Firefox specific args & user prefs
         if (choice === '3') {
-            launchArgs.args = ['-start-maximized'];
-
             // Firefox performance prefs (equivalent to about:config tweaks)
             launchArgs.firefoxUserPrefs = {
+                // === Ultra Memory & Process Limit Optimizations (Multi-Client) ===
+                'dom.ipc.processCount': 1,                     // Limit content processes per Firefox instance (Drastically reduces RAM/CPU usage for 5+ clients)
+                'javascript.options.mem.max': 512,             // Max JS heap limit per process in MB
+                'browser.sessionhistory.max_entries': 5,        // Reduce tab history memory footprint
+                'browser.tabs.unloadOnLowMemory': true,
+                'dom.timeout.enable_budget_timer_throttling': true,
+
+                // === Media & Audio Overhead Reduction ===
+                'media.autoplay.default': 5,                    // Block autoplay media in background
+                'media.autoplay.blocking_policy': 2,
+
                 // === Disable Telemetry & Background Services ===
                 'toolkit.telemetry.enabled': false,
                 'toolkit.telemetry.unified': false,
@@ -1176,8 +1189,20 @@ async function startLoopAction(action, callStack) {
 
     await fireChain(action, 'onAfterStart', callStack);
 
-    // Start the interval loop
-    runLoopStep(action);
+    // Start the interval loop (check executeImmediately flag, default true)
+    if (action.executeImmediately === false) {
+        const baseInterval = action.interval || 3000;
+        const jitterMax = action.jitter || 0;
+        let initialInterval = baseInterval;
+        if (jitterMax > 0) {
+            const jitter = Math.floor(Math.random() * (jitterMax * 2)) - jitterMax;
+            initialInterval = Math.max(100, baseInterval + jitter);
+        }
+        console.log(` - Loop "${action.name}" delayed initial cycle by ${initialInterval}ms (Execute Immediately: false)`);
+        activeLoopStates[action.id].timeout = setTimeout(() => runLoopStep(action, callStack), initialInterval);
+    } else {
+        runLoopStep(action, callStack);
+    }
     sendOverlayUpdate();
 }
 
@@ -1294,6 +1319,18 @@ async function runSinglePressAction(action, callStack) {
     await fireChain(action, 'onFired', callStack);
 }
 
+// Run delay only (Pure Delay / Timer Only, no keypresses sent)
+async function runDelayOnlyAction(action, callStack) {
+    const delay = action.delayMs !== undefined ? parseInt(action.delayMs, 10) : (action.delayBuff || 1000);
+    console.log(`⏳ [Action] Delay Only Started: "${action.name}" (Waiting ${delay}ms)...`);
+    await fireChain(action, 'onBeforeStart', callStack);
+    if (delay > 0) {
+        await new Promise(res => setTimeout(res, delay));
+    }
+    console.log(`⏳ [Action] Delay Only Finished: "${action.name}" (${delay}ms complete)`);
+    await fireChain(action, 'onComplete', callStack);
+}
+
 async function toggleKeyHoldAction(action, callStack) {
     const targetKey = action.targetKey || '1';
     const target = action.targetClient || '1';
@@ -1351,6 +1388,8 @@ function handleActionTrigger(act) {
         }
     } else if (act.mode === 'single_press') {
         runSinglePressAction(act).catch(err => console.error(`Error in runSinglePress:`, err));
+    } else if (act.mode === 'delay_only') {
+        runDelayOnlyAction(act).catch(err => console.error(`Error in runDelayOnlyAction:`, err));
     } else if (act.mode === 'key_hold') {
         toggleKeyHoldAction(act).catch(err => console.error(`Error in toggleKeyHoldAction:`, err));
     } else if (act.mode === 'action_control') {
@@ -1405,6 +1444,8 @@ async function runChainedAction(action, callStack) {
         }
     } else if (action.mode === 'single_press') {
         await runSinglePressAction(action, callStack).catch(err => console.error(`[Chain Error] runSinglePressAction:`, err));
+    } else if (action.mode === 'delay_only') {
+        await runDelayOnlyAction(action, callStack).catch(err => console.error(`[Chain Error] runDelayOnlyAction:`, err));
     } else if (action.mode === 'key_hold') {
         await toggleKeyHoldAction(action, callStack).catch(err => console.error(`[Chain Error] toggleKeyHoldAction:`, err));
     } else if (action.mode === 'action_control') {
@@ -1617,6 +1658,21 @@ function startGlobalListeners() {
 
     console.log("[System] Global keyboard and mouse listeners initialized successfully!");
 }
+
+// Clean shutdown handlers
+process.on('SIGINT', async () => {
+    console.log('\n[System] Shutting down HyperHotkey server cleanly...');
+    for (let idx in clientContexts) {
+        try {
+            if (clientContexts[idx]) await clientContexts[idx].close();
+        } catch (e) {}
+    }
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    process.exit(0);
+});
 
 // Start system initialization
 initSystem();

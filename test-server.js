@@ -326,6 +326,23 @@ const server = http.createServer((req, res) => {
   });
 });
 
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error(`\n⚠️ [Server Error] Port ${PORT} is currently in use by a previous Node session!`);
+    console.error(`👉 Retrying automatically after clearing Port ${PORT}...`);
+    try {
+      require('child_process').execSync(`npx --yes kill-port ${PORT}`);
+      setTimeout(() => {
+        server.listen(PORT, () => {
+          console.log(`[Server] Running at http://localhost:${PORT}/`);
+        });
+      }, 1000);
+    } catch (err) {
+      console.error(`❌ Could not auto-clear port. Please run 'npm start' again.`);
+    }
+  }
+});
+
 server.listen(PORT, () => {
   console.log(`[Server] Running at http://localhost:${PORT}/`);
 });

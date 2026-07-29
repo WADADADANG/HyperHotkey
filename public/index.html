@@ -1131,6 +1131,9 @@
         modeHold: "Toggle Key Hold (Holds key continuously in background)",
         holdTargetKeyLabel: "Key to Hold (Virtual Key)",
         modeControl: "Action Control (Controls other actions)",
+        modeDelayOnly: "⏳ Pure Delay / Timer Only (No keypress, for Chaining)",
+        delayOnlyLabel: "Delay Duration (ms)",
+        delayOnlyHint: "Pure waiting time before triggering chained actions (No keypress sent to game)",
         controlTargetLabel: "Target Action to Control",
         controlTargetHint: "Select target actions (Ctrl+Click to select multiple)",
         controlOperationLabel: "Operation to Perform",
@@ -1142,6 +1145,8 @@
         loopJitterLabel: "Jitter (random timing +/- ms)",
         loopIntervalLabel: "Interval (ms)",
         loopQuickAdjust: "Quick Adjust",
+        loopExecuteImmediatelyLabel: "⚡ Execute Immediately on Start",
+        loopExecuteImmediatelyHint: "If unchecked, delays the first keypress by 1 interval duration.",
         firstStepsLabel: "First Steps (pressed once before loop starts)",
         btnAddStep: "+ Add Step",
         stepKeyLabel: "Key",
@@ -1259,6 +1264,9 @@
         modeHold: "ดึงค้างสแตนด์บาย (Toggle Key Hold - กดค้างแช่)",
         holdTargetKeyLabel: "ปุ่มที่จะกดค้างไว้ (Virtual Key)",
         modeControl: "ควบคุมคำสั่งอื่น (สั่งการ Action อื่น)",
+        modeDelayOnly: "⏳ หน่วงเวลาอย่างเดียว (Pure Delay / Timer Only - สำหรับเชื่อมต่อ Action)",
+        delayOnlyLabel: "ระยะเวลาหน่วงเวลา (มิลลิวินาที)",
+        delayOnlyHint: "รอนับถอยหลังโดยไม่ส่งปุ่มกดใดๆ ลงในเกม เพื่อใช้ Trigger สั่งการ Action ถัดไป",
         controlTargetLabel: "Action เป้าหมายที่ต้องการควบคุม",
         controlTargetHint: "เลือก Action ปลายทาง (Ctrl+Click เพื่อเลือกหลายตัว)",
         controlOperationLabel: "คำสั่งที่จะให้ดำเนินการ",
@@ -1270,6 +1278,8 @@
         loopJitterLabel: "ดีเลย์แบบสุ่ม (+/- มิลลิวินาที)",
         loopIntervalLabel: "ความเร็วรอบ (มิลลิวินาที)",
         loopQuickAdjust: "ปรับความเร็วอย่างรวดเร็ว",
+        loopExecuteImmediatelyLabel: "⚡ กดปุ่มทันทีเมื่อเริ่มสั่งงาน (Execute Immediately on Start)",
+        loopExecuteImmediatelyHint: "หากเอาออก จะยังไม่กดปุ่มทันที แต่จะตั้งเวลารอนับถอยหลังตาม Interval ก่อน 1 รอบ",
         firstStepsLabel: "คำสั่งเริ่มแรกก่อนเริ่มลูป (กดเพียงครั้งเดียว)",
         btnAddStep: "+ เพิ่มปุ่มเริ่มแรก",
         stepKeyLabel: "ปุ่ม",
@@ -2066,12 +2076,13 @@
               <option value="loop" ${act.mode === 'loop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeLoop}</option>
               <option value="buff_sequence" ${act.mode === 'buff_sequence' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeBuff}</option>
               <option value="single_press" ${act.mode === 'single_press' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeSingle}</option>
+              <option value="delay_only" ${act.mode === 'delay_only' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeDelayOnly || '⏳ Pure Delay / Timer Only'}</option>
               <option value="forward" ${act.mode === 'forward' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeForward}</option>
               <option value="key_hold" ${act.mode === 'key_hold' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeHold}</option>
               <option value="action_control" ${act.mode === 'action_control' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeControl || 'Action Control'}</option>
             </select>
           </div>
-          <div class="field client-selector-container" style="display: ${act.mode === 'action_control' ? 'none' : 'block'};">
+          <div class="field client-selector-container" style="display: ${act.mode === 'action_control' || act.mode === 'delay_only' ? 'none' : 'block'};">
             <label data-i18n="targetClient">${TRANSLATIONS[currentLang].targetClient}</label>
             ${renderTargetClientSelector(act)}
           </div>
@@ -2126,6 +2137,7 @@
         loop: ['onBeforeStart', 'onAfterStart', 'onEachCycle', 'onStop'],
         buff_sequence: ['onBeforeStart', 'onAfterStart', 'onComplete'],
         single_press: ['onFired'],
+        delay_only: ['onBeforeStart', 'onComplete'],
         forward: ['onKeyDown', 'onActivated', 'onKeyUp'],
         key_hold: ['onEnable', 'onDisable']
       };
@@ -2390,6 +2402,16 @@
           </div>
         </div>
 
+        <div style="background:rgba(255,255,255,0.03); border:1px dashed var(--border); border-radius:8px; padding:10px 12px; margin-top:2px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text); cursor:pointer; font-weight:700;">
+            <input type="checkbox" class="loop-execute-immediately" ${act.executeImmediately !== false ? 'checked' : ''} onchange="saveCurrentProfile()" style="accent-color:var(--primary); cursor:pointer; width:16px; height:16px;">
+            <span>${TRANSLATIONS[currentLang].loopExecuteImmediatelyLabel}</span>
+          </label>
+          <div style="font-size:11px; color:var(--muted); margin-left:24px; margin-top:3px; line-height:1.4;">
+            ${TRANSLATIONS[currentLang].loopExecuteImmediatelyHint}
+          </div>
+        </div>
+
         <div class="field" style="margin-top:4px;">
           <label>${TRANSLATIONS[currentLang].firstStepsLabel}</label>
           <div class="dyn-list" id="first-steps-list-${act.id}">
@@ -2461,6 +2483,27 @@
         <div class="field">
           <label>${TRANSLATIONS[currentLang].holdTargetKeyLabel}</label>
           <input type="text" class="hold-target-key" value="${escapeHtml(act.targetKey || '1')}" placeholder="${currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...'}" readonly onfocus="startRecordingKey(this, '${act.id}', 'single_key')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; text-align:center; cursor:pointer;">
+        </div>
+      </div>
+    `;
+      } else if (act.mode === 'delay_only') {
+        html = `
+      <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
+        <div class="field-row">
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].delayOnlyLabel || 'ระยะเวลาหน่วงเวลา (มิลลิวินาที)'}</label>
+            <input type="number" class="delay-only-ms" id="delay-ms-input-${act.id}" value="${act.delayMs ?? 1000}" min="50" step="50" oninput="syncRange('delay-ms-input-${act.id}', 'delay-ms-range-${act.id}')" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none;">
+          </div>
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].loopQuickAdjust || 'ปรับเวลาอย่างรวดเร็ว'}</label>
+            <div class="range-row">
+              <input type="range" id="delay-ms-range-${act.id}" min="100" max="30000" step="100" value="${act.delayMs ?? 1000}" oninput="syncInput('delay-ms-range-${act.id}', 'delay-ms-input-${act.id}')">
+              <span class="range-val" id="delay-ms-range-${act.id}-label">${act.delayMs ?? 1000}ms</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:11px; color:var(--muted); margin-top:-4px;">
+          ${TRANSLATIONS[currentLang].delayOnlyHint || 'รอนับถอยหลังโดยไม่ส่งปุ่มกดใดๆ ลงในเกม เพื่อใช้ Trigger สั่งการ Action ถัดไป'}
         </div>
       </div>
     `;
@@ -2591,6 +2634,8 @@
         act.jitter = jitterInput ? parseInt(jitterInput.value) || 0 : (act.jitter ?? 250);
         const intervalInput = card.querySelector('.loop-interval');
         act.interval = intervalInput ? parseInt(intervalInput.value) || 3000 : (act.interval ?? 3000);
+        const executeImmInput = card.querySelector('.loop-execute-immediately');
+        if (executeImmInput) act.executeImmediately = executeImmInput.checked;
 
         const fsKeys = [...card.querySelectorAll(`.fs-key-${actionId}`)].map(i => i.value.trim());
         const fsDelays = [...card.querySelectorAll(`.fs-delay-${actionId}`)].map(i => parseInt(i.value) || 0);
@@ -2609,6 +2654,9 @@
         act.keys = keysInput ? keysInput.value.split(',').map(s => s.trim()).filter(Boolean) : [];
         const delayAfterInput = card.querySelector('.single-delay-after');
         act.delayAfter = delayAfterInput ? parseInt(delayAfterInput.value, 10) || 0 : 0;
+      } else if (act.mode === 'delay_only') {
+        const delayMsInput = card.querySelector('.delay-only-ms');
+        act.delayMs = delayMsInput ? parseInt(delayMsInput.value, 10) || 1000 : (act.delayMs ?? 1000);
       } else if (act.mode === 'forward') {
         const targetKeyInput = card.querySelector('.forward-target-key');
         if (targetKeyInput) act.targetKey = targetKeyInput.value.trim();

@@ -494,12 +494,17 @@
             "onStop": [],
             "_enabled": true,
             "onBeforeStart": [
-              "action_1784352664191_478"
+              "action_1784352664191_478",
+              "action_1784975266852_338"
             ],
-            "onAfterStart": []
+            "onAfterStart": [
+              "action_1784982044462_250",
+              "action_1784982416864_701"
+            ]
           },
           "cooldownPresetId": "",
-          "customCooldownMs": 0
+          "customCooldownMs": 0,
+          "executeImmediately": true
         },
         {
           "id": "action_1784974417559_135",
@@ -525,7 +530,8 @@
             "onStop": []
           },
           "cooldownPresetId": "",
-          "customCooldownMs": 0
+          "customCooldownMs": 0,
+          "executeImmediately": true
         },
         {
           "id": "action_1784368366653_569",
@@ -538,7 +544,7 @@
           "keys": [
             "2"
           ],
-          "interval": 800,
+          "interval": 900,
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
@@ -557,7 +563,8 @@
             ]
           },
           "cooldownPresetId": "",
-          "customCooldownMs": 0
+          "customCooldownMs": 0,
+          "executeImmediately": true
         },
         {
           "id": "action_1784974462974_596",
@@ -570,7 +577,7 @@
           "keys": [
             "2"
           ],
-          "interval": 650,
+          "interval": 900,
           "jitter": 100,
           "firstSteps": [],
           "enabled": true,
@@ -589,11 +596,12 @@
             ]
           },
           "cooldownPresetId": "",
-          "customCooldownMs": 0
+          "customCooldownMs": 0,
+          "executeImmediately": true
         },
         {
           "id": "action_1784089828905_433",
-          "name": "Psykeeper AOE",
+          "name": "Spy AOE",
           "mode": "forward",
           "trigger": {
             "type": "keyboard",
@@ -651,69 +659,14 @@
         },
         {
           "id": "action_1784288712484_406",
-          "name": "Restore Mp RM 1",
+          "name": "Restore Mp All",
           "mode": "single_press",
           "trigger": {
-            "type": "none",
-            "value": ""
+            "type": "keyboard",
+            "value": "6"
           },
           "keys": [
             "4"
-          ],
-          "interval": 2000,
-          "jitter": 100,
-          "firstSteps": [],
-          "enabled": true,
-          "targetClient": "1",
-          "chaining": {
-            "_enabled": false,
-            "onStart": [],
-            "onEachCycle": [],
-            "onStop": [],
-            "onFired": []
-          },
-          "delayAfter": 0,
-          "cooldownPresetId": "",
-          "customCooldownMs": 0
-        },
-        {
-          "id": "action_1784974686900_354",
-          "name": "Restore Mp RM 2",
-          "mode": "single_press",
-          "trigger": {
-            "type": "none",
-            "value": ""
-          },
-          "keys": [
-            "4"
-          ],
-          "interval": 2000,
-          "jitter": 100,
-          "firstSteps": [],
-          "enabled": true,
-          "targetClient": "2",
-          "chaining": {
-            "_enabled": false,
-            "onBeforeStart": [],
-            "onAfterStart": [],
-            "onEachCycle": [],
-            "onStop": [],
-            "onFired": []
-          },
-          "delayAfter": 0,
-          "cooldownPresetId": "",
-          "customCooldownMs": 0
-        },
-        {
-          "id": "action_1784288771354_664",
-          "name": "Restore Hp RM 1",
-          "mode": "single_press",
-          "trigger": {
-            "type": "none",
-            "value": ""
-          },
-          "keys": [
-            "5"
           ],
           "interval": 2000,
           "jitter": 100,
@@ -732,12 +685,12 @@
           "customCooldownMs": 0
         },
         {
-          "id": "action_1784974759862_28",
-          "name": "Restore Hp RM 2",
+          "id": "action_1784288771354_664",
+          "name": "Restore Hp All",
           "mode": "single_press",
           "trigger": {
-            "type": "none",
-            "value": ""
+            "type": "keyboard",
+            "value": "5"
           },
           "keys": [
             "5"
@@ -746,39 +699,10 @@
           "jitter": 100,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "2",
+          "targetClient": "1,2,3",
           "chaining": {
             "_enabled": false,
-            "onBeforeStart": [],
-            "onAfterStart": [],
-            "onEachCycle": [],
-            "onStop": [],
-            "onFired": []
-          },
-          "delayAfter": 0,
-          "cooldownPresetId": "",
-          "customCooldownMs": 0
-        },
-        {
-          "id": "action_1784974793342_448",
-          "name": "Restore Hp SPY 3",
-          "mode": "single_press",
-          "trigger": {
-            "type": "none",
-            "value": ""
-          },
-          "keys": [
-            "5"
-          ],
-          "interval": 2000,
-          "jitter": 100,
-          "firstSteps": [],
-          "enabled": true,
-          "targetClient": "3",
-          "chaining": {
-            "_enabled": false,
-            "onBeforeStart": [],
-            "onAfterStart": [],
+            "onStart": [],
             "onEachCycle": [],
             "onStop": [],
             "onFired": []
@@ -909,7 +833,7 @@
         },
         {
           "id": "action_1784368588592_660",
-          "name": "Buff Geburah Tiphreth 2",
+          "name": "Buff Geburah Tiphreth 1",
           "mode": "single_press",
           "trigger": {
             "type": "none",
@@ -922,7 +846,7 @@
           "jitter": 100,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "2",
+          "targetClient": "1",
           "chaining": {
             "_enabled": false,
             "onBeforeStart": [],
@@ -965,7 +889,7 @@
         },
         {
           "id": "action_1784983773627_671",
-          "name": "Buff BOF 1",
+          "name": "Buff BOF 2",
           "mode": "single_press",
           "trigger": {
             "type": "none",
@@ -978,7 +902,7 @@
           "jitter": 100,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "1",
+          "targetClient": "2",
           "chaining": {
             "_enabled": false,
             "onBeforeStart": [],
@@ -987,7 +911,7 @@
             "onStop": [],
             "onFired": []
           },
-          "delayAfter": 80,
+          "delayAfter": 150,
           "cooldownPresetId": "skill_ringmaster_barrier-of-life",
           "customCooldownMs": 0
         },
@@ -1006,7 +930,7 @@
           "jitter": 100,
           "firstSteps": [],
           "enabled": true,
-          "targetClient": "1,2,3",
+          "targetClient": "1,2,3,4,5",
           "chaining": {
             "_enabled": false,
             "onBeforeStart": [],
@@ -1030,7 +954,7 @@
           "keys": [
             "4"
           ],
-          "interval": 10000,
+          "interval": 14000,
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
@@ -1043,7 +967,8 @@
             "onStop": []
           },
           "cooldownPresetId": "",
-          "customCooldownMs": 0
+          "customCooldownMs": 0,
+          "executeImmediately": false
         },
         {
           "id": "action_1784982386756_385",
@@ -1056,7 +981,7 @@
           "keys": [
             "4"
           ],
-          "interval": 10000,
+          "interval": 17200,
           "jitter": 250,
           "firstSteps": [],
           "enabled": true,
@@ -1069,7 +994,8 @@
             "onStop": []
           },
           "cooldownPresetId": "",
-          "customCooldownMs": 0
+          "customCooldownMs": 0,
+          "executeImmediately": false
         },
         {
           "id": "action_1784982044462_250",
@@ -1130,6 +1056,324 @@
           "controlOperation": "stop",
           "cooldownPresetId": "",
           "customCooldownMs": 0
+        },
+        {
+          "id": "action_1785063894263_159",
+          "name": "Heal RM 4",
+          "mode": "loop",
+          "trigger": {
+            "type": "keyboard",
+            "value": "LEFT ALT"
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 1400,
+          "jitter": 100,
+          "firstSteps": [
+            {
+              "key": "F1",
+              "delay": 500
+            }
+          ],
+          "enabled": true,
+          "targetClient": "4",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          },
+          "cooldownPresetId": "skill_assist_heal",
+          "customCooldownMs": 0,
+          "executeImmediately": true
+        },
+        {
+          "id": "action_1785063942886_827",
+          "name": "Full Buff RM 4",
+          "mode": "buff_sequence",
+          "trigger": {
+            "type": "keyboard",
+            "value": "NUMPAD PLUS"
+          },
+          "keys": [
+            "F2",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "C"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "4",
+          "chaining": {
+            "_enabled": true,
+            "onBeforeStart": [
+              "action_1785177068204_535"
+            ],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": [],
+            "onFired": [],
+            "onComplete": []
+          },
+          "cooldownPresetId": "",
+          "customCooldownMs": 0,
+          "delayAfter": 0,
+          "delayBuff": 1000
+        },
+        {
+          "id": "action_1785177068204_535",
+          "name": "AC Stop Heal RM 4",
+          "mode": "action_control",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          },
+          "cooldownPresetId": "",
+          "customCooldownMs": 0,
+          "executeImmediately": true,
+          "controlTargetIds": [
+            "action_1785063894263_159"
+          ],
+          "controlOperation": "stop"
+        },
+        {
+          "id": "action_1785174361566_959",
+          "name": "Start Henchman AOE",
+          "mode": "action_control",
+          "trigger": {
+            "type": "keyboard",
+            "value": "NUMPAD MINUS"
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          },
+          "cooldownPresetId": "",
+          "customCooldownMs": 0,
+          "executeImmediately": true,
+          "controlTargetIds": [
+            "action_1785174229024_696",
+            "action_1785174551133_953"
+          ],
+          "controlOperation": "toggle"
+        },
+        {
+          "id": "action_1785174229024_696",
+          "name": "Knight PowerStomp",
+          "mode": "key_hold",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "5",
+          "chaining": {
+            "_enabled": true,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": [],
+            "onEnable": [
+              "action_1785174291033_818"
+            ],
+            "onDisable": [
+              "action_1785174798789_793"
+            ]
+          },
+          "cooldownPresetId": "",
+          "customCooldownMs": 0,
+          "executeImmediately": true,
+          "targetKey": "1"
+        },
+        {
+          "id": "action_1785174291033_818",
+          "name": "Start Loop FP 5",
+          "mode": "loop",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "3"
+          ],
+          "interval": 8400,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "5",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          },
+          "cooldownPresetId": "",
+          "customCooldownMs": 0,
+          "executeImmediately": false
+        },
+        {
+          "id": "action_1785174330546_585",
+          "name": "AC Stop Loop FP 5",
+          "mode": "action_control",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          },
+          "cooldownPresetId": "",
+          "customCooldownMs": 0,
+          "executeImmediately": true,
+          "controlTargetIds": [
+            "action_1785174291033_818"
+          ],
+          "controlOperation": "stop"
+        },
+        {
+          "id": "action_1785174551133_953",
+          "name": "Spy MaxCrisis",
+          "mode": "key_hold",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "3"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "3",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": [],
+            "onEnable": [],
+            "onDisable": []
+          },
+          "cooldownPresetId": "",
+          "customCooldownMs": 0,
+          "executeImmediately": true,
+          "targetKey": "3"
+        },
+        {
+          "id": "action_1785174638224_455",
+          "name": "AC Stop Spy MaxCrisis",
+          "mode": "action_control",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          },
+          "cooldownPresetId": "",
+          "customCooldownMs": 0,
+          "executeImmediately": true,
+          "controlTargetIds": [
+            "action_1785174551133_953"
+          ],
+          "controlOperation": "stop"
+        },
+        {
+          "id": "action_1785174798789_793",
+          "name": "AC Stop Loop FP 5",
+          "mode": "action_control",
+          "trigger": {
+            "type": "none",
+            "value": ""
+          },
+          "keys": [
+            "1"
+          ],
+          "interval": 2000,
+          "jitter": 100,
+          "firstSteps": [],
+          "enabled": true,
+          "targetClient": "1",
+          "chaining": {
+            "_enabled": false,
+            "onBeforeStart": [],
+            "onAfterStart": [],
+            "onEachCycle": [],
+            "onStop": []
+          },
+          "cooldownPresetId": "",
+          "customCooldownMs": 0,
+          "executeImmediately": true,
+          "controlTargetIds": [
+            "action_1785174291033_818"
+          ],
+          "controlOperation": "stop"
         }
       ]
     }
