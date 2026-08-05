@@ -454,6 +454,7 @@ process.on('exit', () => {
     if (overlayProcess) {
         overlayProcess.kill();
     }
+    clearAllProfileLockFiles();
 });
 
 function updateBrowserTitles() {
@@ -596,6 +597,57 @@ function migrateProfilesDirectory() {
                 }
             }
         }
+    }
+}
+
+function clearLockFiles(profilePath) {
+    try {
+        if (fs.existsSync(profilePath)) {
+            const deleteFile = (filePath) => {
+                try {
+                    const stat = fs.lstatSync(filePath);
+                    if (stat.isFile() || stat.isSymbolicLink()) {
+                        fs.unlinkSync(filePath);
+                    }
+                } catch (err) {}
+            };
+
+            const files = fs.readdirSync(profilePath);
+            for (const file of files) {
+                const lower = file.toLowerCase();
+                if (lower === 'singletonlock' || lower === 'lock' || lower.includes('lock') || lower === 'parent.lock') {
+                    deleteFile(path.join(profilePath, file));
+                }
+            }
+            
+            // Check Default folder inside profile if exists
+            const defaultDir = path.join(profilePath, 'Default');
+            if (fs.existsSync(defaultDir)) {
+                const defFiles = fs.readdirSync(defaultDir);
+                for (const file of defFiles) {
+                    const lower = file.toLowerCase();
+                    if (lower === 'singletonlock' || lower === 'lock' || lower.includes('lock') || lower === 'parent.lock') {
+                        deleteFile(path.join(defaultDir, file));
+                    }
+                }
+            }
+        }
+    } catch (e) {}
+}
+
+function clearAllProfileLockFiles() {
+    const profilesDir = path.join(__dirname, 'profiles');
+    if (!fs.existsSync(profilesDir)) return;
+    try {
+        const dirs = fs.readdirSync(profilesDir, { withFileTypes: true });
+        for (const d of dirs) {
+            if (d.isDirectory()) {
+                const profilePath = path.join(profilesDir, d.name);
+                clearLockFiles(profilePath);
+            }
+        }
+    } catch (e) {
+        console.warn(`[System Warning] Failed to scan profiles for locks cleanup:`, e.message);
     }
 }
 
@@ -1013,6 +1065,7 @@ function syncGhostMouseJitter() {
 // ============================================================================
 async function initSystem() {
     try {
+        clearAllProfileLockFiles();
         migrateProfilesDirectory();
         
         const { activeClientsList, choice } = await askClientsAndBrowser();
@@ -1295,10 +1348,6 @@ async function runBuffSequenceAction(action, callStack) {
         isBuffSequenceRunning[String(t)] = false;
         console.log(`⚪ [Action] Finished Buff Sequence: "${action.name}" on Client ${t}`);
     }
-    if (action.delayAfter && action.delayAfter > 0) {
-        console.log(` - Waiting delayAfter: ${action.delayAfter}ms...`);
-        await new Promise(res => setTimeout(res, action.delayAfter));
-    }
     await fireChain(action, 'onComplete', callStack);
     sendOverlayUpdate();
 }
@@ -1311,10 +1360,6 @@ async function runSinglePressAction(action, callStack) {
         for (let key of action.keys) {
             await sendKey(action, key);
         }
-    }
-    if (action.delayAfter && action.delayAfter > 0) {
-        console.log(` - Waiting delayAfter: ${action.delayAfter}ms...`);
-        await new Promise(res => setTimeout(res, action.delayAfter));
     }
     await fireChain(action, 'onFired', callStack);
 }
@@ -1415,15 +1460,29 @@ async function fireChain(sourceAction, eventName, callStack = new Set()) {
     }
     callStack.add(stackKey);
 
-    for (const targetId of chains[eventName]) {
-        const targetAction = activeActions.find(a => a.id === targetId && a.enabled);
-        if (!targetAction) {
-            console.warn(`[Chain] Target action "${targetId}" not found or disabled — skipping.`);
-            continue;
+    const postEvents = ['onComplete', 'onFired', 'onStop', 'onDisable', 'onEnable', 'onEachCycle', 'onKeyUp', 'onKeyDown', 'onActivated'];
+    const chainDelay = (postEvents.includes(eventName) && sourceAction.delayAfter !== undefined)
+        ? parseInt(sourceAction.delayAfter, 10)
+        : 0;
+
+    // Run the execution of chained target actions asynchronously (non-blocking to caller)
+    const executeChain = async () => {
+        if (chainDelay > 0) {
+            console.log(`[Chain] "${sourceAction.name}" [${eventName}] waiting ${chainDelay}ms before triggering targets...`);
+            await new Promise(res => setTimeout(res, chainDelay));
         }
-        console.log(`[Chain] "${sourceAction.name}" [${eventName}] → "${targetAction.name}"`);
-        await runChainedAction(targetAction, callStack);
-    }
+        for (const targetId of chains[eventName]) {
+            const targetAction = activeActions.find(a => a.id === targetId && a.enabled);
+            if (!targetAction) {
+                console.warn(`[Chain] Target action "${targetId}" not found or disabled — skipping.`);
+                continue;
+            }
+            console.log(`[Chain] "${sourceAction.name}" [${eventName}] → "${targetAction.name}"`);
+            await runChainedAction(targetAction, new Set(callStack));
+        }
+    };
+
+    executeChain().catch(err => console.error(`[Chain Error] executeChain:`, err));
 }
 
 // Run a target action directly (bypasses hotkey requirement).
@@ -1667,10 +1726,12 @@ process.on('SIGINT', async () => {
             if (clientContexts[idx]) await clientContexts[idx].close();
         } catch (e) {}
     }
+    clearAllProfileLockFiles();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
+    clearAllProfileLockFiles();
     process.exit(0);
 });
 

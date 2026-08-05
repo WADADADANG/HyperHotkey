@@ -2070,7 +2070,7 @@
         </div>
 
         <div class="field-row">
-          <div class="field" style="${act.mode === 'action_control' ? 'grid-column: span 2;' : ''}">
+          <div class="field" style="${(act.mode === 'action_control' || act.mode === 'delay_only') ? 'grid-column: span 2;' : ''}">
             <label>${TRANSLATIONS[currentLang].actionMode}</label>
             <select class="action-mode" onchange="onModeChange('${act.id}')" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%;">
               <option value="loop" ${act.mode === 'loop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeLoop}</option>
@@ -2421,6 +2421,13 @@
             <button class="btn btn-ghost" onclick="addFirstStepToAction('${act.id}')" style="padding:4px 10px; font-size:11px; border-radius:6px;">${TRANSLATIONS[currentLang].btnAddStep}</button>
           </div>
         </div>
+
+        <div class="field-row" style="margin-top:4px;">
+          <div class="field" style="max-width:240px;">
+            <label>${currentLang === 'en' ? 'Delay After Loop Stop (ms)' : 'หน่วงเวลาหลังหยุดลูป (มิลลิวินาที)'}</label>
+            <input type="number" class="loop-delay-after" value="${act.delayAfter ?? 0}" min="0" placeholder="e.g. 500" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%;">
+          </div>
+        </div>
       </div>
     `;
       } else if (act.mode === 'buff_sequence') {
@@ -2480,9 +2487,15 @@
       } else if (act.mode === 'key_hold') {
         html = `
       <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
-        <div class="field">
-          <label>${TRANSLATIONS[currentLang].holdTargetKeyLabel}</label>
-          <input type="text" class="hold-target-key" value="${escapeHtml(act.targetKey || '1')}" placeholder="${currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...'}" readonly onfocus="startRecordingKey(this, '${act.id}', 'single_key')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; text-align:center; cursor:pointer;">
+        <div class="field-row">
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].holdTargetKeyLabel}</label>
+            <input type="text" class="hold-target-key" value="${escapeHtml(act.targetKey || '1')}" placeholder="${currentLang === 'en' ? 'Click to record...' : 'คลิกเพื่อบันทึก...'}" readonly onfocus="startRecordingKey(this, '${act.id}', 'single_key')" onblur="stopRecordingKey(this)" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; text-align:center; cursor:pointer;">
+          </div>
+          <div class="field">
+            <label>${currentLang === 'en' ? 'Delay After Toggle (ms)' : 'หน่วงเวลาหลังกดสลับ (มิลลิวินาที)'}</label>
+            <input type="number" class="hold-delay-after" value="${act.delayAfter ?? 0}" min="0" placeholder="e.g. 500" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%;">
+          </div>
         </div>
       </div>
     `;
@@ -2531,6 +2544,12 @@
               <option value="stop" ${act.controlOperation === 'stop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].controlOpStop}</option>
               <option value="toggle" ${act.controlOperation === 'toggle' || !act.controlOperation ? 'selected' : ''}>${TRANSLATIONS[currentLang].controlOpToggle}</option>
             </select>
+          </div>
+        </div>
+        <div class="field-row" style="margin-top:4px;">
+          <div class="field" style="max-width:240px;">
+            <label>${currentLang === 'en' ? 'Delay After Control (ms)' : 'หน่วงเวลาหลังควบคุม (มิลลิวินาที)'}</label>
+            <input type="number" class="control-delay-after" value="${act.delayAfter ?? 0}" min="0" placeholder="e.g. 500" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%;">
           </div>
         </div>
       </div>
@@ -2591,10 +2610,10 @@
       const clientSelector = document.querySelector(`[data-id="${actionId}"] .client-selector-container`);
       const modeSelectField = select.closest('.field');
       if (clientSelector) {
-        clientSelector.style.display = act.mode === 'action_control' ? 'none' : 'block';
+        clientSelector.style.display = (act.mode === 'action_control' || act.mode === 'delay_only') ? 'none' : 'block';
       }
       if (modeSelectField) {
-        modeSelectField.style.gridColumn = act.mode === 'action_control' ? 'span 2' : '';
+        modeSelectField.style.gridColumn = (act.mode === 'action_control' || act.mode === 'delay_only') ? 'span 2' : '';
       }
     }
 
@@ -2636,6 +2655,8 @@
         act.interval = intervalInput ? parseInt(intervalInput.value) || 3000 : (act.interval ?? 3000);
         const executeImmInput = card.querySelector('.loop-execute-immediately');
         if (executeImmInput) act.executeImmediately = executeImmInput.checked;
+        const delayAfterInput = card.querySelector('.loop-delay-after');
+        act.delayAfter = delayAfterInput ? parseInt(delayAfterInput.value, 10) || 0 : 0;
 
         const fsKeys = [...card.querySelectorAll(`.fs-key-${actionId}`)].map(i => i.value.trim());
         const fsDelays = [...card.querySelectorAll(`.fs-delay-${actionId}`)].map(i => parseInt(i.value) || 0);
@@ -2667,11 +2688,15 @@
       } else if (act.mode === 'key_hold') {
         const targetKeyInput = card.querySelector('.hold-target-key');
         if (targetKeyInput) act.targetKey = targetKeyInput.value.trim();
+        const delayAfterInput = card.querySelector('.hold-delay-after');
+        act.delayAfter = delayAfterInput ? parseInt(delayAfterInput.value, 10) || 0 : 0;
       } else if (act.mode === 'action_control') {
         const targetSelect = card.querySelector('.control-target-ids');
         if (targetSelect) act.controlTargetIds = [...targetSelect.selectedOptions].map(o => o.value);
         const opSelect = card.querySelector('.control-operation');
         if (opSelect) act.controlOperation = opSelect.value;
+        const delayAfterInput = card.querySelector('.control-delay-after');
+        act.delayAfter = delayAfterInput ? parseInt(delayAfterInput.value, 10) || 0 : 0;
       }
 
       // Collect chain configuration
@@ -2718,9 +2743,72 @@
 
       profile.actions.forEach(act => syncActionFromDom(act.id));
 
+      const actionToDelete = profile.actions.find(a => a.id === actionId);
+      const actionName = actionToDelete ? actionToDelete.name : 'Unknown';
+
+      // Keep track of which actions were cleaned up
+      let cleanedChains = [];
+      let cleanedControls = [];
+
+      profile.actions.forEach(act => {
+        if (act.id === actionId) return;
+
+        // 1. Clean chaining references
+        if (act.chaining) {
+          let modified = false;
+          for (let ev in act.chaining) {
+            if (Array.isArray(act.chaining[ev])) {
+              const origLen = act.chaining[ev].length;
+              act.chaining[ev] = act.chaining[ev].filter(id => id !== actionId);
+              if (act.chaining[ev].length < origLen) {
+                modified = true;
+              }
+            }
+          }
+          if (modified) {
+            cleanedChains.push(act.name || act.id);
+          }
+        }
+
+        // 2. Clean action control references
+        if (act.controlTargetIds && Array.isArray(act.controlTargetIds)) {
+          const origLen = act.controlTargetIds.length;
+          act.controlTargetIds = act.controlTargetIds.filter(id => id !== actionId);
+          if (act.controlTargetIds.length < origLen) {
+            cleanedControls.push(act.name || act.id);
+          }
+        }
+        if (act.controlTargetId === actionId) {
+          act.controlTargetId = '';
+          if (!cleanedControls.includes(act.name || act.id)) {
+            cleanedControls.push(act.name || act.id);
+          }
+        }
+      });
+
       profile.actions = profile.actions.filter(a => a.id !== actionId);
+      
+      saveCurrentProfile();
       renderActions(profile.actions);
-      toast(TRANSLATIONS[currentLang].toastDeletedAction, 'info');
+
+      let toastMsg = (TRANSLATIONS[currentLang].toastDeletedAction || 'Deleted action') + ` "${actionName}"`;
+      if (cleanedChains.length > 0 || cleanedControls.length > 0) {
+        let details = [];
+        if (cleanedChains.length > 0) {
+          details.push(currentLang === 'en' 
+            ? `Removed from chaining of: [${cleanedChains.join(', ')}]` 
+            : `นำออกจากการเชื่อมต่อของ: [${cleanedChains.join(', ')}]`
+          );
+        }
+        if (cleanedControls.length > 0) {
+          details.push(currentLang === 'en' 
+            ? `Removed from Action Control of: [${cleanedControls.join(', ')}]` 
+            : `นำออกจากเป้าหมายควบคุมของ: [${cleanedControls.join(', ')}]`
+          );
+        }
+        toastMsg += ` (${details.join(' | ')})`;
+      }
+      toast(toastMsg, 'info');
     }
 
     function addFirstStepToAction(actionId) {
