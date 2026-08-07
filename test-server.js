@@ -19,6 +19,7 @@ const MIME_TYPES = {
 };
 
 const { readConfig, writeConfig } = require('./config-store');
+const { checkForUpdates, getUpdateStatus } = require('./update-checker');
 
 function sendJSON(res, status, data) {
   res.writeHead(status, {
@@ -42,8 +43,6 @@ const server = http.createServer((req, res) => {
   }
 
   const urlPath = req.url.split('?')[0];
-
-const { checkForUpdates, getUpdateStatus } = require('./update-checker');
 
   // --- GET /api/update-check → returns GitHub update status ---
   if (urlPath === '/api/update-check' && req.method === 'GET') {
