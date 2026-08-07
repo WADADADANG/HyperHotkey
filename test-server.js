@@ -43,6 +43,13 @@ const server = http.createServer((req, res) => {
 
   const urlPath = req.url.split('?')[0];
 
+const { checkForUpdates, getUpdateStatus } = require('./update-checker');
+
+  // --- GET /api/update-check → returns GitHub update status ---
+  if (urlPath === '/api/update-check' && req.method === 'GET') {
+    return sendJSON(res, 200, { success: true, ...getUpdateStatus() });
+  }
+
   // --- GET /api/cooldown-presets → list all skill cooldown presets ---
   if (urlPath === '/api/cooldown-presets' && req.method === 'GET') {
     const presets = getCooldownPresets();
@@ -421,4 +428,5 @@ server.on('error', (e) => {
 
 server.listen(PORT, () => {
   console.log(`[Server] Running at http://localhost:${PORT}/`);
+  setTimeout(() => checkForUpdates(), 1500);
 });

@@ -228,6 +228,7 @@ async function initApp() {
   loadConfig();
   updateLanguageUI();
   renderClientToggles();
+  checkAppUpdate();
 
   // Multi-select custom dropdown behavior without Ctrl key
   window.addEventListener('mousedown', (e) => {
@@ -245,6 +246,28 @@ async function initApp() {
   setInterval(() => {
     pollActiveClients();
   }, 3000);
+}
+
+async function checkAppUpdate() {
+  try {
+    const res = await fetch('/api/update-check');
+    const data = await res.json();
+    if (data.hasUpdate) {
+      const container = document.getElementById('update-badge-container');
+      const textEl = document.getElementById('update-badge-text');
+      const linkEl = document.getElementById('update-badge-link');
+
+      if (container && textEl) {
+        textEl.textContent = `🚀 Update v${data.latestVersion} Available!`;
+        if (linkEl && data.repoUrl) linkEl.href = data.repoUrl;
+        container.style.display = 'block';
+      }
+
+      if (typeof window.toast === 'function') {
+        window.toast(`🚀 GitHub Update Available: v${data.latestVersion}!`, 'info');
+      }
+    }
+  } catch (e) {}
 }
 
 if (document.readyState === 'loading') {
