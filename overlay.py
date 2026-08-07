@@ -5,9 +5,19 @@ import threading
 import queue
 import urllib.request
 import traceback
+import ctypes
 
 # Queue for thread communication
 status_queue = queue.Queue()
+
+import socket
+
+# Enforce single instance overlay window to prevent overlapping
+try:
+    lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    lock_socket.bind(('127.0.0.1', 54329))
+except Exception:
+    sys.exit(0)
 
 def log_debug(msg):
     pass
@@ -17,6 +27,11 @@ log_debug("Overlay script started.")
 # Thread reader to read updates from stdin sent by Node.js
 def read_stdin():
     log_debug("Stdin reader thread started.")
+    if hasattr(sys.stdin, 'reconfigure'):
+        try:
+            sys.stdin.reconfigure(encoding='utf-8', errors='ignore')
+        except Exception:
+            pass
     while True:
         try:
             line = sys.stdin.readline()
@@ -47,6 +62,23 @@ root.geometry(f"{width}x50")
 # Frameless & Always-on-top
 root.attributes("-topmost", True)
 root.overrideredirect(True)
+
+# Periodic enforcement of always-on-top status
+def enforce_topmost():
+    try:
+        root.attributes("-topmost", True)
+        root.lift()
+        if sys.platform == "win32":
+            hwnd = ctypes.windll.user32.GetParent(root.winfo_id())
+            if not hwnd:
+                hwnd = root.winfo_id()
+            # HWND_TOPMOST = -1, SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010, SWP_SHOWWINDOW = 0x0040
+            ctypes.windll.user32.SetWindowPos(hwnd, -1, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0040)
+    except Exception:
+        pass
+    root.after(1000, enforce_topmost)
+
+enforce_topmost()
 
 # Transparency key on Windows
 trans_color = "#010101"
@@ -114,7 +146,8 @@ def update_ui(data):
     client_statuses = data.get("clientStatuses", {})
     client_aliases = data.get("clientAliases", {})
     is_suspended = data.get("isSuspended", False)
-    log_debug(f"update_ui: active_clients={active_clients}, client_statuses={client_statuses}, client_aliases={client_aliases}, is_suspended={is_suspended}")
+    disabled_clients = data.get("disabledClients", [])
+    log_debug(f"update_ui: active_clients={active_clients}, client_statuses={client_statuses}, client_aliases={client_aliases}, is_suspended={is_suspended}, disabled_clients={disabled_clients}")
     
     # Check if active clients array changed
     sorted_active = sorted(active_clients)
@@ -179,7 +212,9 @@ def update_ui(data):
         status_text = info.get("status", "Standby")
         status_type = info.get("type", "standby")
 
-        if is_suspended:
+        is_client_disabled = (client_str in disabled_clients or idx in disabled_clients)
+
+        if is_suspended or is_client_disabled:
             status_text = "PAUSED"
             status_type = "suspended"
 
@@ -187,7 +222,7 @@ def update_ui(data):
         if len(status_text) > 13:
             status_text = status_text[:11] + ".."
 
-        if is_suspended:
+        if is_suspended or status_type == "suspended":
             color = "#ef4444"  # red
             prefix = "🔴 "
         elif status_type == "loop":

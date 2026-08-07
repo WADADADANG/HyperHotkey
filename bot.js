@@ -73,6 +73,8 @@ global.pressedRemapKeys = pressedRemapKeys;
 global.activeHoldStates = activeHoldStates;
 let isSystemInitialized = false;
 let overlayProcess = null;
+let lastEnableOverlaySetting = false;
+let overlayAutoRestartTimer = null;
 const { spawn } = require('child_process');
 
 // Ghost Mouse Jitter state
@@ -116,30 +118,24 @@ function releaseAllHeldKeys() {
     }
 }
 
+const { readConfig } = require('./config-store');
+
 // Helper to load config from JSON file
 function loadConfigFromFile() {
     try {
         releaseAllHeldKeys();
-        const configPath = path.join(__dirname, 'config.json');
-        if (fs.existsSync(configPath)) {
-            const data = fs.readFileSync(configPath, 'utf8');
-            const parsed = JSON.parse(data);
+        const parsed = readConfig();
+        if (!parsed) return;
 
-            // Support new multi-profile structure
-            let profile;
-            if (parsed.profiles && parsed.activeProfile) {
-                const activeProfile = parsed.activeProfile;
-                profile = parsed.profiles[activeProfile];
-                console.log(`[Config] Using profile: "${activeProfile}"`);
-            } else {
-                // Legacy flat config fallback
-                profile = parsed;
-                console.log(`[Config] Using legacy flat config`);
-            }
+        const activeProfile = parsed.activeProfile || 'Default';
+        const profile = parsed.profiles[activeProfile] || { actions: [] };
+        console.log(`[Config] Using profile: "${activeProfile}"`);
+
+            const globalSet = parsed.globalSettings || {};
 
             // Load target URL keyword
-            targetUrlKeyword = profile.targetUrlKeyword || 'universe.flyff.com';
-            suspendHotkey = profile.suspendHotkey || '';
+            targetUrlKeyword = globalSet.targetUrlKeyword || profile.targetUrlKeyword || 'universe.flyff.com';
+            suspendHotkey = globalSet.suspendHotkey || profile.suspendHotkey || '';
 
             // Load actions array
             if (profile.actions && Array.isArray(profile.actions)) {
@@ -150,21 +146,22 @@ function loadConfigFromFile() {
             global.activeActions = activeActions; // Share with test-server.js
 
             // Load client aliases
-            clientAliases = profile.clientAliases || {};
+            clientAliases = globalSet.clientAliases || profile.clientAliases || {};
 
             // Load client User-Agents
-            clientUserAgents = profile.clientUserAgents || {};
+            clientUserAgents = globalSet.clientUserAgents || profile.clientUserAgents || {};
 
             // Load client Proxies
-            clientProxies = profile.clientProxies || {};
+            clientProxies = globalSet.clientProxies || profile.clientProxies || {};
 
             // Load Ghost Mouse Jitter config
-            if (profile.ghostMouseJitter) {
+            const gmj = globalSet.ghostMouseJitter || profile.ghostMouseJitter;
+            if (gmj) {
                 ghostMouseJitterConfig = {
-                    enabled: !!profile.ghostMouseJitter.enabled,
-                    intervalMin: profile.ghostMouseJitter.intervalMin || 8000,
-                    intervalMax: profile.ghostMouseJitter.intervalMax || 25000,
-                    maxOffset: profile.ghostMouseJitter.maxOffset || 12
+                    enabled: !!gmj.enabled,
+                    intervalMin: gmj.intervalMin || 8000,
+                    intervalMax: gmj.intervalMax || 25000,
+                    maxOffset: gmj.maxOffset || 12
                 };
             } else {
                 ghostMouseJitterConfig = { enabled: false, intervalMin: 8000, intervalMax: 25000, maxOffset: 12 };
@@ -174,7 +171,8 @@ function loadConfigFromFile() {
             syncRunningLoops();
 
             // Sync Python overlay process
-            syncOverlayProcess(!!profile.enableOverlay);
+            const enableOverlayVal = globalSet.enableOverlay !== undefined ? globalSet.enableOverlay : profile.enableOverlay;
+            syncOverlayProcess(!!enableOverlayVal);
 
             // Sync Ghost Mouse Jitter
             syncGhostMouseJitter();
@@ -186,83 +184,23 @@ function loadConfigFromFile() {
             sendOverlayUpdate();
 
             console.log(`[Config] Loaded ${activeActions.length} actions successfully!`);
-        } else {
-            console.log("[Config Error] config.json does not exist. Creating defaults...");
-            // Create default multi-profile file if missing
-            const defaults = {
-                activeProfile: "Default",
-                profiles: {
-                    Default: {
-                        targetUrlKeyword: "universe.flyff.com",
-                        actions: [
-                            {
-                                id: "action_1",
-                                name: "Healing Loop",
-                                mode: "loop",
-                                trigger: { type: "keyboard", value: "F9" },
-                                keys: ["2"],
-                                interval: 3000,
-                                jitter: 250,
-                                firstSteps: [{ key: "3", delay: 500 }],
-                                enabled: true,
-                                targetClient: "1"
-                            },
-                            {
-                                id: "action_2",
-                                name: "Mini Healing Loop",
-                                mode: "loop",
-                                trigger: { type: "keyboard", value: "F10" },
-                                keys: ["1"],
-                                interval: 1500,
-                                jitter: 150,
-                                firstSteps: [],
-                                enabled: true,
-                                targetClient: "1"
-                            },
-                            {
-                                id: "action_3",
-                                name: "Between Healing Loop",
-                                mode: "loop",
-                                trigger: { type: "keyboard", value: "F8" },
-                                keys: ["3"],
-                                interval: 40000,
-                                jitter: 2000,
-                                firstSteps: [],
-                                enabled: true,
-                                targetClient: "1"
-                            },
-                            {
-                                id: "action_4",
-                                name: "Buff Sequence",
-                                mode: "buff_sequence",
-                                trigger: { type: "keyboard", value: "INSERT" },
-                                keys: ["F3", "1", "2", "3", "4", "5", "6", "7", "F4", "1", "2", "3", "4", "5", "F1"],
-                                delayBuff: 800,
-                                enabled: true,
-                                targetClient: "1"
-                            }
-                        ]
-                    }
-                }
-            };
-            fs.writeFileSync(configPath, JSON.stringify(defaults, null, 2), 'utf8');
-            loadConfigFromFile();
-        }
     } catch (e) {
-        console.error("[Config Error] Failed to read config.json:", e.message);
+        console.error("[Config Error] Failed to read config:", e.message);
     }
 }
 
+const { CONFIGS_DIR } = require('./config-store');
 
-// Watch config file for live modifications
+// Watch configs folder for live modifications
 function watchConfigChanges() {
-    const configPath = path.join(__dirname, 'config.json');
-    fs.watchFile(configPath, (curr, prev) => {
-        if (curr.mtime !== prev.mtime) {
-            console.log("\n[Config] config.json modification detected. Reloading...");
-            loadConfigFromFile();
-        }
-    });
+    if (fs.existsSync(CONFIGS_DIR)) {
+        fs.watch(CONFIGS_DIR, { recursive: true }, (eventType, filename) => {
+            if (filename && filename.endsWith('.json')) {
+                console.log(`\n[Config] ${filename} modification detected. Reloading...`);
+                loadConfigFromFile();
+            }
+        });
+    }
 }
 
 // Load config immediately on startup
@@ -333,13 +271,14 @@ function sendOverlayUpdate() {
             }
         }
     });
-    const payload = JSON.stringify({ activeClients: activeList, clientStatuses, clientAliases, isSuspended: !!global.isSuspended });
+    const payload = JSON.stringify({ activeClients: activeList, clientStatuses, clientAliases, isSuspended: !!global.isSuspended, disabledClients: global.disabledClients || [] });
     try {
         overlayProcess.stdin.write(payload + "\n");
     } catch (err) {
         // Ignored
     }
 }
+global.sendOverlayUpdate = sendOverlayUpdate;
 
 global.toggleSuspendState = function(forcedState) {
     if (forcedState !== undefined) {
@@ -401,7 +340,18 @@ global.toggleSuspendState = function(forcedState) {
 };
 
 function syncOverlayProcess(enableOverlay) {
+    if (enableOverlay !== undefined) {
+        lastEnableOverlaySetting = !!enableOverlay;
+    } else {
+        enableOverlay = lastEnableOverlaySetting;
+    }
+
     if (!isSystemInitialized) return; // Delay overlay launch until system initialization is complete
+
+    if (overlayAutoRestartTimer) {
+        clearTimeout(overlayAutoRestartTimer);
+        overlayAutoRestartTimer = null;
+    }
 
     if (enableOverlay) {
         if (overlayProcess) return; // Already running
@@ -432,9 +382,20 @@ function syncOverlayProcess(enableOverlay) {
         if (overlayProcess) {
             overlayProcess.unref();
             
-            overlayProcess.on('close', () => {
-                console.log(`[Overlay] Desktop Overlay process closed.`);
+            overlayProcess.on('close', (code) => {
+                console.log(`[Overlay] Desktop Overlay process closed (exit code: ${code}).`);
                 overlayProcess = null;
+
+                // Auto-restart if overlay was supposed to be enabled
+                if (lastEnableOverlaySetting && isSystemInitialized) {
+                    console.log(`[Overlay] Overlay expected to be active. Auto-restarting in 3 seconds...`);
+                    overlayAutoRestartTimer = setTimeout(() => {
+                        overlayAutoRestartTimer = null;
+                        if (lastEnableOverlaySetting) {
+                            syncOverlayProcess(true);
+                        }
+                    }, 3000);
+                }
             });
 
             // Send initial state update
@@ -726,6 +687,7 @@ async function launchBrowser(activeClientsList, choice) {
         browserType = firefox;
     }
 
+    global.lastBrowserChoice = choice;
     const channelVal = choice === '1' ? 'chrome' : (choice === '2' ? 'msedge' : undefined);
     const controlPanelUrl = 'http://localhost:3000/';
 
@@ -767,18 +729,15 @@ async function launchBrowser(activeClientsList, choice) {
         if (choice === '3') {
             // Firefox performance prefs (equivalent to about:config tweaks)
             launchArgs.firefoxUserPrefs = {
-                // === Ultra Memory & Process Limit Optimizations (Multi-Client) ===
                 'dom.ipc.processCount': 1,                     // Limit content processes per Firefox instance (Drastically reduces RAM/CPU usage for 5+ clients)
                 'javascript.options.mem.max': 512,             // Max JS heap limit per process in MB
                 'browser.sessionhistory.max_entries': 5,        // Reduce tab history memory footprint
                 'browser.tabs.unloadOnLowMemory': true,
                 'dom.timeout.enable_budget_timer_throttling': true,
 
-                // === Media & Audio Overhead Reduction ===
                 'media.autoplay.default': 5,                    // Block autoplay media in background
                 'media.autoplay.blocking_policy': 2,
 
-                // === Disable Telemetry & Background Services ===
                 'toolkit.telemetry.enabled': false,
                 'toolkit.telemetry.unified': false,
                 'toolkit.telemetry.server': '',
@@ -789,18 +748,15 @@ async function launchBrowser(activeClientsList, choice) {
                 'browser.newtabpage.activity-stream.feeds.telemetry': false,
                 'browser.newtabpage.activity-stream.telemetry': false,
 
-                // === Disable Sync & Accounts ===
                 'identity.fxaccounts.enabled': false,
                 'services.sync.enabled': false,
 
-                // === Disable First-Run & Welcome Pages ===
                 'browser.startup.firstrunSkipsHomepage': true,
                 'browser.startup.homepage_override.mstone': 'ignore',
                 'startup.homepage_welcome_url': '',
                 'browser.laterrun.enabled': false,
                 'browser.uitour.enabled': false,
 
-                // === GPU & Hardware Acceleration ===
                 'gfx.webrender.enabled': true,
                 'gfx.webrender.all': true,
                 'layers.acceleration.enabled': true,
@@ -808,28 +764,23 @@ async function launchBrowser(activeClientsList, choice) {
                 'layers.omtp.enabled': true,
                 'media.hardware-video-decoding.enabled': true,
 
-                // === Disable Background Networking ===
                 'network.prefetch-next': false,
                 'network.dns.disablePrefetch': true,
                 'network.http.speculative-parallel-limit': 0,
                 'browser.safebrowsing.malware.enabled': false,
                 'browser.safebrowsing.phishing.enabled': false,
 
-                // === Reduce UI Overhead ===
                 'browser.tabs.animate': false,
                 'browser.fullscreen.animate': false,
                 'ui.prefersReducedMotion': 1,
                 'accessibility.force_disabled': 1,
 
-                // === Smooth Scrolling ===
                 'general.smoothScroll': true,
                 'mousewheel.min_line_scroll_amount': 5,
 
-                // === Session & Crash Reporting ===
                 'browser.sessionstore.resume_from_crash': false,
                 'browser.crashReports.unsubmittedCheck.enabled': false,
 
-                // === Prevent Mouse Back/Forward History Navigation ===
                 'mousebutton.4th.enabled': false,
                 'mousebutton.5th.enabled': false
             };
@@ -842,6 +793,10 @@ async function launchBrowser(activeClientsList, choice) {
 
         const browserCtx = await browserType.launchPersistentContext(profilePath, launchArgs);
         clientContexts[clientIndex] = browserCtx;
+        
+        browserCtx.on('close', () => {
+            handleClientContextClosed(clientIndex);
+        });
 
         const pages = browserCtx.pages();
         const targetPage = pages.find(p => p.url().includes(targetUrlKeyword));
@@ -938,6 +893,198 @@ async function launchBrowser(activeClientsList, choice) {
 
     console.log(`[System] ${browserName} launcher completed successfully!`);
 }
+
+function handleClientContextClosed(clientIndexInput) {
+    const clientIndex = parseInt(clientIndexInput, 10);
+    if (isNaN(clientIndex)) return;
+    console.log(`[System] 🔴 [Client ${clientIndex}] Browser closed/detached.`);
+
+    if (clientPages[clientIndex]) {
+        try {
+            clientPages[clientIndex].removeAllListeners('close');
+            clientPages[clientIndex].removeAllListeners('crash');
+        } catch (e) {}
+        clientPages[clientIndex] = null;
+    }
+
+    if (clientContexts[clientIndex]) {
+        try { clientContexts[clientIndex].close().catch(() => {}); } catch (e) {}
+        clientContexts[clientIndex] = null;
+    }
+
+    stopLoopsForClient(clientIndex);
+
+    const pos = activeClients.indexOf(clientIndex);
+    if (pos > -1) {
+        activeClients.splice(pos, 1);
+    }
+    const posStr = activeClients.indexOf(String(clientIndex));
+    if (posStr > -1) {
+        activeClients.splice(posStr, 1);
+    }
+
+    global.activeClients = activeClients;
+    sendOverlayUpdate();
+}
+
+async function closeSingleClient(clientIndexInput) {
+    const clientIndex = parseInt(clientIndexInput, 10);
+    if (isNaN(clientIndex)) return { success: false, error: "Invalid client index" };
+
+    handleClientContextClosed(clientIndex);
+    return { success: true, activeClients: activeClients, disabledClients: global.disabledClients || [] };
+}
+global.closeSingleClient = closeSingleClient;
+
+async function launchSingleClient(clientIndexInput, choiceParam) {
+    const clientIndex = parseInt(clientIndexInput, 10);
+    if (isNaN(clientIndex) || clientIndex < 1 || clientIndex > 8) {
+        throw new Error(`Invalid client index: ${clientIndexInput}`);
+    }
+
+    if (clientPages[clientIndex] && clientContexts[clientIndex]) {
+        console.log(`[System] Client ${clientIndex} is already running.`);
+        return { success: true, activeClients: activeClients, disabledClients: global.disabledClients || [] };
+    }
+
+    const choice = choiceParam || global.lastBrowserChoice || '1';
+    global.lastBrowserChoice = choice;
+
+    const projectPath = __dirname;
+    const profilesDir = path.join(projectPath, 'profiles');
+
+    let launchOptions = {
+        headless: false,
+        viewport: null,
+        args: [
+            '--disable-infobars',
+            '--test-type',
+            '--no-default-browser-check',
+            '--no-first-run',
+            '--disable-blink-features=AutomationControlled',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--enable-gpu-rasterization',
+            '--enable-zero-copy',
+            '--ignore-gpu-blocklist',
+            '--disable-gpu-process-crash-limit',
+            '--disable-extensions',
+            '--disable-sync',
+            '--disable-default-apps',
+            '--disable-background-networking',
+            '--disable-client-side-phishing-detection',
+            '--disable-hang-monitor',
+            '--disable-prompt-on-repost',
+            '--disable-translate',
+            '--js-flags=--max-old-space-size=512',
+            '--disk-cache-size=52428800',
+            '--media-cache-size=52428800',
+            '--disable-site-isolation-trials',
+            '--metrics-recording-only',
+            '--disable-breakpad',
+            '--renderer-process-limit=1'
+        ]
+    };
+
+    let startUrl = targetUrlKeyword;
+    if (!startUrl.startsWith('http://') && !startUrl.startsWith('https://')) {
+        if (startUrl.includes('localhost') || startUrl.includes('127.0.0.1')) {
+            startUrl = 'http://' + startUrl;
+        } else {
+            startUrl = 'https://' + startUrl;
+        }
+    }
+
+    let browserName = choice === '1' ? 'Google Chrome' : (choice === '2' ? 'Microsoft Edge' : 'Mozilla Firefox');
+    let browserType = choice === '3' ? firefox : chromium;
+    const channelVal = choice === '1' ? 'chrome' : (choice === '2' ? 'msedge' : undefined);
+
+    console.log(`[System] Dynamically launching Client ${clientIndex} (${browserName})...`);
+
+    let profileName = '';
+    if (choice === '1') {
+        profileName = clientIndex === 1 ? 'chrome-profile' : `chrome-profile-${clientIndex}`;
+    } else if (choice === '2') {
+        profileName = clientIndex === 1 ? 'edge-profile' : `edge-profile-${clientIndex}`;
+    } else {
+        profileName = clientIndex === 1 ? 'firefox-profile' : `firefox-profile-${clientIndex}`;
+    }
+
+    const profilePath = path.join(profilesDir, profileName);
+    clearLockFiles(profilePath);
+
+    const launchArgs = { ...launchOptions };
+    if (channelVal) launchArgs.channel = channelVal;
+
+    const customUa = clientUserAgents[String(clientIndex)];
+    if (customUa && customUa.trim() !== '') {
+        launchArgs.userAgent = customUa.trim();
+    }
+
+    const customProxyStr = clientProxies[String(clientIndex)];
+    if (customProxyStr && customProxyStr.trim() !== '') {
+        const proxyObj = parseProxyString(customProxyStr);
+        if (proxyObj) launchArgs.proxy = proxyObj;
+    }
+
+    if (choice === '3') {
+        launchArgs.firefoxUserPrefs = {
+            'dom.ipc.processCount': 1,
+            'javascript.options.mem.max': 512,
+            'browser.sessionhistory.max_entries': 5,
+            'browser.tabs.unloadOnLowMemory': true,
+            'media.autoplay.default': 5,
+            'toolkit.telemetry.enabled': false,
+            'identity.fxaccounts.enabled': false,
+            'services.sync.enabled': false,
+            'browser.startup.firstrunSkipsHomepage': true,
+            'gfx.webrender.enabled': true
+        };
+        if (clientIndex === 1) {
+            launchArgs.profile = path.join(profilePath, 'playwright-nightly');
+        }
+    }
+
+    const browserCtx = await browserType.launchPersistentContext(profilePath, launchArgs);
+    clientContexts[clientIndex] = browserCtx;
+
+    browserCtx.on('close', () => {
+        handleClientContextClosed(clientIndex);
+    });
+
+    const pages = browserCtx.pages();
+    const targetPage = pages.find(p => p.url().includes(targetUrlKeyword));
+    const blankPages = pages.filter(p => isBlankPage(p));
+
+    let pageForTarget = targetPage;
+    if (!pageForTarget) {
+        if (blankPages.length > 0) {
+            pageForTarget = blankPages[0];
+            pageForTarget.goto(startUrl).catch(e => console.log(`[System] Client ${clientIndex} navigation error:`, e.message));
+        } else {
+            pageForTarget = await browserCtx.newPage();
+            pageForTarget.goto(startUrl).catch(e => console.log(`[System] Client ${clientIndex} navigation error:`, e.message));
+        }
+    }
+
+    await browserCtx.addInitScript(({ index, initialPrefix }) => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        window.__clientPrefix = initialPrefix;
+    }, { index: clientIndex, initialPrefix: clientAliases[String(clientIndex)] ? `[${clientAliases[String(clientIndex)]}] ` : `[Client ${clientIndex}] ` });
+
+    if (!activeClients.includes(clientIndex)) {
+        activeClients.push(clientIndex);
+        activeClients.sort((a, b) => a - b);
+        global.activeClients = activeClients;
+    }
+
+    findAndAttachTabForClient(clientIndex, browserCtx).catch(err => console.error(`Error in tab search for Client ${clientIndex}:`, err));
+
+    sendOverlayUpdate();
+    return { success: true, activeClients: activeClients, disabledClients: global.disabledClients || [] };
+}
+global.launchSingleClient = launchSingleClient;
 
 function resetAndRescanClient(clientIndex, browserCtx) {
     const page = clientPages[clientIndex];
@@ -1106,12 +1253,151 @@ async function initSystem() {
     }
 }
 
+function normalizeKeyName(keyName) {
+    if (!keyName) return '';
+    const u = keyName.trim().toUpperCase();
+    if (u === 'INS' || u === 'INSERT') return 'INSERT';
+    if (u === 'ESC' || u === 'ESCAPE') return 'ESCAPE';
+    if (u === 'DEL' || u === 'DELETE') return 'DELETE';
+    if (u === 'BS' || u === 'BACKSPACE') return 'BACKSPACE';
+    if (u === 'ENT' || u === 'ENTER') return 'ENTER';
+    if (u === 'PGUP' || u === 'PAGEUP' || u === 'PAGE UP') return 'PAGEUP';
+    if (u === 'PGDN' || u === 'PAGEDOWN' || u === 'PAGE DOWN') return 'PAGEDOWN';
+    if (u === 'PRTSC' || u === 'PRINTSCREEN' || u === 'PRINT SCREEN') return 'PRINTSCREEN';
+    if (u === 'SCRLK' || u === 'SCROLLLOCK' || u === 'SCROLL LOCK') return 'SCROLLLOCK';
+    if (u === 'PAUSE' || u === 'PAUSE BREAK') return 'PAUSE';
+    if (u === 'NUM' || u === 'NUMLOCK' || u === 'NUM LOCK') return 'NUMLOCK';
+    return u;
+}
+
+function matchKeyTrigger(triggerValue, eventKeyName, downState, isUp = false) {
+    if (!triggerValue || !eventKeyName) return false;
+
+    const parts = triggerValue.split('+').map(s => s.trim().toUpperCase());
+    if (parts.length === 0) return false;
+
+    const mainKey = normalizeKeyName(parts[parts.length - 1]);
+    const eventKey = normalizeKeyName(eventKeyName);
+    const requiredModifiers = parts.slice(0, parts.length - 1);
+
+    if (mainKey !== eventKey) {
+        return false;
+    }
+
+    if (isUp) {
+        return true;
+    }
+
+    if (requiredModifiers.length === 0) {
+        return true;
+    }
+
+    const isModDown = (modName) => {
+        const u = modName.toUpperCase();
+        if (u === 'ALT') {
+            return !!(downState['LEFT ALT'] || downState['RIGHT ALT'] || downState['ALT'] || downState['L ALT'] || downState['R ALT'] || downState['ALT GR']);
+        }
+        if (u === 'LEFT ALT' || u === 'L ALT' || u === 'LALT') {
+            return !!(downState['LEFT ALT'] || downState['L ALT'] || downState['LALT']);
+        }
+        if (u === 'RIGHT ALT' || u === 'R ALT' || u === 'RALT') {
+            return !!(downState['RIGHT ALT'] || downState['R ALT'] || downState['RALT'] || downState['ALT GR']);
+        }
+        if (u === 'CTRL' || u === 'CONTROL') {
+            return !!(downState['LEFT CTRL'] || downState['RIGHT CTRL'] || downState['CTRL'] || downState['CONTROL'] || downState['L CTRL'] || downState['R CTRL']);
+        }
+        if (u === 'LEFT CTRL' || u === 'L CTRL' || u === 'LCTRL') {
+            return !!(downState['LEFT CTRL'] || downState['L CTRL'] || downState['LCTRL']);
+        }
+        if (u === 'RIGHT CTRL' || u === 'R CTRL' || u === 'RCTRL') {
+            return !!(downState['RIGHT CTRL'] || downState['R CTRL'] || downState['RCTRL']);
+        }
+        if (u === 'SHIFT') {
+            return !!(downState['LEFT SHIFT'] || downState['RIGHT SHIFT'] || downState['SHIFT'] || downState['L SHIFT'] || downState['R SHIFT']);
+        }
+        if (u === 'LEFT SHIFT' || u === 'L SHIFT' || u === 'LSHIFT') {
+            return !!(downState['LEFT SHIFT'] || downState['L SHIFT'] || downState['LSHIFT']);
+        }
+        if (u === 'RIGHT SHIFT' || u === 'R SHIFT' || u === 'RSHIFT') {
+            return !!(downState['RIGHT SHIFT'] || downState['R SHIFT'] || downState['RSHIFT']);
+        }
+        return !!(downState[u] || downState[modName]);
+    };
+
+    for (let reqMod of requiredModifiers) {
+        if (!isModDown(reqMod)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function formatKeyForPlaywright(keyStr) {
+    if (!keyStr) return '1';
+    const parts = keyStr.split('+').map(s => s.trim());
+
+    const mappedParts = parts.map(p => {
+        const u = p.toUpperCase();
+        if (u === 'ESC' || u === 'ESCAPE') return 'Escape';
+        if (u === 'ALT' || u === 'LEFT ALT' || u === 'RIGHT ALT' || u === 'L ALT' || u === 'R ALT' || u === 'LALT' || u === 'RALT' || u === 'ALT GR') return 'Alt';
+        if (u === 'CTRL' || u === 'CONTROL' || u === 'LEFT CTRL' || u === 'RIGHT CTRL' || u === 'L CTRL' || u === 'R CTRL' || u === 'LCTRL' || u === 'RCTRL') return 'Control';
+        if (u === 'SHIFT' || u === 'LEFT SHIFT' || u === 'RIGHT SHIFT' || u === 'L SHIFT' || u === 'R SHIFT' || u === 'LSHIFT' || u === 'RSHIFT') return 'Shift';
+        if (u === 'ENT' || u === 'ENTER') return 'Enter';
+        if (u === 'BS' || u === 'BACKSPACE') return 'Backspace';
+        if (u === 'DEL' || u === 'DELETE') return 'Delete';
+        if (u === 'INS' || u === 'INSERT') return 'Insert';
+        if (u === 'PGUP' || u === 'PAGEUP' || u === 'PAGE UP') return 'PageUp';
+        if (u === 'PGDN' || u === 'PAGEDOWN' || u === 'PAGE DOWN') return 'PageDown';
+        if (u === 'PRTSC' || u === 'PRINTSCREEN' || u === 'PRINT SCREEN') return 'PrintScreen';
+        if (u === 'SCRLK' || u === 'SCROLLLOCK' || u === 'SCROLL LOCK') return 'ScrollLock';
+        if (u === 'PAUSE') return 'Pause';
+        if (u === 'NUM' || u === 'NUMLOCK' || u === 'NUM LOCK') return 'NumLock';
+        return p;
+    });
+    return mappedParts.join('+');
+}
+
+async function pressKeyHoldDown(page, keyStr) {
+    const formatted = formatKeyForPlaywright(keyStr);
+    const parts = formatted.split('+');
+    for (let p of parts) {
+        await page.keyboard.down(p);
+    }
+}
+
+async function pressKeyHoldUp(page, keyStr) {
+    const formatted = formatKeyForPlaywright(keyStr);
+    const parts = formatted.split('+').reverse();
+    for (let p of parts) {
+        await page.keyboard.up(p);
+    }
+}
+
+function isClientEnabled(clientIdxStr) {
+    if (!global.disabledClients || !Array.isArray(global.disabledClients)) return true;
+    const s = String(clientIdxStr);
+    return !global.disabledClients.includes(s) && !global.disabledClients.includes(parseInt(s, 10));
+}
+
+function getActionTargets(targetStr) {
+    if (!targetStr) return ['1'].filter(isClientEnabled);
+    let raw = [];
+    if (targetStr === 'all' || targetStr === 'both') {
+        raw = activeClients.map(String);
+    } else {
+        raw = targetStr.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    return raw.filter(isClientEnabled);
+}
+
 // ============================================================================
 // ACTION & LOOP FUNCTIONS
 // ============================================================================
 async function sendKey(action, key) {
     const target = action.targetClient || '1';
     const targets = getActionTargets(target);
+    if (targets.length === 0) return;
 
     if (targets.length > 1) {
         // Sequentially send to all targets in the list
@@ -1181,9 +1467,10 @@ async function sendKey(action, key) {
 
         // 2. Simulate hold time (60 - 130ms) like a human
         const holdTime = Math.floor(Math.random() * 70) + 60;
-        await targetPage.keyboard.press(key, { delay: holdTime });
+        const formattedKey = formatKeyForPlaywright(key);
+        await targetPage.keyboard.press(formattedKey, { delay: holdTime });
 
-        console.log(`[Action] [${clientName}] Sent key: "${key}" (Delay: ${jitterDelay}ms | Hold: ${holdTime}ms)`);
+        console.log(`[Action] [${clientName}] Sent key: "${key}" (Formatted: "${formattedKey}" | Delay: ${jitterDelay}ms | Hold: ${holdTime}ms)`);
     } catch (e) {
         console.error(`[Action Error] [${clientName}] Failed to send key "${key}":`, e.message);
 
@@ -1393,9 +1680,9 @@ async function toggleKeyHoldAction(action, callStack) {
         
         try {
             if (nextState) {
-                await page.keyboard.down(targetKey);
+                await pressKeyHoldDown(page, targetKey);
             } else {
-                await page.keyboard.up(targetKey);
+                await pressKeyHoldUp(page, targetKey);
             }
         } catch (e) {
             console.error(`[Action Error] Failed toggle key hold on Client ${t}:`, e.message);
@@ -1611,7 +1898,7 @@ function startGlobalListeners() {
         if (!isDown && !isUp) return;
 
         // Handle global suspend hotkey toggle
-        if (isDown && suspendHotkey && e.name && e.name.toUpperCase() === suspendHotkey.toUpperCase()) {
+        if (isDown && suspendHotkey && e.name && matchKeyTrigger(suspendHotkey, e.name, down, false)) {
             global.toggleSuspendState();
             return;
         }
@@ -1629,11 +1916,11 @@ function startGlobalListeners() {
                 act.trigger.type === 'keyboard' &&
                 act.trigger.type !== 'none' &&
                 act.trigger.value &&
-                act.trigger.value.toUpperCase() === e.name.toUpperCase()
+                matchKeyTrigger(act.trigger.value, e.name, down, false)
             );
 
             if (matchingActions.length > 0) {
-                console.log(`[Global Key Captured] Triggered key: "${e.name}"`);
+                console.log(`[Global Key Captured] Triggered action(s) via physical key "${e.name}"`);
             }
 
             for (let act of matchingActions) {
@@ -1647,7 +1934,7 @@ function startGlobalListeners() {
             act.mode === 'forward' &&
             act.trigger.type === 'keyboard' &&
             act.trigger.value &&
-            act.trigger.value.toUpperCase() === e.name.toUpperCase()
+            matchKeyTrigger(act.trigger.value, e.name, down, isUp)
         );
 
         for (let act of forwardActions) {
@@ -1668,8 +1955,8 @@ function startGlobalListeners() {
                                 pressedRemapKeys[trackingKey] = true;
                                 delete forwardHoldTimers[trackingKey];
                                 console.log(`[Forward] [Client ${clientIndex}] Key Down (Delayed): "${targetKey}" (via Physical Key "${e.name}")`);
-                                page.keyboard.down(targetKey).catch(err => {
-                                    console.error(`[Forward Error] [Client ${clientIndex}] Failed keyboard.down("${targetKey}"):`, err.message);
+                                pressKeyHoldDown(page, targetKey).catch(err => {
+                                    console.error(`[Forward Error] [Client ${clientIndex}] Failed pressKeyHoldDown("${targetKey}"):`, err.message);
                                 });
                                 // Fire onActivated chain once (only on the first client to avoid duplicate)
                                 if (clientIndex === targets[0]) fireChain(act, 'onActivated');
@@ -1680,8 +1967,8 @@ function startGlobalListeners() {
                         } else {
                             pressedRemapKeys[trackingKey] = true;
                             console.log(`[Forward] [Client ${clientIndex}] Key Down: "${targetKey}" (via Physical Key "${e.name}")`);
-                            page.keyboard.down(targetKey).catch(err => {
-                                console.error(`[Forward Error] [Client ${clientIndex}] Failed keyboard.down("${targetKey}"):`, err.message);
+                            pressKeyHoldDown(page, targetKey).catch(err => {
+                                console.error(`[Forward Error] [Client ${clientIndex}] Failed pressKeyHoldDown("${targetKey}"):`, err.message);
                             });
                             // Fire onKeyDown AND onActivated together (no delay)
                             if (clientIndex === targets[0]) {
@@ -1699,8 +1986,8 @@ function startGlobalListeners() {
                     if (pressedRemapKeys[trackingKey]) {
                         delete pressedRemapKeys[trackingKey];
                         console.log(`[Forward] [Client ${clientIndex}] Key Up: "${targetKey}" (via Physical Key "${e.name}")`);
-                        page.keyboard.up(targetKey).catch(err => {
-                            console.error(`[Forward Error] [Client ${clientIndex}] Failed keyboard.up("${targetKey}"):`, err.message);
+                        pressKeyHoldUp(page, targetKey).catch(err => {
+                            console.error(`[Forward Error] [Client ${clientIndex}] Failed pressKeyHoldUp("${targetKey}"):`, err.message);
                         });
                         if (clientIndex === targets[0]) fireChain(act, 'onKeyUp');
                         // For delayed-activation actions: give overlay 120ms to render ⚡ before going back to Standby.

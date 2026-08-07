@@ -1,6 +1,18 @@
+# Dependencies
 node_modules/
+
+# Logs & Debug Output
 *.log
+
+# Backup Files
 *.bak
+
+# OS & Cache
 .DS_Store
-profiles/
+Thumbs.db
 __pycache__/
+
+# Playwright Persistent Browser Data (Cookies, Logins, Caches)
+profiles/
+playwright-profiles/
+.playwright/

@@ -1,0 +1,72 @@
+[
+    {
+        "id": "skill_knight-charge",
+        "name": "Charge",
+        "cooldownMs": 28000,
+        "image": "/images/skills/Knight/charge.png",
+        "description": "A powerful upward strike that stuns the enemy. Requires a two-handed weapon."
+    },
+    {
+        "id": "skill_knight_earth-divider",
+        "name": "Earth Divider",
+        "cooldownMs": 0,
+        "image": "/images/skills/Knight/earth-divider.png",
+        "description": "A powerful downward strike that may reduce HP Restoration on the target. Requires a two-handed weapon."
+    },
+    {
+        "id": "skill_knight_pain-dealer",
+        "name": "Pain Dealer",
+        "cooldownMs": 30000,
+        "image": "/images/skills/Knight/pain-dealer.png",
+        "description": "A powerful downward strike that lowers the defense of the target. Requires a two-handed weapon."
+    },
+    {
+        "id": "skill_knight_power-stomp",
+        "name": "Power Stomp",
+        "cooldownMs": 0,
+        "image": "/images/skills/Knight/power-stomp.png",
+        "description": "Pounds the ground, hitting surrounding enemies with a chance to stun them. Requires a two-handed weapon."
+    },
+    {
+        "id": "skill_knight_guard",
+        "name": "Guard",
+        "cooldownMs": 60000,
+        "image": "/images/skills/Knight/guard.png",
+        "description": "Reduces all incoming damage from enemies at the cost of attack power."
+    },
+    {
+        "id": "skill_knight_rage",
+        "name": "Rage",
+        "cooldownMs": 0,
+        "image": "/images/skills/Knight/rage.png",
+        "description": "Increases striking power but makes you more vulnerable to all incoming attacks."
+    },
+    {
+        "id": "skill_knight_heart-of-fury",
+        "name": "Heart Of Fury",
+        "cooldownMs": 0,
+        "image": "/images/skills/Knight/heart-of-fury.png",
+        "description": "Enhances combat ability at the cost of 1% of your maximum FP per strike. Damage is increased by 10% of your maximum FP. Requires a one-handed weapon."
+    },
+    {
+        "id": "skill_knight_grand-rage",
+        "name": "Grand Rage",
+        "cooldownMs": 0,
+        "image": "/images/skills/Knight/grand-rage.png",
+        "description": "A powerful one-handed attack that recovers FP equal to 5% of the damage dealt."
+    },
+    {
+        "id": "skill_knight_power-swing",
+        "name": "Power Swing",
+        "cooldownMs": 12000,
+        "image": "/images/skills/Knight/power-swing.png",
+        "description": "Swings the weapon to strike surrounding enemies and push them back. Requires a two-handed weapon."
+    },
+    {
+        "id": "skill_knight_heart-of-sacrifice",
+        "name": "Heart Of Sacrifice",
+        "cooldownMs": 20000,
+        "image": "/images/skills/Knight/heart-of-sacrifice.png",
+        "description": "Redirects damage taken by the target player to yourself."
+    }
+]

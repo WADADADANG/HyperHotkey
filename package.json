@@ -1,7 +1,7 @@
 {
-  "name": "webgl-auto-clicker-cdp",
-  "version": "1.4.0",
-  "description": "Background WebGL automation using Playwright CDP and node-global-key-listener",
+  "name": "hyper-hotkey",
+  "version": "2.0.0",
+  "description": "Background WebGL multi-client automation using Playwright CDP and node-global-key-listener",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",

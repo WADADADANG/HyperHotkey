@@ -18,18 +18,7 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
-function readConfig() {
-  try {
-    const data = fs.readFileSync(CONFIG_PATH, 'utf8');
-    return JSON.parse(data);
-  } catch (e) {
-    return null;
-  }
-}
-
-function writeConfig(data) {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(data, null, 2), 'utf8');
-}
+const { readConfig, writeConfig } = require('./config-store');
 
 function sendJSON(res, status, data) {
   res.writeHead(status, {
@@ -53,10 +42,6 @@ const server = http.createServer((req, res) => {
   }
 
   const urlPath = req.url.split('?')[0];
-  // Mute periodic polling logs to prevent console noise
-  if (!(req.method === 'GET' && (urlPath === '/api/status' || urlPath === '/api/config' || urlPath === '/api/cooldown-presets'))) {
-    console.log(`[Server] ${req.method} ${urlPath}`);
-  }
 
   // --- GET /api/cooldown-presets → list all skill cooldown presets ---
   if (urlPath === '/api/cooldown-presets' && req.method === 'GET') {
@@ -71,8 +56,8 @@ const server = http.createServer((req, res) => {
     return sendJSON(res, 200, config);
   }
 
-  // --- GET /api/status → active clients list & their statuses ---
-  if (urlPath === '/api/status' && req.method === 'GET') {
+  // --- GET /api/status or /api/active-clients → active clients list & their statuses ---
+  if ((urlPath === '/api/status' || urlPath === '/api/active-clients') && req.method === 'GET') {
     const activeList = global.activeClients || [];
     const clientStatuses = {};
 
@@ -142,8 +127,86 @@ const server = http.createServer((req, res) => {
     return sendJSON(res, 200, {
       activeClients: activeList,
       clientStatuses: clientStatuses,
+      disabledClients: global.disabledClients || [],
       isSuspended: !!global.isSuspended
     });
+  }
+
+  // --- POST /api/client/toggle-enable → toggle enable/disable per client ---
+  if (urlPath === '/api/client/toggle-enable' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', () => {
+      try {
+        const { clientIndex } = JSON.parse(body);
+        const clientStr = String(clientIndex);
+        if (!global.disabledClients) global.disabledClients = [];
+        const idx = global.disabledClients.indexOf(clientStr);
+        if (idx > -1) {
+          global.disabledClients.splice(idx, 1);
+          console.log(`[Server] 🟢 Enabled Client ${clientStr}`);
+        } else {
+          global.disabledClients.push(clientStr);
+          console.log(`[Server] 🔴 Disabled Client ${clientStr}`);
+        }
+        
+        // Sync to config
+        const config = readConfig();
+        if (config) {
+          config.disabledClients = global.disabledClients;
+          const currentProfile = config.activeProfile;
+          if (config.profiles[currentProfile]) {
+            config.profiles[currentProfile].disabledClients = global.disabledClients;
+          }
+          writeConfig(config);
+        }
+        if (typeof global.sendOverlayUpdate === 'function') {
+          global.sendOverlayUpdate();
+        }
+        return sendJSON(res, 200, { success: true, disabledClients: global.disabledClients });
+      } catch (e) {
+        return sendJSON(res, 400, { error: e.message });
+      }
+    });
+    return;
+  }
+
+  // --- POST /api/client/launch → launch browser client dynamically ---
+  if (urlPath === '/api/client/launch' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', async () => {
+      try {
+        const { clientIndex } = JSON.parse(body);
+        if (typeof global.launchSingleClient === 'function') {
+          const resObj = await global.launchSingleClient(clientIndex);
+          return sendJSON(res, 200, resObj);
+        }
+        return sendJSON(res, 500, { error: 'launchSingleClient not ready' });
+      } catch (e) {
+        return sendJSON(res, 400, { error: e.message });
+      }
+    });
+    return;
+  }
+
+  // --- POST /api/client/close → close browser client dynamically ---
+  if (urlPath === '/api/client/close' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => body += c);
+    req.on('end', async () => {
+      try {
+        const { clientIndex } = JSON.parse(body);
+        if (typeof global.closeSingleClient === 'function') {
+          const resObj = await global.closeSingleClient(clientIndex);
+          return sendJSON(res, 200, resObj);
+        }
+        return sendJSON(res, 500, { error: 'closeSingleClient not ready' });
+      } catch (e) {
+        return sendJSON(res, 400, { error: e.message });
+      }
+    });
+    return;
   }
 
   // --- POST /api/suspend/toggle → toggle suspend state ---
@@ -172,19 +235,27 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // --- POST /api/config → save profile settings ---
+  // --- POST /api/config → save profile settings or full config ---
   if (urlPath === '/api/config' && req.method === 'POST') {
     let body = '';
     req.on('data', c => body += c);
     req.on('end', () => {
       try {
-        const { profileName, profileData } = JSON.parse(body);
-        const config = readConfig();
-        if (!config) return sendJSON(res, 500, { error: 'Config read failed' });
-        config.profiles[profileName] = profileData;
-        writeConfig(config);
-        console.log(`[Server] Saved profile: ${profileName}`);
-        sendJSON(res, 200, { success: true });
+        const payload = JSON.parse(body);
+        if (payload && payload.profiles) {
+          writeConfig(payload);
+          console.log(`[Server] Saved full config (active: ${payload.activeProfile})`);
+          sendJSON(res, 200, { success: true });
+        } else if (payload && payload.profileName && payload.profileData) {
+          const config = readConfig();
+          if (!config) return sendJSON(res, 500, { error: 'Config read failed' });
+          config.profiles[payload.profileName] = payload.profileData;
+          writeConfig(config);
+          console.log(`[Server] Saved profile: ${payload.profileName}`);
+          sendJSON(res, 200, { success: true });
+        } else {
+          sendJSON(res, 400, { error: 'Invalid payload structure' });
+        }
       } catch (e) {
         sendJSON(res, 400, { error: 'Invalid payload' });
       }
@@ -320,7 +391,12 @@ const server = http.createServer((req, res) => {
     const ext = path.extname(fullPath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     const stream = fs.createReadStream(fullPath);
     stream.pipe(res);
   });
