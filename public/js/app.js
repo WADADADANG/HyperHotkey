@@ -51,7 +51,11 @@ import {
   removeFirstStepFromAction,
   syncActionFromDom,
   syncIntervalRange,
-  syncIntervalInput
+  syncIntervalInput,
+  onChainEnabledToggle,
+  toggleChainItem,
+  toggleControlTargetItem,
+  onControlOperationChange
 } from './components/actions.js';
 import {
   openAntiDetectModal,
@@ -90,6 +94,7 @@ import {
   toggleManualMode,
   applyVirtualKeyboard
 } from './virtual-keyboard.js';
+import { validateProfile, autoFixProfile } from './validator.js';
 
 // Expose functions required by inline HTML event attributes & global calls
 window.changeLang = (lang) => {
@@ -147,6 +152,10 @@ window.onModeChange = onModeChange;
 window.toggleForwardDelayDisplay = toggleForwardDelayDisplay;
 window.addFirstStepToAction = addFirstStepToAction;
 window.removeFirstStepFromAction = removeFirstStepFromAction;
+window.onChainEnabledToggle = onChainEnabledToggle;
+window.toggleChainItem = toggleChainItem;
+window.toggleControlTargetItem = toggleControlTargetItem;
+window.onControlOperationChange = onControlOperationChange;
 
 window.openAntiDetectModal = openAntiDetectModal;
 window.closeAntiDetectModal = closeAntiDetectModal;
@@ -171,6 +180,78 @@ window.toggleSuspendState = toggleSuspendState;
 window.toast = toast;
 window.addLog = addLog;
 window.clearLogs = clearLogs;
+
+// ─── Validator Modal Functions ───
+window.openValidatorModal = function() {
+  const profile = fullConfig.profiles[currentEditProfile];
+  if (!profile || !profile.actions) return;
+
+  const { issues, errorCount, warningCount } = validateProfile(profile.actions);
+  const lang = currentLang;
+
+  // If no issues, show clean toast and skip modal
+  if (issues.length === 0) {
+    toast(t('toastProfileValidatedClean') || '✓ Profile is clean!', 'success');
+    return;
+  }
+
+  // Render summary bar
+  const summaryEl = document.getElementById('validator-summary');
+  summaryEl.innerHTML = `
+    <span style="color:#ef4444;">🔴 ${lang === 'en' ? 'Errors' : 'ข้อผิดพลาด'}: <strong>${errorCount}</strong></span>
+    <span style="color:#f59e0b;">🟡 ${lang === 'en' ? 'Warnings' : 'คำเตือน'}: <strong>${warningCount}</strong></span>
+    <span style="color:var(--muted); margin-left:auto; font-size:11px;">${lang === 'en' ? 'Total' : 'ทั้งหมด'}: ${issues.length}</span>
+  `;
+
+  // Render issues list
+  const listEl = document.getElementById('validator-issues-list');
+  listEl.innerHTML = '';
+  issues.forEach((issue, idx) => {
+    const severityColor = issue.severity === 'error' ? '#ef4444' : '#f59e0b';
+    const severityIcon = issue.severity === 'error' ? '🔴' : '🟡';
+    const severityLabel = issue.severity === 'error'
+      ? (lang === 'en' ? 'ERROR' : 'ผิดพลาด')
+      : (lang === 'en' ? 'WARNING' : 'คำเตือน');
+    const message = lang === 'th' ? issue.messageTh : issue.messageEn;
+    const fixBadge = issue.autoFixable
+      ? `<span style="background:rgba(168,85,247,0.15); color:#c084fc; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700;">AUTO-FIX</span>`
+      : `<span style="background:rgba(239,68,68,0.1); color:#f87171; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700;">${lang === 'en' ? 'MANUAL' : 'แก้เอง'}</span>`;
+
+    const issueCard = document.createElement('div');
+    issueCard.style.cssText = `padding:10px 14px; background:rgba(255,255,255,0.025); border:1px solid ${severityColor}33; border-radius:8px; border-left:3px solid ${severityColor};`;
+    issueCard.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+        <span>${severityIcon}</span>
+        <span style="color:${severityColor}; font-size:10px; font-weight:700; text-transform:uppercase;">${severityLabel}</span>
+        ${fixBadge}
+        <span style="color:var(--muted); font-size:10px; margin-left:auto;">#${idx + 1}</span>
+      </div>
+      <div style="font-size:12px; color:var(--text); font-weight:600; margin-bottom:2px;">📌 ${issue.actionName}</div>
+      <div style="font-size:11px; color:var(--muted);">${message}</div>
+    `;
+    listEl.appendChild(issueCard);
+  });
+
+  // Show/hide auto-fix button
+  const autoFixBtn = document.getElementById('validator-autofix-btn');
+  const hasFixable = issues.some(i => i.autoFixable);
+  autoFixBtn.style.display = hasFixable ? 'inline-flex' : 'none';
+
+  document.getElementById('validator-modal').classList.add('show');
+};
+
+window.closeValidatorModal = function() {
+  document.getElementById('validator-modal')?.classList.remove('show');
+};
+
+window.autoFixFromModal = function() {
+  const fixedCount = autoFixProfile();
+  closeValidatorModal();
+  if (fixedCount > 0) {
+    const msg = (t('toastProfileAutoFixed') || '✓ Automatically resolved {count} issue(s)!').replace('{count}', fixedCount);
+    toast(msg, 'success');
+  }
+};
 
 function updateLanguageUI() {
   const lang = currentLang;

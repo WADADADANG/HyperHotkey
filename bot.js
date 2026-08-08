@@ -192,13 +192,16 @@ function loadConfigFromFile() {
 
 const { CONFIGS_DIR } = require('./config-store');
 
-// Watch configs folder for live modifications
+let watchDebounceTimer = null;
 function watchConfigChanges() {
     if (fs.existsSync(CONFIGS_DIR)) {
         fs.watch(CONFIGS_DIR, { recursive: true }, (eventType, filename) => {
             if (filename && filename.endsWith('.json')) {
-                console.log(`\n[Config] ${filename} modification detected. Reloading...`);
-                loadConfigFromFile();
+                if (watchDebounceTimer) clearTimeout(watchDebounceTimer);
+                watchDebounceTimer = setTimeout(() => {
+                    console.log(`\n[Config] ${filename} modification detected. Reloading...`);
+                    loadConfigFromFile();
+                }, 300);
             }
         });
     }
@@ -1717,8 +1720,10 @@ function handleActionTrigger(act) {
         runDelayOnlyAction(act).catch(err => console.error(`Error in runDelayOnlyAction:`, err));
     } else if (act.mode === 'key_hold') {
         toggleKeyHoldAction(act).catch(err => console.error(`Error in toggleKeyHoldAction:`, err));
-    } else if (act.mode === 'action_control') {
+    } else if (act.mode === 'control' || act.mode === 'action_control') {
         runActionControl(act).catch(err => console.error(`Error in runActionControl:`, err));
+    } else if (act.mode === 'branch' || act.mode === 'action_condition') {
+        runActionCondition(act).catch(err => console.error(`Error in runActionCondition:`, err));
     }
 }
 
@@ -1740,7 +1745,7 @@ async function fireChain(sourceAction, eventName, callStack = new Set()) {
     }
     callStack.add(stackKey);
 
-    const postEvents = ['onComplete', 'onFired', 'onStop', 'onDisable', 'onEnable', 'onEachCycle', 'onKeyUp', 'onKeyDown', 'onActivated'];
+    const postEvents = ['onComplete', 'onFired', 'onStop', 'onDisable', 'onEnable', 'onStart', 'onTrue', 'onFalse', 'onEachCycle', 'onKeyUp', 'onKeyDown', 'onActivated'];
     const chainDelay = (postEvents.includes(eventName) && sourceAction.delayAfter !== undefined)
         ? parseInt(sourceAction.delayAfter, 10)
         : 0;
@@ -1787,8 +1792,10 @@ async function runChainedAction(action, callStack) {
         await runDelayOnlyAction(action, callStack).catch(err => console.error(`[Chain Error] runDelayOnlyAction:`, err));
     } else if (action.mode === 'key_hold') {
         await toggleKeyHoldAction(action, callStack).catch(err => console.error(`[Chain Error] toggleKeyHoldAction:`, err));
-    } else if (action.mode === 'action_control') {
+    } else if (action.mode === 'control' || action.mode === 'action_control') {
         await runActionControl(action, callStack).catch(err => console.error(`[Chain Error] runActionControl:`, err));
+    } else if (action.mode === 'branch' || action.mode === 'action_condition') {
+        await runActionCondition(action, callStack).catch(err => console.error(`[Chain Error] runActionCondition:`, err));
     }
 }
 
@@ -1819,19 +1826,30 @@ async function runActionControl(act, callStack) {
             const state = activeLoopStates[targetAction.id];
             const isRunning = state && state.running;
             if (op === 'start') {
-                if (!isRunning) await startLoopAction(targetAction, resolvedStack).catch(e => console.error(e));
+                if (!isRunning) {
+                    await startLoopAction(targetAction, resolvedStack).catch(e => console.error(e));
+                }
             } else if (op === 'stop') {
-                if (isRunning) stopLoopAction(targetAction.id, targetAction.name);
+                if (isRunning) {
+                    stopLoopAction(targetAction.id, targetAction.name);
+                }
             } else { // toggle
-                if (isRunning) stopLoopAction(targetAction.id, targetAction.name);
-                else await startLoopAction(targetAction, resolvedStack).catch(e => console.error(e));
+                if (isRunning) {
+                    stopLoopAction(targetAction.id, targetAction.name);
+                } else {
+                    await startLoopAction(targetAction, resolvedStack).catch(e => console.error(e));
+                }
             }
         } else if (targetAction.mode === 'key_hold') {
             const isCurrentlyHeld = !!activeHoldStates[targetAction.id];
             if (op === 'start') {
-                if (!isCurrentlyHeld) await toggleKeyHoldAction(targetAction, resolvedStack).catch(e => console.error(e));
+                if (!isCurrentlyHeld) {
+                    await toggleKeyHoldAction(targetAction, resolvedStack).catch(e => console.error(e));
+                }
             } else if (op === 'stop') {
-                if (isCurrentlyHeld) await toggleKeyHoldAction(targetAction, resolvedStack).catch(e => console.error(e));
+                if (isCurrentlyHeld) {
+                    await toggleKeyHoldAction(targetAction, resolvedStack).catch(e => console.error(e));
+                }
             } else { // toggle
                 await toggleKeyHoldAction(targetAction, resolvedStack).catch(e => console.error(e));
             }
@@ -1848,9 +1866,58 @@ async function runActionControl(act, callStack) {
             if (op === 'start' || op === 'toggle') {
                 await runSinglePressAction(targetAction, resolvedStack).catch(err => console.error(err));
             }
-        } else if (targetAction.mode === 'action_control') {
+        } else if (targetAction.mode === 'control' || targetAction.mode === 'action_control') {
             await runActionControl(targetAction, resolvedStack).catch(err => console.error(err));
+        } else if (targetAction.mode === 'branch' || targetAction.mode === 'action_condition') {
+            await runActionCondition(targetAction, resolvedStack).catch(err => console.error(err));
         }
+    }
+}
+
+function isActionRunning(actionId) {
+    const act = activeActions.find(a => a.id === actionId);
+    if (!act) return false;
+
+    if (act.mode === 'loop') {
+        return !!(activeLoopStates[act.id] && activeLoopStates[act.id].running);
+    } else if (act.mode === 'key_hold') {
+        return !!activeHoldStates[act.id];
+    } else if (act.mode === 'buff_sequence') {
+        const target = act.targetClient || '1';
+        let targets = getActionTargets(target).map(x => parseInt(x, 10));
+        return targets.some(t => isBuffSequenceRunning[String(t)]);
+    }
+    return false;
+}
+
+async function runActionCondition(act, callStack) {
+    const targetId = act.conditionTargetId;
+    const rule = act.conditionRule || 'is_running';
+    if (!targetId) {
+        console.warn(`[Condition Check] "${act.name}" has no target action selected — skipping.`);
+        return;
+    }
+
+    const stackKey = `${act.id}:condition`;
+    const resolvedStack = callStack || new Set();
+    if (resolvedStack.has(stackKey)) {
+        console.warn(`[Condition Check] ⚠️ Circular condition stack detected: "${act.name}" — skipping.`);
+        return;
+    }
+    resolvedStack.add(stackKey);
+
+    const isRunning = isActionRunning(targetId);
+    const isTrue = (rule === 'is_running') ? isRunning : !isRunning;
+
+    const targetAct = activeActions.find(a => a.id === targetId);
+    const targetName = targetAct ? targetAct.name : targetId;
+
+    console.log(`[Condition Check] "${act.name}": Checking target "${targetName}" (${rule}) ➔ Result: ${isTrue ? 'TRUE' : 'FALSE'}`);
+
+    if (isTrue) {
+        await fireChain(act, 'onTrue', resolvedStack);
+    } else {
+        await fireChain(act, 'onFalse', resolvedStack);
     }
 }
 

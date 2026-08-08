@@ -10,6 +10,43 @@ export function initActionsModule() {
   setRenderActionsCallback(renderActions);
 }
 
+export function normalizeMode(mode) {
+  if (mode === 'action_control') return 'control';
+  if (mode === 'action_condition') return 'branch';
+  return mode || 'loop';
+}
+
+export function getModeDescription(mode) {
+  const norm = normalizeMode(mode);
+  const lang = currentLang;
+  const descMap = {
+    loop: TRANSLATIONS[lang]?.modeLoopDesc || '',
+    buff_sequence: TRANSLATIONS[lang]?.modeBuffDesc || '',
+    single_press: TRANSLATIONS[lang]?.modeSingleDesc || '',
+    delay_only: TRANSLATIONS[lang]?.modeDelayOnlyDesc || '',
+    forward: TRANSLATIONS[lang]?.modeForwardDesc || '',
+    key_hold: TRANSLATIONS[lang]?.modeHoldDesc || '',
+    control: TRANSLATIONS[lang]?.modeControlDesc || '',
+    branch: TRANSLATIONS[lang]?.modeBranchDesc || ''
+  };
+  return descMap[norm] || '';
+}
+
+export function getModeBadgeInfo(mode) {
+  const norm = normalizeMode(mode);
+  const badgeMap = {
+    loop: { label: 'LOOP', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.35)' },
+    buff_sequence: { label: 'BUFF', color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.35)' },
+    single_press: { label: 'SINGLE', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', border: 'rgba(245, 158, 11, 0.35)' },
+    delay_only: { label: 'TIMER', color: '#0ea5e9', bg: 'rgba(14, 165, 233, 0.15)', border: 'rgba(14, 165, 233, 0.35)' },
+    forward: { label: 'FORWARD', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.15)', border: 'rgba(236, 72, 153, 0.35)' },
+    key_hold: { label: 'HOLD', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)', border: 'rgba(239, 68, 68, 0.35)' },
+    control: { label: 'CONTROL', color: '#818cf8', bg: 'rgba(99, 102, 241, 0.18)', border: 'rgba(99, 102, 241, 0.4)' },
+    branch: { label: 'BRANCH', color: '#c084fc', bg: 'rgba(168, 85, 247, 0.18)', border: 'rgba(168, 85, 247, 0.4)' }
+  };
+  return badgeMap[norm] || { label: (norm || '').toUpperCase(), color: 'var(--primary)', bg: 'var(--primary-dim)', border: 'rgba(99,102,241,0.2)' };
+}
+
 export function renderActions(actions) {
   const container = document.getElementById('actions-container');
   if (!container) return;
@@ -19,6 +56,7 @@ export function renderActions(actions) {
 
   actions.forEach((act, idx) => {
     const cardColor = colors[idx % colors.length];
+    const badgeInfo = getModeBadgeInfo(act.mode);
     const card = document.createElement('div');
     card.className = 'group-card';
     card.setAttribute('data-id', act.id);
@@ -79,8 +117,8 @@ export function renderActions(actions) {
           style="background:none; border:none; color:var(--text); font-size:13px; font-weight:700; outline:none; border-bottom:1px dashed rgba(255,255,255,0.15); width:160px; padding-bottom: 2px;">
         
         <div class="summary-badges" style="display:flex; align-items:center; gap:8px; font-size:11px; flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; color:var(--muted);">
-          <span style="background:var(--primary-dim); border:1px solid rgba(99,102,241,0.2); border-radius:4px; padding:2px 6px; color:var(--primary); font-size:10px; font-weight:700; text-transform:uppercase;">
-            ${TRANSLATIONS[currentLang]['mode' + act.mode.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')] || act.mode}
+          <span style="background:${badgeInfo.bg}; border:1px solid ${badgeInfo.border}; border-radius:4px; padding:2px 6px; color:${badgeInfo.color}; font-size:10px; font-weight:700; text-transform:uppercase;">
+            ${badgeInfo.label}
           </span>
           <span>
             📍 ${act.trigger.type === 'none' ? (currentLang === 'en' ? 'Chain only' : 'Chain เท่านั้น') : `${act.trigger.type === 'keyboard' ? '⌨️' : '🖱️'} ${act.trigger.value || ''}`}
@@ -125,19 +163,21 @@ export function renderActions(actions) {
         </div>
 
         <div class="field-row">
-          <div class="field" style="${(act.mode === 'action_control' || act.mode === 'delay_only') ? 'grid-column: span 2;' : ''}">
+          <div class="field" style="${['control', 'delay_only'].includes(normalizeMode(act.mode)) ? 'grid-column: span 2;' : ''}">
             <label>${TRANSLATIONS[currentLang].actionMode}</label>
-            <select class="action-mode" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%;">
-              <option value="loop" ${act.mode === 'loop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeLoop}</option>
-              <option value="buff_sequence" ${act.mode === 'buff_sequence' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeBuff}</option>
-              <option value="single_press" ${act.mode === 'single_press' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeSingle}</option>
-              <option value="delay_only" ${act.mode === 'delay_only' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeDelayOnly || '⏳ Pure Delay / Timer Only'}</option>
-              <option value="forward" ${act.mode === 'forward' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeForward}</option>
-              <option value="key_hold" ${act.mode === 'key_hold' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeHold}</option>
-              <option value="action_control" ${act.mode === 'action_control' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeControl || 'Action Control'}</option>
+            <select class="action-mode" onchange="onModeChange('${act.id}')" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; cursor:pointer; outline:none; width:100%;">
+              <option value="loop" ${normalizeMode(act.mode) === 'loop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeLoop}</option>
+              <option value="buff_sequence" ${normalizeMode(act.mode) === 'buff_sequence' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeBuff}</option>
+              <option value="single_press" ${normalizeMode(act.mode) === 'single_press' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeSingle}</option>
+              <option value="delay_only" ${normalizeMode(act.mode) === 'delay_only' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeDelayOnly}</option>
+              <option value="forward" ${normalizeMode(act.mode) === 'forward' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeForward}</option>
+              <option value="key_hold" ${normalizeMode(act.mode) === 'key_hold' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeHold}</option>
+              <option value="control" ${normalizeMode(act.mode) === 'control' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeControl}</option>
+              <option value="branch" ${normalizeMode(act.mode) === 'branch' ? 'selected' : ''}>${TRANSLATIONS[currentLang].modeBranch || TRANSLATIONS[currentLang].modeCondition}</option>
             </select>
+            <div class="mode-desc-hint" id="mode-desc-${act.id}" style="font-size:11px; color:var(--muted); margin-top:4px; font-style:italic;">${getModeDescription(act.mode)}</div>
           </div>
-          <div class="field client-selector-container" style="display: ${act.mode === 'action_control' || act.mode === 'delay_only' ? 'none' : 'block'};">
+          <div class="field client-selector-container" style="display: ${['control', 'delay_only', 'branch'].includes(normalizeMode(act.mode)) ? 'none' : 'block'};">
             <label>${TRANSLATIONS[currentLang].targetClient}</label>
             ${renderTargetClientSelector(act)}
           </div>
@@ -416,7 +456,7 @@ export function renderModeSpecificFields(act) {
             ${renderFirstStepsForAction(act)}
           </div>
           <div class="add-row" style="margin-top:6px;">
-            <button type="button" class="btn btn-ghost btn-add-first-step" data-action-id="${act.id}" style="padding:4px 10px; font-size:11px; border-radius:6px;">${TRANSLATIONS[currentLang].btnAddStep}</button>
+            <button type="button" class="btn btn-ghost btn-add-first-step" onclick="addFirstStepToAction('${act.id}')" style="padding:4px 10px; font-size:11px; border-radius:6px;">${TRANSLATIONS[currentLang].btnAddStep}</button>
           </div>
         </div>
 
@@ -525,7 +565,7 @@ export function renderModeSpecificFields(act) {
         </div>
       </div>
     `;
-  } else if (act.mode === 'action_control') {
+  } else if (normalizeMode(act.mode) === 'control') {
     const otherActions = (fullConfig.profiles[currentEditProfile].actions || []).filter(a => a.id !== act.id);
     const selectedTargetIds = act.controlTargetIds || (act.controlTargetId ? [act.controlTargetId] : []);
     const op = act.controlOperation || 'toggle';
@@ -535,17 +575,55 @@ export function renderModeSpecificFields(act) {
         <div class="field-row">
           <div class="field">
             <label>${TRANSLATIONS[currentLang].controlTargetLabel || 'Target Action to Control'}</label>
-            <select class="control-target-ids" multiple style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; outline:none; height:110px; width:100%;">
-              ${otherActions.map(a => `<option value="${a.id}" ${selectedTargetIds.includes(a.id) ? 'selected' : ''}>${escapeHtml(a.name)} (${a.mode})</option>`).join('')}
-            </select>
-            <span style="font-size:10px; color:var(--muted); margin-top:3px;">${TRANSLATIONS[currentLang].controlTargetHint || 'Ctrl+Click to select multiple'}</span>
+            <div class="control-target-box" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:4px; height:170px; overflow-y:auto; width:100%; display:flex; flex-direction:column; gap:3px;">
+              ${otherActions.length === 0 ? `
+                <span style="font-size:10px; color:var(--muted); font-style:italic; padding:4px;">No other actions</span>
+              ` : otherActions.map(a => {
+                const isSel = selectedTargetIds.includes(a.id);
+                return `
+                  <div class="control-option-item ${isSel ? 'selected' : ''}" data-value="${a.id}" onclick="toggleControlTargetItem('${act.id}', '${a.id}', this)"
+                    style="padding:5px 8px; border-radius:6px; font-size:12px; cursor:pointer; user-select:none; display:flex; align-items:center; justify-content:space-between; transition:all 0.15s ease; ${isSel ? 'background:rgba(59,130,246,0.25); color:#f8fafc; font-weight:700; border:1px solid rgba(59,130,246,0.5);' : 'color:var(--text); border:1px solid transparent;'}">
+                    <span>${escapeHtml(a.name)} <span style="font-size:10px; color:var(--muted); font-weight:400;">(${normalizeMode(a.mode)})</span></span>
+                    <span class="check-badge" style="font-size:11px; color:#3b82f6; font-weight:700;">${isSel ? '✓' : ''}</span>
+                  </div>`;
+              }).join('')}
+            </div>
+            <span style="font-size:10px; color:var(--muted); margin-top:3px;">${currentLang === 'en' ? 'Click to select/unselect target actions' : 'คลิกเพื่อเลือก/ยกเลิก Action เป้าหมาย'}</span>
           </div>
           <div class="field">
             <label>${TRANSLATIONS[currentLang].controlOperationLabel || 'Operation to Perform'}</label>
-            <select class="control-operation" style="background:#131826; border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; outline:none; width:100%;">
+            <select class="control-operation" onchange="onControlOperationChange('${act.id}')" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; outline:none; width:100%;">
               <option value="toggle" ${op === 'toggle' ? 'selected' : ''}>${TRANSLATIONS[currentLang].controlOpToggle || '🔄 Toggle'}</option>
               <option value="start" ${op === 'start' ? 'selected' : ''}>${TRANSLATIONS[currentLang].controlOpStart || '🟢 Start'}</option>
               <option value="stop" ${op === 'stop' ? 'selected' : ''}>${TRANSLATIONS[currentLang].controlOpStop || '🔴 Stop'}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (normalizeMode(act.mode) === 'branch') {
+    const statefulModes = ['loop', 'buff_sequence', 'key_hold'];
+    const checkableActions = (fullConfig.profiles[currentEditProfile].actions || []).filter(a => a.id !== act.id && statefulModes.includes(normalizeMode(a.mode)));
+    const targetId = act.conditionTargetId || '';
+    const rule = act.conditionRule || 'is_running';
+
+    html = `
+      <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
+        <div class="field-row">
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].conditionTargetLabel || 'Target Action to Check'}</label>
+            <select class="condition-target-id" onchange="syncActionFromDom('${act.id}'); saveCurrentProfile();" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; outline:none; width:100%;">
+              <option value="">${currentLang === 'en' ? '-- Select Action to Check --' : '-- เลือก Action อ้างอิง --'}</option>
+              ${checkableActions.length === 0 ? `
+                <option value="" disabled>${currentLang === 'en' ? '(No checkable active actions available)' : '(ไม่มี Action ที่มีสถานะให้เช็ค)'}</option>
+              ` : checkableActions.map(a => `<option value="${a.id}" ${a.id === targetId ? 'selected' : ''}>${escapeHtml(a.name)} (${a.mode})</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].conditionRuleLabel || 'Condition Evaluation Rule'}</label>
+            <select class="condition-rule" onchange="syncActionFromDom('${act.id}'); saveCurrentProfile();" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); font-family:'Outfit'; font-size:13px; outline:none; width:100%;">
+              <option value="is_running" ${rule === 'is_running' ? 'selected' : ''}>${TRANSLATIONS[currentLang].ruleIsRunning || '🟢 Is Running (Active)'}</option>
+              <option value="is_stopped" ${rule === 'is_stopped' ? 'selected' : ''}>${TRANSLATIONS[currentLang].ruleIsStopped || '🔴 Is Stopped (Inactive)'}</option>
             </select>
           </div>
         </div>
@@ -555,8 +633,46 @@ export function renderModeSpecificFields(act) {
   return html;
 }
 
+export function toggleControlTargetItem(actionId, targetId, itemEl) {
+  const profile = fullConfig.profiles[currentEditProfile];
+  if (!profile || !profile.actions) return;
+  const act = profile.actions.find(a => a.id === actionId);
+  if (!act) return;
+
+  if (!act.controlTargetIds) {
+    act.controlTargetIds = act.controlTargetId ? [act.controlTargetId] : [];
+  }
+  delete act.controlTargetId;
+
+  const arr = act.controlTargetIds;
+  const idx = arr.indexOf(targetId);
+
+  if (idx > -1) {
+    arr.splice(idx, 1);
+  } else {
+    arr.push(targetId);
+  }
+
+  const isSel = arr.includes(targetId);
+  if (itemEl) {
+    itemEl.style.background = isSel ? 'rgba(59,130,246,0.25)' : 'transparent';
+    itemEl.style.color = isSel ? '#f8fafc' : 'var(--text)';
+    itemEl.style.fontWeight = isSel ? '700' : '400';
+    itemEl.style.border = isSel ? '1px solid rgba(59,130,246,0.5)' : '1px solid transparent';
+    const checkBadge = itemEl.querySelector('.check-badge');
+    if (checkBadge) checkBadge.textContent = isSel ? '✓' : '';
+  }
+
+  saveCurrentProfile();
+}
+
+export function onControlOperationChange(actionId) {
+  syncActionFromDom(actionId);
+  saveCurrentProfile();
+}
+
 export function renderChainSection(act) {
-  const events = getChainEventsForMode(act.mode);
+  const events = getChainEventsForMode(act.mode, act);
   if (!events.length) return '';
 
   const chains = act.chaining || {};
@@ -568,35 +684,40 @@ export function renderChainSection(act) {
     return `
       <div style="display:flex; flex-direction:column; gap:4px; flex:1; min-width:140px;">
         <span style="font-size:11px; color:#a855f7; font-family:'JetBrains Mono'; font-weight:700;">${ev}</span>
-        <select class="chain-target" data-event="${ev}" multiple
-          style="background:var(--bg-input); border:1px solid rgba(168,85,247,0.3); border-radius:6px; padding:4px 6px; color:var(--text); font-size:11px; height:100px; outline:none; width:100%;">
-          ${otherActions.filter(a => a.id !== act.id).map(a =>
-      `<option value="${a.id}" ${selected.includes(a.id) ? 'selected' : ''}>${escapeHtml(a.name)}</option>`
-    ).join('')}
-        </select>
+        <div class="chain-target-box" data-event="${ev}" style="background:var(--bg-input); border:1px solid rgba(168,85,247,0.3); border-radius:6px; padding:4px; height:170px; overflow-y:auto; width:100%; display:flex; flex-direction:column; gap:3px;">
+          ${otherActions.filter(a => a.id !== act.id).length === 0 ? `
+            <span style="font-size:10px; color:var(--muted); font-style:italic; padding:4px;">No other actions</span>
+          ` : otherActions.filter(a => a.id !== act.id).map(a => {
+            const isSel = selected.includes(a.id);
+            return `
+              <div class="chain-option-item ${isSel ? 'selected' : ''}" data-value="${a.id}" onclick="toggleChainItem('${act.id}', '${ev}', '${a.id}', this)"
+                style="padding:3px 6px; border-radius:4px; font-size:11px; cursor:pointer; user-select:none; display:flex; align-items:center; justify-content:space-between; transition:all 0.15s ease; ${isSel ? 'background:rgba(168,85,247,0.3); color:#f8fafc; font-weight:700; border:1px solid rgba(168,85,247,0.5);' : 'color:var(--muted); border:1px solid transparent;'}">
+                <span>${escapeHtml(a.name)}</span>
+                <span class="check-badge" style="font-size:11px; color:#a855f7; font-weight:700;">${isSel ? '✓' : ''}</span>
+              </div>`;
+          }).join('')}
+        </div>
       </div>`;
   }).join('');
 
   const chainEnabled = act.chaining?._enabled === true;
   const isExpanded = expandedChains.has(act.id);
-  const badge = chainedCount > 0
-    ? `<span style="background:rgba(168,85,247,0.2); color:#a855f7; border-radius:10px; padding:1px 7px; font-size:10px; font-weight:700;">${chainedCount}</span>`
-    : '';
+  const badgeHtml = `<span class="chain-badge" style="background:rgba(168,85,247,0.2); color:#a855f7; border-radius:10px; padding:1px 7px; font-size:10px; font-weight:700; ${chainedCount > 0 ? '' : 'display:none;'}">${chainedCount}</span>`;
 
   return `
     <div style="border-top:1px dashed rgba(168,85,247,0.25); margin-top:12px; padding-top:10px;">
       <div style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;" onclick="toggleChainAccordion('${act.id}', event)">
         <span class="chain-arrow" style="font-size:12px; color:#a855f7; transition:transform 0.2s; transform:rotate(${isExpanded ? '90' : '0'}deg);">▶</span>
         <span style="font-size:11px; color:#a855f7; font-weight:700; letter-spacing:0.5px;">⛓ ACTION CHAIN</span>
-        ${badge}
+        ${badgeHtml}
         <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); cursor:pointer; margin-left:auto;" onclick="event.stopPropagation()">
-          <input type="checkbox" class="chain-enabled" ${chainEnabled ? 'checked' : ''} style="accent-color:#a855f7; cursor:pointer;" onchange="saveCurrentProfile()">
+          <input type="checkbox" class="chain-enabled" ${chainEnabled ? 'checked' : ''} style="accent-color:#a855f7; cursor:pointer;" onchange="onChainEnabledToggle('${act.id}', this)">
           ${currentLang === 'en' ? 'Enabled' : 'เปิดใช้'}
         </label>
       </div>
-      <div class="chain-body" style="overflow:hidden; transition:max-height 0.25s ease, opacity 0.2s; max-height:${isExpanded ? '600px' : '0'}; opacity:${isExpanded ? '1' : '0'};">
+      <div class="chain-body" style="overflow:hidden; transition:max-height 0.25s ease, opacity 0.2s; max-height:${isExpanded ? '800px' : '0'}; opacity:${isExpanded ? '1' : '0'};">
         <div style="padding-top:10px;">
-          <div style="font-size:10px; color:var(--muted); margin-bottom:8px;">เลือก Action ที่จะ Trigger อัตโนมัติเมื่อเกิด event (Ctrl+Click เพื่อเลือกหลายตัว)</div>
+          <div style="font-size:10px; color:var(--muted); margin-bottom:8px;">เลือก Action ที่จะ Trigger อัตโนมัติเมื่อเกิด event (คลิกเพื่อเลือก/ยกเลิก)</div>
           <div class="chain-rows" style="display:flex; gap:12px; flex-wrap:wrap; opacity:${chainEnabled ? '1' : '0.35'}; pointer-events:${chainEnabled ? '' : 'none'}; transition:opacity 0.2s;">
             ${rows}
           </div>
@@ -605,16 +726,77 @@ export function renderChainSection(act) {
     </div>`;
 }
 
-function getChainEventsForMode(mode) {
+export function toggleChainItem(actionId, eventName, targetId, itemEl) {
+  const profile = fullConfig.profiles[currentEditProfile];
+  if (!profile || !profile.actions) return;
+  const act = profile.actions.find(a => a.id === actionId);
+  if (!act) return;
+
+  if (!act.chaining) act.chaining = {};
+  if (!act.chaining[eventName]) act.chaining[eventName] = [];
+
+  const arr = act.chaining[eventName];
+  const idx = arr.indexOf(targetId);
+
+  if (idx > -1) {
+    arr.splice(idx, 1);
+  } else {
+    arr.push(targetId);
+  }
+
+  const isSel = arr.includes(targetId);
+  if (itemEl) {
+    itemEl.style.background = isSel ? 'rgba(168,85,247,0.3)' : 'transparent';
+    itemEl.style.color = isSel ? '#f8fafc' : 'var(--muted)';
+    itemEl.style.fontWeight = isSel ? '700' : '400';
+    itemEl.style.border = isSel ? '1px solid rgba(168,85,247,0.5)' : '1px solid transparent';
+    const checkBadge = itemEl.querySelector('.check-badge');
+    if (checkBadge) checkBadge.textContent = isSel ? '✓' : '';
+  }
+
+  const card = document.querySelector(`[data-id="${actionId}"]`);
+  if (card) {
+    const events = getChainEventsForMode(act.mode, act);
+    const chainedCount = events.reduce((n, ev) => n + (act.chaining[ev] || []).length, 0);
+    const badgeEl = card.querySelector('.chain-badge');
+    if (badgeEl) {
+      if (chainedCount > 0) {
+        badgeEl.textContent = chainedCount;
+        badgeEl.style.display = 'inline-block';
+      } else {
+        badgeEl.style.display = 'none';
+      }
+    }
+  }
+
+  saveCurrentProfile();
+}
+
+export function onChainEnabledToggle(actionId, checkbox) {
+  const card = document.querySelector(`[data-id="${actionId}"]`);
+  if (!card) return;
+  const chainRows = card.querySelector('.chain-rows');
+  if (chainRows) {
+    const isChecked = checkbox.checked;
+    chainRows.style.opacity = isChecked ? '1' : '0.35';
+    chainRows.style.pointerEvents = isChecked ? '' : 'none';
+  }
+  syncActionFromDom(actionId);
+  saveCurrentProfile();
+}
+
+function getChainEventsForMode(mode, act) {
+  const norm = normalizeMode(mode);
   const map = {
     loop: ['onBeforeStart', 'onAfterStart', 'onEachCycle', 'onStop'],
     buff_sequence: ['onBeforeStart', 'onAfterStart', 'onComplete'],
     single_press: ['onFired'],
     delay_only: ['onBeforeStart', 'onComplete'],
     forward: ['onKeyDown', 'onActivated', 'onKeyUp'],
-    key_hold: ['onEnable', 'onDisable']
+    key_hold: ['onEnable', 'onDisable'],
+    branch: ['onTrue', 'onFalse']
   };
-  return map[mode] || [];
+  return map[norm] || [];
 }
 
 export function renderFirstStepsForAction(act) {
@@ -624,13 +806,16 @@ export function renderFirstStepsForAction(act) {
     <div class="dyn-item" data-step-idx="${idx}">
       <div class="field">
         <label>${TRANSLATIONS[currentLang].stepKeyLabel}</label>
-        <input type="text" class="step-key" value="${escapeHtml(step.key || '')}" placeholder="1" readonly style="cursor:pointer;">
+        <div style="display:flex; align-items:center; gap:4px; width:100%;">
+          <input type="text" class="step-key" value="${escapeHtml(step.key || '')}" placeholder="1" readonly onfocus="startRecordingKey(this, '${act.id}', 'step_${idx}')" onblur="stopRecordingKey(this)" style="cursor:pointer; flex:1; background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:12px; color:var(--text); font-family:'JetBrains Mono';">
+          <button type="button" class="btn btn-ghost" onclick="openVirtualKeyboard(this.previousElementSibling, '${act.id}', 'step_${idx}')" style="height:28px; padding:0 6px; font-size:11px; border-color:var(--primary); color:var(--primary); border-radius:6px;" title="Open Virtual Keyboard Picker">⌨️</button>
+        </div>
       </div>
       <div class="field">
         <label>${TRANSLATIONS[currentLang].stepDelayLabel}</label>
-        <input type="number" class="step-delay" value="${step.delay || 500}" min="50" step="50">
+        <input type="number" class="step-delay" value="${step.delay || 500}" min="50" step="50" onchange="syncActionFromDom('${act.id}'); saveCurrentProfile();" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:12px; color:var(--text); font-family:'JetBrains Mono';">
       </div>
-      <button type="button" class="del-btn btn-del-step" data-action-id="${act.id}" data-step-idx="${idx}">✕</button>
+      <button type="button" class="del-btn btn-del-step" onclick="removeFirstStepFromAction('${act.id}', ${idx})" title="Delete Step">✕</button>
     </div>
   `).join('');
 }
@@ -735,6 +920,16 @@ export function syncActionFromDom(actionId) {
 
     const delayAfterEl = card.querySelector('.loop-delay-after');
     if (delayAfterEl) act.delayAfter = parseInt(delayAfterEl.value) || 0;
+
+    const stepEls = card.querySelectorAll('.dyn-item');
+    if (stepEls.length > 0) {
+      act.firstSteps = Array.from(stepEls).map(el => ({
+        key: el.querySelector('.step-key')?.value.trim() || '',
+        delay: parseInt(el.querySelector('.step-delay')?.value) || 500
+      }));
+    } else {
+      act.firstSteps = [];
+    }
   } else if (act.mode === 'buff_sequence') {
     const keysEl = card.querySelector('.buff-keys');
     if (keysEl) act.keys = keysEl.value.split(',').map(s => s.trim()).filter(Boolean);
@@ -771,7 +966,7 @@ export function syncActionFromDom(actionId) {
 
     const delayAfterEl = card.querySelector('.hold-delay-after');
     if (delayAfterEl) act.delayAfter = parseInt(delayAfterEl.value) || 0;
-  } else if (act.mode === 'action_control') {
+  } else if (normalizeMode(act.mode) === 'control') {
     const targetIdsEl = card.querySelector('.control-target-ids');
     if (targetIdsEl) {
       const selected = Array.from(targetIdsEl.selectedOptions).map(o => o.value);
@@ -780,6 +975,12 @@ export function syncActionFromDom(actionId) {
     }
     const opEl = card.querySelector('.control-operation');
     if (opEl) act.controlOperation = opEl.value;
+  } else if (normalizeMode(act.mode) === 'branch') {
+    const targetEl = card.querySelector('.condition-target-id');
+    if (targetEl) act.conditionTargetId = targetEl.value;
+
+    const ruleEl = card.querySelector('.condition-rule');
+    if (ruleEl) act.conditionRule = ruleEl.value;
   }
 
   const chainEnabledEl = card.querySelector('.chain-enabled');
@@ -864,8 +1065,14 @@ export function addFirstStepToAction(actionId) {
   if (!act.firstSteps) act.firstSteps = [];
   act.firstSteps.push({ key: '', delay: 500 });
 
+  const listEl = document.getElementById(`first-steps-list-${actionId}`);
+  if (listEl) {
+    listEl.innerHTML = renderFirstStepsForAction(act);
+  } else {
+    renderActions(profile.actions);
+  }
+
   saveCurrentProfile();
-  renderActions(profile.actions);
 }
 
 export function removeFirstStepFromAction(actionId, stepIdx) {
@@ -880,8 +1087,14 @@ export function removeFirstStepFromAction(actionId, stepIdx) {
     act.firstSteps.splice(stepIdx, 1);
   }
 
+  const listEl = document.getElementById(`first-steps-list-${actionId}`);
+  if (listEl) {
+    listEl.innerHTML = renderFirstStepsForAction(act);
+  } else {
+    renderActions(profile.actions);
+  }
+
   saveCurrentProfile();
-  renderActions(profile.actions);
 }
 
 export function syncIntervalRange(actionId, value) {

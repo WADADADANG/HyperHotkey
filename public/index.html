@@ -51,6 +51,7 @@
           <button class="btn btn-activate" onclick="activateProfile()" data-i18n="setActive">✓ Set Active</button>
           <button class="btn btn-ghost" onclick="openNewProfileModal()" data-i18n="newProfileBtn">+ New</button>
           <button class="btn btn-ghost" onclick="openRenameProfileModal()" data-i18n="renameProfileBtn" style="border-color:#3b82f6; color:#3b82f6; background:rgba(59,130,246,0.08);">✏️ Rename</button>
+          <button class="btn btn-ghost" onclick="openValidatorModal()" data-i18n="validateProfileBtn" style="border-color:#a855f7; color:#a855f7; background:rgba(168,85,247,0.08);">🔍 Validate Profile</button>
           <button class="btn btn-danger" onclick="deleteProfile()" data-i18n="deleteProfileBtn">✕ Delete</button>
         </div>
         <!-- Client Control Center Grid (Clients 1 - 8) -->
@@ -141,11 +142,12 @@
         <button class="btn btn-ghost" onclick="addNewAction()"
           style="border-color:var(--primary); color:var(--primary); width:100%; justify-content:center;"
           data-i18n="addCustomAction">➕ Add Custom Action</button>
-      </div>
+      <!-- Spacer so bottom content isn't obscured by floating save button -->
+      <div style="margin-top: 15px; margin-bottom: 70px;"></div>
 
-      <!-- Save Button -->
-      <button class="btn btn-save-big" onclick="saveCurrentProfile()" style="margin-top: 10px;">
-        <span data-i18n="applySave">💾 Apply & Save Profile</span>
+      <!-- Floating Circular Save Button (FAB) -->
+      <button class="btn btn-save-big" onclick="saveCurrentProfile()" title="Apply & Save Profile (บันทึกและใช้งานโปรไฟล์)">
+        💾
       </button>
 
     </div><!-- /left-panel -->
@@ -569,6 +571,28 @@
       <div style="display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:20px; border-top:1px solid rgba(255,255,255,0.1); padding-top:16px;">
         <button class="btn btn-ghost" onclick="closeVirtualKeyboard()" style="padding:8px 18px; font-size:13px;">Cancel</button>
         <button class="btn btn-activate" onclick="applyVirtualKeyboard()" style="padding:8px 24px; font-size:13px; font-weight:700;">✓ Apply Hotkey</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════ VALIDATOR MODAL ════════ -->
+  <div class="modal-bg" id="validator-modal">
+    <div class="modal" style="max-width:600px; max-height:80vh; display:flex; flex-direction:column;">
+      <h2 data-i18n="validatorModalTitle">Profile Integrity &amp; Health Inspector</h2>
+      <p style="font-size:11px; color:var(--muted); margin-bottom:14px;" data-i18n="validatorModalDesc">Scans active profile for trigger conflicts, broken chain references, missing targets, or infinite loops.</p>
+
+      <!-- Summary Bar -->
+      <div id="validator-summary" style="display:flex; gap:12px; margin-bottom:12px; padding:10px 14px; border-radius:8px; background:rgba(255,255,255,0.03); border:1px solid var(--border); font-size:12px; font-weight:600;"></div>
+
+      <!-- Issues List -->
+      <div id="validator-issues-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:4px; max-height:45vh;"></div>
+
+      <!-- Footer Buttons -->
+      <div style="display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:16px; border-top:1px solid rgba(255,255,255,0.1); padding-top:14px;">
+        <button class="btn btn-ghost" onclick="closeValidatorModal()" style="padding:8px 18px; font-size:13px;" data-i18n="btnCancel">Cancel</button>
+        <button class="btn" id="validator-autofix-btn" onclick="autoFixFromModal()"
+          style="padding:8px 22px; font-size:13px; font-weight:700; background:linear-gradient(135deg,#a855f7,#7c3aed); color:#fff; border-radius:8px; border:1px solid rgba(168,85,247,0.4); display:none;"
+          data-i18n="btnAutoFixAll">⚡ Auto-Fix All Issues</button>
       </div>
     </div>
   </div>
