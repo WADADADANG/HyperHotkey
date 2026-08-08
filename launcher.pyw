@@ -15,6 +15,21 @@ SERVER_URL = "http://localhost:3000/"
 # Global process handle
 node_process = None
 
+# Single-Instance Socket Lock
+instance_lock_socket = None
+
+def check_single_instance():
+    global instance_lock_socket
+    try:
+        instance_lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        instance_lock_socket.bind(('127.0.0.1', 39999))
+    except Exception:
+        # Launcher is already running! Focus web dashboard and exit duplicate process immediately.
+        webbrowser.open(SERVER_URL)
+        sys.exit(0)
+
+check_single_instance()
+
 def is_port_in_use(port=3000):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
@@ -101,6 +116,13 @@ def on_close():
 # ============================================================================
 # MODERN PYTHON GUI LAUNCHER (Tkinter)
 # ============================================================================
+# Fix Windows Taskbar AppUserModelID to display custom icon instead of Python icon
+try:
+    import ctypes
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('HyperHotkey.Automation.v2.2.0')
+except Exception:
+    pass
+
 start_node_server()
 
 root = tk.Tk()
@@ -108,6 +130,23 @@ root.title("HyperHotkey v2.2.0 Launcher")
 root.geometry("420x260")
 root.resizable(False, False)
 root.configure(bg="#0f172a")
+
+# Load Custom Application Icon for Window Titlebar & Taskbar
+ico_path = os.path.join(PROJECT_DIR, "icon.ico")
+png_path = os.path.join(PROJECT_DIR, "icon.png")
+
+if os.path.exists(ico_path):
+    try:
+        root.iconbitmap(ico_path)
+    except Exception:
+        pass
+
+if os.path.exists(png_path):
+    try:
+        app_icon = tk.PhotoImage(file=png_path)
+        root.iconphoto(True, app_icon)
+    except Exception:
+        pass
 
 # Center window on screen
 root.eval('tk::PlaceWindow . center')
