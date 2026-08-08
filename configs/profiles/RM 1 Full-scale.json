@@ -33,7 +33,8 @@
       "chaining": {
         "_enabled": true,
         "onBeforeStart": [
-          "act_1786178765713"
+          "act_1786178765713",
+          "act_1786191360757"
         ],
         "onAfterStart": [
           "action_2",
@@ -254,6 +255,34 @@
       "delayBuff": 800,
       "controlTargetIds": [
         "act_1786190153364"
+      ]
+    },
+    {
+      "id": "act_1786191360757",
+      "name": "AC Stop Full Buff",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "stop",
+      "controlTargetIds": [
+        "action_3"
       ]
     }
   ]

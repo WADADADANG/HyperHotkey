@@ -1387,6 +1387,22 @@ function getActionTargets(targetStr) {
     return raw.filter(isClientEnabled);
 }
 
+let clientCDPSessions = {};
+
+async function getCDPSession(targetIdx) {
+    const targetPage = clientPages[targetIdx];
+    if (!targetPage) return null;
+    if (!clientCDPSessions[targetIdx] || clientCDPSessions[targetIdx]._closed) {
+        try {
+            const cdp = await targetPage.context().newCDPSession(targetPage);
+            clientCDPSessions[targetIdx] = cdp;
+        } catch (e) {
+            return null;
+        }
+    }
+    return clientCDPSessions[targetIdx];
+}
+
 // ============================================================================
 // ACTION & LOOP FUNCTIONS
 // ============================================================================
@@ -1408,10 +1424,6 @@ async function sendKey(action, key) {
     const clientName = `Client ${targetIdx}`;
 
     if (!targetPage) return;
-
-    if (isBuffSequenceRunning[String(targetIdx)] && action.mode === 'loop') {
-        return; // Skip loops if buff sequence is running on this client
-    }
 
     // Cooldown Prevention Check per client
     let activeCooldownMs = 0;
@@ -1457,25 +1469,38 @@ async function sendKey(action, key) {
     }
 
     try {
-        // 1. Add random pre-press delay for human-like timing (10 - 35ms)
-        const jitterDelay = Math.floor(Math.random() * 25) + 10;
-        await new Promise(res => setTimeout(res, jitterDelay));
-
-        // 2. Simulate hold time (60 - 130ms) like a human
         const holdTime = Math.floor(Math.random() * 70) + 60;
         const formattedKey = formatKeyForPlaywright(key);
-        await targetPage.keyboard.press(formattedKey, { delay: holdTime });
+        const cdp = await getCDPSession(targetIdx);
 
-        console.log(`[Action] [${clientName}] Sent key: "${key}" (Formatted: "${formattedKey}" | Delay: ${jitterDelay}ms | Hold: ${holdTime}ms)`);
+        if (cdp) {
+            await cdp.send('Input.dispatchKeyEvent', {
+                type: 'rawKeyDown',
+                key: formattedKey,
+                code: formattedKey,
+                text: formattedKey.length === 1 ? formattedKey : undefined,
+                unmodifiedText: formattedKey.length === 1 ? formattedKey : undefined
+            }).catch(() => {});
+
+            setTimeout(() => {
+                cdp.send('Input.dispatchKeyEvent', {
+                    type: 'keyUp',
+                    key: formattedKey,
+                    code: formattedKey
+                }).catch(() => {});
+            }, holdTime);
+
+            console.log(`[Action] [${clientName}] Sent key: "${key}" (Formatted: "${formattedKey}" | Direct CDP | Hold: ${holdTime}ms)`);
+        } else {
+            await targetPage.keyboard.down(formattedKey).catch(() => {});
+            setTimeout(() => {
+                targetPage.keyboard.up(formattedKey).catch(() => {});
+            }, holdTime);
+
+            console.log(`[Action] [${clientName}] Sent key: "${key}" (Formatted: "${formattedKey}" | Hold: ${holdTime}ms)`);
+        }
     } catch (e) {
         console.error(`[Action Error] [${clientName}] Failed to send key "${key}":`, e.message);
-
-        // Detect closed connection / target destroyed / browser crash
-        const msg = e.message.toLowerCase();
-        if (msg.includes('closed') || msg.includes('target') || msg.includes('session') || msg.includes('detached') || msg.includes('destroyed')) {
-            console.log(`\n⚠️ [System] [${clientName}] Game tab connection lost during action execution! Initiating rescan...`);
-            resetAndRescanClient(targetIdx, clientContexts[targetIdx]);
-        }
     }
 }
 
@@ -1496,12 +1521,8 @@ async function startLoopAction(action, callStack) {
     const target = action.targetClient || '1';
     let targets = getActionTargets(target).map(x => parseInt(x, 10));
 
-    for (let t of targets) {
-        if (isBuffSequenceRunning[String(t)]) {
-            console.log(`⚠️ Cannot start loop: Buff Sequence is currently running on Client ${t}`);
-            return;
-        }
-    }
+    // Run onBeforeStart chains first (e.g. Action Control commands)
+    await fireChain(action, 'onBeforeStart', callStack);
 
     console.log(`🟢 [Action] Starting loop: "${action.name}" on Client ${target}`);
     if (!activeLoopStates[action.id]) {
@@ -1510,7 +1531,6 @@ async function startLoopAction(action, callStack) {
         activeLoopStates[action.id].running = true;
     }
 
-    await fireChain(action, 'onBeforeStart', callStack);
     await fireChain(action, 'onStart', callStack);
 
     // Run first steps if any
@@ -1612,7 +1632,6 @@ async function runBuffSequenceAction(action, callStack) {
     for (let t of targets) {
         isBuffSequenceRunning[String(t)] = true;
         console.log(`🔵 [Action] Buff Sequence Started: "${action.name}" on Client ${t}...`);
-        stopLoopsForClient(t);
     }
     await fireChain(action, 'onBeforeStart', callStack);
     await fireChain(action, 'onStart', callStack);
@@ -1620,8 +1639,17 @@ async function runBuffSequenceAction(action, callStack) {
     sendOverlayUpdate();
 
     const delay = action.delayBuff || 800;
+    let wasInterrupted = false;
+
     if (action.keys && action.keys.length > 0) {
         for (let key of action.keys) {
+            // Check if buff sequence was stopped mid-way by Action Control or stop command
+            let isRunningAny = targets.some(t => isBuffSequenceRunning[String(t)]);
+            if (!isRunningAny) {
+                console.log(`🔴 [Action] Buff Sequence Interrupted/Stopped: "${action.name}"`);
+                wasInterrupted = true;
+                break;
+            }
             await sendKey(action, key);
             await new Promise(res => setTimeout(res, delay));
         }
@@ -1629,9 +1657,13 @@ async function runBuffSequenceAction(action, callStack) {
 
     for (let t of targets) {
         isBuffSequenceRunning[String(t)] = false;
-        console.log(`⚪ [Action] Finished Buff Sequence: "${action.name}" on Client ${t}`);
+        if (!wasInterrupted) {
+            console.log(`⚪ [Action] Finished Buff Sequence: "${action.name}" on Client ${t}`);
+        }
     }
-    await fireChain(action, 'onComplete', callStack);
+    if (!wasInterrupted) {
+        await fireChain(action, 'onComplete', callStack);
+    }
     sendOverlayUpdate();
 }
 
@@ -1767,7 +1799,7 @@ async function fireChain(sourceAction, eventName, callStack = new Set()) {
         }
     };
 
-    executeChain().catch(err => console.error(`[Chain Error] executeChain:`, err));
+    await executeChain().catch(err => console.error(`[Chain Error] executeChain:`, err));
 }
 
 // Run a target action directly (bypasses hotkey requirement).
@@ -1857,8 +1889,26 @@ async function runActionControl(act, callStack) {
             const target = targetAction.targetClient || '1';
             let targets = getActionTargets(target).map(x => parseInt(x, 10));
             let alreadyRunning = targets.some(t => isBuffSequenceRunning[String(t)]);
-            if (op === 'start' || op === 'toggle') {
+            if (op === 'start') {
                 if (!alreadyRunning) {
+                    await runBuffSequenceAction(targetAction, resolvedStack).catch(err => console.error(err));
+                }
+            } else if (op === 'stop') {
+                if (alreadyRunning) {
+                    for (let t of targets) {
+                        isBuffSequenceRunning[String(t)] = false;
+                    }
+                    console.log(`🔴 [Action Control] Stopped Buff Sequence: "${targetAction.name}"`);
+                    sendOverlayUpdate();
+                }
+            } else { // toggle
+                if (alreadyRunning) {
+                    for (let t of targets) {
+                        isBuffSequenceRunning[String(t)] = false;
+                    }
+                    console.log(`🔴 [Action Control] Toggled (Stopped) Buff Sequence: "${targetAction.name}"`);
+                    sendOverlayUpdate();
+                } else {
                     await runBuffSequenceAction(targetAction, resolvedStack).catch(err => console.error(err));
                 }
             }
