@@ -13,6 +13,9 @@ Thumbs.db
 __pycache__/
 
 # Playwright Persistent Browser Data (Cookies, Logins, Caches)
-profiles/
+/profiles/
 playwright-profiles/
 .playwright/
+
+# Allow Hotkey Configuration Profiles
+!configs/profiles/

@@ -1,0 +1,193 @@
+{
+  "name": "RM Heal 2 Slots",
+  "actions": [
+    {
+      "id": "action_1",
+      "name": "Heal 1",
+      "mode": "loop",
+      "trigger": {
+        "type": "mouse",
+        "value": "4"
+      },
+      "keys": [
+        "1"
+      ],
+      "interval": 1500,
+      "jitter": 250,
+      "firstSteps": [],
+      "enabled": true,
+      "targetClient": "1",
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "executeImmediately": true,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": true,
+        "onBeforeStart": [
+          "act_1786177395657"
+        ],
+        "onAfterStart": [],
+        "onEachCycle": [],
+        "onStop": []
+      }
+    },
+    {
+      "id": "act_1786177357433",
+      "name": "B Heal Control",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "5"
+      },
+      "mode": "branch",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": true,
+        "onTrue": [
+          "act_1786177395657"
+        ],
+        "onFalse": [
+          "act_1786176084491"
+        ]
+      },
+      "conditionTargetId": "act_1786177420733",
+      "conditionRule": "is_running"
+    },
+    {
+      "id": "act_1786177420733",
+      "name": "Heal Rain Both",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "loop",
+      "targetClient": "1,2",
+      "keys": [
+        "2"
+      ],
+      "interval": 1200,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": true,
+        "onBeforeStart": [
+          "action_4"
+        ]
+      }
+    },
+    {
+      "id": "act_1786176084491",
+      "name": "AC Start Heal Rain Both",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "start",
+      "controlTargetIds": [
+        "action_2",
+        "act_1786177420733"
+      ]
+    },
+    {
+      "id": "act_1786177395657",
+      "name": "AC Stop Heal Rain Both",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "stop",
+      "controlTargetIds": [
+        "act_1786177420733"
+      ]
+    },
+    {
+      "id": "action_4",
+      "name": "AC Stop Heal 1",
+      "mode": "control",
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "keys": [
+        "F3",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "F4",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "F1"
+      ],
+      "delayBuff": 800,
+      "enabled": true,
+      "targetClient": "1",
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false,
+        "onBeforeStart": [],
+        "onAfterStart": [],
+        "onComplete": []
+      },
+      "controlOperation": "stop",
+      "controlTargetIds": [
+        "action_1"
+      ]
+    }
+  ]
+}
