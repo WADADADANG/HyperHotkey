@@ -813,7 +813,7 @@ export function renderFirstStepsForAction(act) {
       </div>
       <div class="field">
         <label>${TRANSLATIONS[currentLang].stepDelayLabel}</label>
-        <input type="number" class="step-delay" value="${step.delay || 500}" min="50" step="50" onchange="syncActionFromDom('${act.id}'); saveCurrentProfile();" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:12px; color:var(--text); font-family:'JetBrains Mono';">
+        <input type="number" class="step-delay" value="${step.delay !== undefined ? step.delay : 500}" min="0" step="50" onchange="syncActionFromDom('${act.id}'); saveCurrentProfile();" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:4px 8px; font-size:12px; color:var(--text); font-family:'JetBrains Mono';">
       </div>
       <button type="button" class="del-btn btn-del-step" onclick="removeFirstStepFromAction('${act.id}', ${idx})" title="Delete Step">✕</button>
     </div>
@@ -923,10 +923,13 @@ export function syncActionFromDom(actionId) {
 
     const stepEls = card.querySelectorAll('.dyn-item');
     if (stepEls.length > 0) {
-      act.firstSteps = Array.from(stepEls).map(el => ({
-        key: el.querySelector('.step-key')?.value.trim() || '',
-        delay: parseInt(el.querySelector('.step-delay')?.value) || 500
-      }));
+      act.firstSteps = Array.from(stepEls).map(el => {
+        const rawDelay = parseInt(el.querySelector('.step-delay')?.value, 10);
+        return {
+          key: el.querySelector('.step-key')?.value.trim() || '',
+          delay: isNaN(rawDelay) ? 0 : Math.max(0, rawDelay)
+        };
+      });
     } else {
       act.firstSteps = [];
     }

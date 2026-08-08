@@ -16,8 +16,8 @@
       "jitter": 250,
       "firstSteps": [
         {
-          "key": "F4",
-          "delay": 1
+          "key": "F1",
+          "delay": 0
         },
         {
           "key": "3",
@@ -85,11 +85,11 @@
       "name": "Full Buff",
       "mode": "buff_sequence",
       "trigger": {
-        "type": "keyboard",
-        "value": "INSERT"
+        "type": "none",
+        "value": ""
       },
       "keys": [
-        "F5",
+        "F2",
         "1",
         "2",
         "3",
@@ -100,10 +100,10 @@
         "8",
         "9",
         "0",
-        "F6",
+        "F2",
         "1",
         "2",
-        "F4"
+        "F1"
       ],
       "interval": 40000,
       "jitter": 2000,
@@ -115,8 +115,10 @@
       "executeImmediately": true,
       "delayAfter": 0,
       "chaining": {
-        "_enabled": false,
-        "onBeforeStart": [],
+        "_enabled": true,
+        "onBeforeStart": [
+          "act_1786193741045"
+        ],
         "onAfterStart": [],
         "onEachCycle": [],
         "onStop": []
@@ -284,6 +286,66 @@
       "controlTargetIds": [
         "action_3"
       ]
+    },
+    {
+      "id": "act_1786193741045",
+      "name": "AC Stop Heal Rain",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "stop",
+      "controlTargetIds": [
+        "action_1"
+      ]
+    },
+    {
+      "id": "act_1786193844974",
+      "name": "B Full Buff",
+      "enabled": true,
+      "trigger": {
+        "type": "keyboard",
+        "value": "INSERT"
+      },
+      "mode": "branch",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": true,
+        "onTrue": [
+          "act_1786191360757"
+        ],
+        "onFalse": [
+          "action_3"
+        ]
+      },
+      "conditionTargetId": "action_3",
+      "conditionRule": "is_running"
     }
   ]
 }

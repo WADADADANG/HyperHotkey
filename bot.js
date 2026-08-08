@@ -1539,7 +1539,10 @@ async function startLoopAction(action, callStack) {
         for (let step of action.firstSteps) {
             if (!activeLoopStates[action.id] || !activeLoopStates[action.id].running) return;
             await sendKey(action, step.key);
-            await new Promise(res => setTimeout(res, step.delay));
+            const stepDelay = parseInt(step.delay, 10);
+            if (!isNaN(stepDelay) && stepDelay > 0) {
+                await new Promise(res => setTimeout(res, stepDelay));
+            }
         }
     }
 
