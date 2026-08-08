@@ -1097,22 +1097,9 @@ async function launchSingleClient(clientIndexInput, choiceParam) {
 }
 global.launchSingleClient = launchSingleClient;
 
-function resetAndRescanClient(clientIndex, browserCtx) {
-    const page = clientPages[clientIndex];
-    if (page) {
-        try {
-            page.removeAllListeners('close');
-            page.removeAllListeners('crash');
-        } catch (e) {}
-    }
-    clientPages[clientIndex] = null;
-    stopLoopsForClient(clientIndex);
-    findAndAttachTabForClient(clientIndex, browserCtx).catch(err => console.error(`Error in tab search for Client ${clientIndex}:`, err));
-}
-
 // Scanning for the target tab periodically until found
 async function findAndAttachTabForClient(clientIndex, browserCtx) {
-    console.log(`[System] 🔍 [Client ${clientIndex}] Scanning for tabs containing "${targetUrlKeyword}"...`);
+    console.log(`[System] 🔍 [Client ${clientIndex}] Scanning for game tab containing "${targetUrlKeyword}"...`);
     
     while (true) {
         try {
@@ -1130,23 +1117,30 @@ async function findAndAttachTabForClient(clientIndex, browserCtx) {
 
             if (foundPage) {
                 clientPages[clientIndex] = foundPage;
+                delete clientCDPSessions[clientIndex];
                 console.log(`\n[System] ✅ [Client ${clientIndex}] Game tab detected! Target locked: "${await foundPage.title()}"`);
 
+                foundPage.removeAllListeners('close');
+                foundPage.removeAllListeners('crash');
+
                 foundPage.on('close', () => {
-                    console.log(`\n⚠️ [System] [Client ${clientIndex}] Game tab closed! Pausing actions for Client ${clientIndex} and scanning again...`);
-                    resetAndRescanClient(clientIndex, browserCtx);
+                    delete clientCDPSessions[clientIndex];
+                    delete clientPages[clientIndex];
+                    console.log(`\n🔴 [System] [Client ${clientIndex}] Game tab closed! Pausing actions for Client ${clientIndex}. You can re-launch it anytime from the Web Dashboard.`);
+                    closeSingleClient(clientIndex);
                 });
 
                 foundPage.on('crash', () => {
-                    console.log(`\n⚠️ [System] [Client ${clientIndex}] Game tab crashed! Pausing actions for Client ${clientIndex} and scanning again...`);
-                    resetAndRescanClient(clientIndex, browserCtx);
+                    delete clientCDPSessions[clientIndex];
+                    delete clientPages[clientIndex];
+                    console.log(`\n🔴 [System] [Client ${clientIndex}] Game tab crashed! Pausing actions for Client ${clientIndex}. You can re-launch it anytime from the Web Dashboard.`);
+                    closeSingleClient(clientIndex);
                 });
 
                 console.log(`-------------------------------------------------`);
                 console.log(`[Client ${clientIndex}] Global Hotkeys initialized!`);
                 console.log(`-------------------------------------------------\n`);
                 updateBrowserTitles();
-                // Start ghost mouse jitter for this client if enabled
                 startGhostMouseJitter(clientIndex);
                 break;
             }
@@ -1470,8 +1464,46 @@ async function sendKey(action, key) {
 
     try {
         const holdTime = Math.floor(Math.random() * 70) + 60;
-        const formattedKey = formatKeyForPlaywright(key);
         const cdp = await getCDPSession(targetIdx);
+
+        // Check if key contains combination modifiers (e.g. "LEFT ALT + 1", "ALT + 2", "CTRL + F1")
+        const parts = key.split('+').map(s => s.trim());
+        if (parts.length > 1) {
+            const formattedParts = parts.map(p => formatKeyForPlaywright(p));
+            // Send modifier press for combination keys
+            if (cdp) {
+                for (let p of formattedParts) {
+                    await cdp.send('Input.dispatchKeyEvent', {
+                        type: 'rawKeyDown',
+                        key: p,
+                        code: p
+                    }).catch(() => {});
+                }
+                setTimeout(async () => {
+                    for (let p of [...formattedParts].reverse()) {
+                        await cdp.send('Input.dispatchKeyEvent', {
+                            type: 'keyUp',
+                            key: p,
+                            code: p
+                        }).catch(() => {});
+                    }
+                }, holdTime);
+                console.log(`[Action] [${clientName}] Sent key: "${key}" (Formatted: "${formattedParts.join('+')}" | Direct CDP Combo | Hold: ${holdTime}ms)`);
+            } else {
+                for (let p of formattedParts) {
+                    await targetPage.keyboard.down(p).catch(() => {});
+                }
+                setTimeout(async () => {
+                    for (let p of [...formattedParts].reverse()) {
+                        await targetPage.keyboard.up(p).catch(() => {});
+                    }
+                }, holdTime);
+                console.log(`[Action] [${clientName}] Sent key: "${key}" (Formatted: "${formattedParts.join('+')}" | Combo | Hold: ${holdTime}ms)`);
+            }
+            return;
+        }
+
+        const formattedKey = formatKeyForPlaywright(key);
 
         if (cdp) {
             await cdp.send('Input.dispatchKeyEvent', {

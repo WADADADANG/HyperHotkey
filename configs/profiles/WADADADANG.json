@@ -150,7 +150,7 @@
         "onStop": [],
         "_enabled": true,
         "onBeforeStart": [
-          "action_1784352664191_478"
+          "act_1786169190017"
         ],
         "onAfterStart": [
           "action_1784982044462_250"
@@ -195,7 +195,7 @@
       "mode": "loop",
       "trigger": {
         "type": "keyboard",
-        "value": "LEFT ALT"
+        "value": "TAB"
       },
       "keys": [
         "1"
@@ -244,7 +244,8 @@
         "_enabled": true,
         "onBeforeStart": [
           "action_1784983773627_671",
-          "action_1784981983032_533"
+          "action_1784981983032_533",
+          "action_1785177068204_535"
         ],
         "onAfterStart": [
           "action_1786046644943_797"
@@ -474,39 +475,6 @@
         "action_1785063894263_159"
       ],
       "controlOperation": "stop",
-      "delayAfter": 0
-    },
-    {
-      "id": "action_1784352664191_478",
-      "name": "AC Stop Heal Rain All",
-      "mode": "control",
-      "trigger": {
-        "type": "none",
-        "value": ""
-      },
-      "keys": [
-        "1"
-      ],
-      "interval": 2000,
-      "jitter": 100,
-      "firstSteps": [],
-      "enabled": true,
-      "targetClient": "1",
-      "chaining": {
-        "_enabled": false,
-        "onBeforeStart": [],
-        "onAfterStart": [],
-        "onEachCycle": [],
-        "onStop": []
-      },
-      "controlTargetIds": [
-        "action_1784368366653_569",
-        "action_1784974462974_596",
-        "action_1786059315023_247"
-      ],
-      "controlOperation": "stop",
-      "cooldownPresetId": "",
-      "customCooldownMs": 0,
       "delayAfter": 0
     },
     {
