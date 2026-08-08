@@ -7,6 +7,7 @@ export let allClassIcons = {};
 
 let activePickerActionId = null;
 let activePickerClassTab = 'All';
+let activeRenderActionsCb = null;
 
 export async function fetchCooldownPresets() {
   try {
@@ -71,6 +72,8 @@ export function renderCustomSkillCardContent(presetId, customMs) {
 
 export function openSkillPickerModal(actionId, renderActionsCb) {
   activePickerActionId = actionId;
+  if (renderActionsCb) activeRenderActionsCb = renderActionsCb;
+
   const modal = document.getElementById('skill-picker-modal');
   const searchInput = document.getElementById('skill-picker-search');
   const trans = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
@@ -145,6 +148,9 @@ export function renderSkillPickerClassTabs() {
 }
 
 export function renderSkillPickerGrid(renderActionsCb) {
+  if (renderActionsCb) activeRenderActionsCb = renderActionsCb;
+  const cb = activeRenderActionsCb;
+
   const container = document.getElementById('skill-picker-grid');
   const searchVal = (document.getElementById('skill-picker-search')?.value || '').toLowerCase().trim();
   if (!container) return;
@@ -204,19 +210,26 @@ export function renderSkillPickerGrid(renderActionsCb) {
   container.querySelectorAll('.skill-picker-card').forEach(card => {
     card.addEventListener('click', () => {
       const presetId = card.getAttribute('data-preset-id');
-      selectSkillForAction(presetId, renderActionsCb);
+      selectSkillForAction(presetId, cb);
     });
   });
 }
 
 export function selectSkillForAction(presetId, renderActionsCb) {
   if (!activePickerActionId) return;
+  const cb = renderActionsCb || activeRenderActionsCb;
+  const profile = fullConfig.profiles[currentEditProfile];
+  if (profile && profile.actions) {
+    const act = profile.actions.find(a => a.id === activePickerActionId);
+    if (act) act.cooldownPresetId = presetId;
+  }
+
   const hiddenInput = document.getElementById(`cooldown-preset-input-${activePickerActionId}`);
   if (hiddenInput) hiddenInput.value = presetId;
 
   saveCurrentProfile();
-  if (typeof renderActionsCb === 'function') {
-    renderActionsCb(fullConfig.profiles[currentEditProfile].actions);
+  if (typeof cb === 'function') {
+    cb(profile ? profile.actions : []);
   }
   closeSkillPickerModal();
 }

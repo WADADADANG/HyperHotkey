@@ -1,0 +1,29 @@
+{
+  "name": "[Ex] 09. Multi-Client Team Command",
+  "actions": [
+    {
+      "id": "act_1786227284950",
+      "name": "Multi Heal Rain",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "4"
+      },
+      "mode": "loop",
+      "targetClient": "all",
+      "keys": [
+        "2"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      }
+    }
+  ]
+}

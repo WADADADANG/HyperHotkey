@@ -53,6 +53,11 @@ import {
   syncActionFromDom,
   syncIntervalRange,
   syncIntervalInput,
+  syncDelayOnlyRange,
+  syncDelayOnlyInput,
+  toggleForwardDelayActivationDisplay,
+  syncForwardActivationRange,
+  syncForwardActivationInput,
   onChainEnabledToggle,
   toggleChainItem,
   toggleControlTargetItem,
@@ -135,6 +140,11 @@ window.applyVirtualKeyboard = applyVirtualKeyboard;
 
 window.syncIntervalRange = syncIntervalRange;
 window.syncIntervalInput = syncIntervalInput;
+window.syncDelayOnlyRange = syncDelayOnlyRange;
+window.syncDelayOnlyInput = syncDelayOnlyInput;
+window.toggleForwardDelayActivationDisplay = toggleForwardDelayActivationDisplay;
+window.syncForwardActivationRange = syncForwardActivationRange;
+window.syncForwardActivationInput = syncForwardActivationInput;
 
 window.openSkillPickerModal = (actionId) => openSkillPickerModal(actionId, renderActions);
 window.closeSkillPickerModal = closeSkillPickerModal;

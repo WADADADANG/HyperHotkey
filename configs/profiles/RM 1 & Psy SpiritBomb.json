@@ -3,11 +3,11 @@
   "actions": [
     {
       "id": "act_1786182020888",
-      "name": "Heal 1",
+      "name": "Heal",
       "enabled": true,
       "trigger": {
         "type": "mouse",
-        "value": "5"
+        "value": "4"
       },
       "mode": "loop",
       "targetClient": "1",
@@ -20,7 +20,7 @@
       "firstSteps": [
         {
           "key": "F1",
-          "delay": 500
+          "delay": 0
         }
       ],
       "cooldownPresetId": "",
@@ -29,7 +29,10 @@
       "chaining": {
         "_enabled": true,
         "onBeforeStart": [
-          "act_1786182183509"
+          "act_1786221161983"
+        ],
+        "onStop": [
+          "act_1786221206131"
         ]
       }
     },
@@ -38,13 +41,13 @@
       "name": "Buff GT",
       "enabled": true,
       "trigger": {
-        "type": "keyboard",
+        "type": "none",
         "value": ""
       },
-      "mode": "loop",
+      "mode": "single_press",
       "targetClient": "1",
       "keys": [
-        "8"
+        "6"
       ],
       "interval": 60000,
       "jitter": 250,
@@ -87,14 +90,14 @@
     },
     {
       "id": "act_1786182303857",
-      "name": "Hold Psy SpiritBomb",
+      "name": "Psy SpiritBomb Hold",
       "enabled": true,
       "trigger": {
         "type": "mouse",
         "value": "5"
       },
       "mode": "key_hold",
-      "targetClient": "1",
+      "targetClient": "2",
       "keys": [
         "1"
       ],
@@ -136,6 +139,60 @@
       "controlOperation": "stop",
       "controlTargetIds": [
         "act_1786182303857"
+      ]
+    },
+    {
+      "id": "act_1786221161983",
+      "name": "Loop 10s",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "loop",
+      "targetClient": "1",
+      "keys": [],
+      "interval": 10000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": true,
+        "onAfterStart": [],
+        "onEachCycle": [
+          "act_1786182183509"
+        ]
+      }
+    },
+    {
+      "id": "act_1786221206131",
+      "name": "AC Stop Loop 10s",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "stop",
+      "controlTargetIds": [
+        "act_1786221161983"
       ]
     }
   ]

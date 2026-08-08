@@ -119,14 +119,14 @@ def on_close():
 # Fix Windows Taskbar AppUserModelID to display custom icon instead of Python icon
 try:
     import ctypes
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('HyperHotkey.Automation.v2.2.2')
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('HyperHotkey.Automation.v2.2.3')
 except Exception:
     pass
 
 start_node_server()
 
 root = tk.Tk()
-root.title("HyperHotkey v2.2.2 Launcher")
+root.title("HyperHotkey v2.2.3 Launcher")
 root.geometry("420x260")
 root.resizable(False, False)
 root.configure(bg="#0f172a")
@@ -154,7 +154,7 @@ root.eval('tk::PlaceWindow . center')
 # Header Title
 title_label = tk.Label(
     root,
-    text="🚀 HyperHotkey v2.2.2",
+    text="🚀 HyperHotkey v2.2.3",
     font=("Segoe UI", 16, "bold"),
     fg="#38bdf8",
     bg="#0f172a"

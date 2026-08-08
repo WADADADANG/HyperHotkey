@@ -159,7 +159,11 @@ export function onManualSaveProfile() {
 }
 
 export function populateProfileDropdowns() {
-  const names = Object.keys(fullConfig.profiles || {});
+  const names = Object.keys(fullConfig.profiles || {}).sort((a, b) => {
+    if (a === 'Default') return -1;
+    if (b === 'Default') return 1;
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+  });
 
   const selectEl = document.getElementById('profile-select');
   if (selectEl) {
@@ -170,8 +174,8 @@ export function populateProfileDropdowns() {
       o.value = n; o.textContent = n;
       selectEl.appendChild(o);
     });
-    if (names.includes(prevSel)) selectEl.value = prevSel;
-    else selectEl.value = currentEditProfile;
+    if (names.includes(currentEditProfile)) selectEl.value = currentEditProfile;
+    else if (names.length > 0) selectEl.value = names[0];
   }
 
   const copyEl = document.getElementById('copy-from-select');
@@ -288,6 +292,15 @@ export function confirmNewProfile() {
     if (typeof window.toast === 'function') window.toast(t('toastEnterProfileName'), 'error');
     return;
   }
+
+  if (fullConfig.profiles && fullConfig.profiles[name]) {
+    if (typeof window.toast === 'function') {
+      const msg = currentLang === 'en' ? `⚠️ Profile name "${name}" already exists! Please choose a different name.` : `⚠️ ชื่อโปรไฟล์ "${name}" มีอยู่แล้วในระบบ! กรุณาตั้งชื่ออื่นเพื่อไม่ให้ทับกับของเดิม`;
+      window.toast(msg, 'error');
+    }
+    return;
+  }
+
   const copyFrom = document.getElementById('copy-from-select').value;
   let newActions = [];
   let newTargetUrl = 'universe.flyff.com';
@@ -331,6 +344,15 @@ export function confirmRenameProfile() {
     document.getElementById('rename-profile-modal').classList.remove('show');
     return;
   }
+
+  if (fullConfig.profiles && fullConfig.profiles[newName]) {
+    if (typeof window.toast === 'function') {
+      const msg = currentLang === 'en' ? `⚠️ Profile name "${newName}" already exists! Please choose a different name.` : `⚠️ ชื่อโปรไฟล์ "${newName}" มีอยู่แล้วในระบบ! กรุณาตั้งชื่ออื่นเพื่อไม่ให้ทับกับของเดิม`;
+      window.toast(msg, 'error');
+    }
+    return;
+  }
+
   const oldProfile = fullConfig.profiles[currentEditProfile];
   delete fullConfig.profiles[currentEditProfile];
   fullConfig.profiles[newName] = oldProfile;

@@ -1,0 +1,84 @@
+{
+  "name": "[Ex] 04. Pure Timer (Delay Only)",
+  "actions": [
+    {
+      "id": "act_1786225814509",
+      "name": "Heal",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "4"
+      },
+      "mode": "single_press",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": true,
+        "onFired": [
+          "act_1786225961313"
+        ]
+      }
+    },
+    {
+      "id": "act_1786225961313",
+      "name": "Wait 3 Sec",
+      "enabled": true,
+      "trigger": {
+        "type": "keyboard",
+        "value": ""
+      },
+      "mode": "delay_only",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": true,
+        "onComplete": [
+          "act_1786226034323"
+        ]
+      },
+      "delayMs": 3000
+    },
+    {
+      "id": "act_1786226034323",
+      "name": "Buff GT",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "single_press",
+      "targetClient": "1",
+      "keys": [
+        "6"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      }
+    }
+  ]
+}

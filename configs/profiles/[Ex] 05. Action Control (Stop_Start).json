@@ -1,0 +1,57 @@
+{
+  "name": "[Ex] 05. Action Control (Stop_Start)",
+  "actions": [
+    {
+      "id": "act_1786224760592",
+      "name": "AC Start (Toggle)",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "4"
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "toggle",
+      "controlTargetIds": [
+        "act_1786224687474"
+      ]
+    },
+    {
+      "id": "act_1786224687474",
+      "name": "Heal Rain",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "loop",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 1000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      }
+    }
+  ]
+}

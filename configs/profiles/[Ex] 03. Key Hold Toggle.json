@@ -1,0 +1,28 @@
+{
+  "name": "[Ex] 03. Key Hold Toggle",
+  "actions": [
+    {
+      "id": "act_1786224528820",
+      "name": "Psy SpiritBomb",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "4"
+      },
+      "mode": "key_hold",
+      "targetClient": "1",
+      "keys": [],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "targetKey": "1"
+    }
+  ]
+}

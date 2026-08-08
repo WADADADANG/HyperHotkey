@@ -46,14 +46,17 @@ export function validateProfile(actions) {
 
       if (masters.length > 0) {
         const masterNames = masters.map(m => `"${m.name}"`).join(', ');
+        const trigLabelEn = act.trigger.type === 'mouse' ? `Mouse Button ${act.trigger.value}` : `Keyboard Key "${act.trigger.value}"`;
+        const trigLabelTh = act.trigger.type === 'mouse' ? `ปุ่มเมาส์คลิกด้านข้าง (Mouse Button ${act.trigger.value})` : `ปุ่มคีย์บอร์ด "${act.trigger.value}"`;
+
         issues.push({
           type: 'conflicting_trigger',
           severity: 'warning',
           actionId: act.id,
           actionName: act.name,
           autoFixable: true,
-          messageEn: `Trigger "${act.trigger.value}" conflicts with controlling master ${masterNames}. (Causes double-triggering)`,
-          messageTh: `ปุ่ม Trigger "${act.trigger.value}" ซ้ำกับ Master (${masterNames}) ที่ควบคุมมันอยู่ (ทำให้เกิดการซ้ำซ้อน)`
+          messageEn: `Trigger ${trigLabelEn} conflicts with master action ${masterNames} controlling it (causes double-triggering).`,
+          messageTh: `ตั้งค่าปุ่ม ${trigLabelTh} ซ้ำกับ Master (${masterNames}) ที่ควบคุมมันอยู่ (ทำให้เกิดการกดซ้ำซ้อน)`
         });
       }
     }
@@ -106,6 +109,19 @@ export function validateProfile(actions) {
           autoFixable: false,
           messageEn: `Branch mode has no target action selected to check.`,
           messageTh: `โหมด Branch ยังไม่ได้เลือก Action อ้างอิงที่ต้องการเช็ค`
+        });
+      }
+    } else if (normMode === 'key_hold') {
+      const hasTargetKey = !!(act.targetKey && act.targetKey.trim());
+      if (!hasTargetKey) {
+        issues.push({
+          type: 'unset_target',
+          severity: 'warning',
+          actionId: act.id,
+          actionName: act.name,
+          autoFixable: false,
+          messageEn: `Key Hold mode has no target key specified to hold down.`,
+          messageTh: `โหมดกดปุ่มค้าง (Key Hold) ยังไม่ได้เลือกปุ่มที่จะสั่งให้กดค้าง`
         });
       }
     }
@@ -172,7 +188,10 @@ export function validateProfile(actions) {
     if (triggerCounts[key].length > 1) {
       const acts = triggerCounts[key];
       const names = acts.map(a => `"${a.name}"`).join(', ');
-      const trigValue = key.split(':')[1];
+      const [type, value] = key.split(':');
+      const deviceLabelEn = type === 'mouse' ? `Mouse Button ${value}` : `Keyboard Key "${value}"`;
+      const deviceLabelTh = type === 'mouse' ? `ปุ่มเมาส์คลิกด้านข้าง (Mouse Button ${value})` : `ปุ่มคีย์บอร์ด "${value}"`;
+
       acts.forEach(act => {
         issues.push({
           type: 'duplicate_trigger',
@@ -180,8 +199,8 @@ export function validateProfile(actions) {
           actionId: act.id,
           actionName: act.name,
           autoFixable: false,
-          messageEn: `Trigger key "${trigValue}" is assigned to multiple active actions (${names}).`,
-          messageTh: `ปุ่ม Trigger "${trigValue}" ถูกใช้ซ้ำกับหลาย Action (${names})`
+          messageEn: `${deviceLabelEn} is assigned to trigger multiple actions (${names}) at the same time.`,
+          messageTh: `ตั้งค่าให้ ${deviceLabelTh} สั่งรันพร้อมกันหลาย Action (${names})`
         });
       });
     }

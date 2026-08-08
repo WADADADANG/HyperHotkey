@@ -1,0 +1,29 @@
+{
+  "name": "[Ex] 01. Single Key Loop",
+  "actions": [
+    {
+      "id": "act_1786224190413",
+      "name": "RM Heal",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "4"
+      },
+      "mode": "loop",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      }
+    }
+  ]
+}

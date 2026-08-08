@@ -1,0 +1,38 @@
+{
+  "name": "[Ex] 10. First Steps Prep (Pre-Loop)",
+  "actions": [
+    {
+      "id": "act_1786227388244",
+      "name": "Heal & Buff GT (FirstSteps)",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "4"
+      },
+      "mode": "loop",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [
+        {
+          "key": "F1",
+          "delay": 0
+        },
+        {
+          "key": "6",
+          "delay": 500
+        }
+      ],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      }
+    }
+  ]
+}

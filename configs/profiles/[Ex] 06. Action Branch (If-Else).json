@@ -1,0 +1,89 @@
+{
+  "name": "[Ex] 06. Action Branch (If-Else)",
+  "actions": [
+    {
+      "id": "act_1786225075175",
+      "name": "Check Start",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "4"
+      },
+      "mode": "branch",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": true,
+        "onTrue": [
+          "act_1786225128697"
+        ],
+        "onFalse": [
+          "act_1786225107061"
+        ]
+      },
+      "conditionTargetId": "act_1786225107061",
+      "conditionRule": "is_running"
+    },
+    {
+      "id": "act_1786225107061",
+      "name": "Loop Start Heal Rain",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "loop",
+      "targetClient": "1",
+      "keys": [
+        "2"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      }
+    },
+    {
+      "id": "act_1786225128697",
+      "name": "AC Stop Hean Rain",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "stop",
+      "controlTargetIds": [
+        "act_1786225107061"
+      ]
+    }
+  ]
+}

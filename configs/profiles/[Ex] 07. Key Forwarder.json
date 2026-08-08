@@ -1,0 +1,32 @@
+{
+  "name": "[Ex] 07. Key Forwarder",
+  "actions": [
+    {
+      "id": "act_1786227690905",
+      "name": "Forward Heal Rain (Client 1 & 2)",
+      "enabled": true,
+      "trigger": {
+        "type": "keyboard",
+        "value": "1"
+      },
+      "mode": "forward",
+      "targetClient": "1,2",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "targetKey": "2",
+      "delayActivation": false,
+      "activationDelayMs": 100
+    }
+  ]
+}

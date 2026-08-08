@@ -1221,7 +1221,7 @@ async function initSystem() {
         migrateProfilesDirectory();
         
         console.log("\n=================================================================");
-        console.log("🚀 HyperHotkey v2.2.2 Control Center Ready!");
+        console.log("🚀 HyperHotkey v2.2.3 Control Center Ready!");
         console.log("👉 Open Web Dashboard at: http://localhost:3000/");
         console.log("👉 Configure Proxy / User-Agent & launch your clients (1-8) directly from the Web UI!");
         console.log("=================================================================\n");
@@ -1656,7 +1656,7 @@ async function runLoopStep(action, callStack) {
         nextInterval = Math.max(100, baseInterval + jitter);
     }
 
-    state.timeout = setTimeout(() => runLoopStep(action, callStack), nextInterval);
+    state.timeout = setTimeout(() => runLoopStep(action, new Set()), nextInterval);
 }
 
 // Run buff sequence
@@ -1727,8 +1727,14 @@ async function runDelayOnlyAction(action, callStack) {
 }
 
 async function toggleKeyHoldAction(action, callStack) {
-    const targetKey = action.targetKey || '1';
+    const targetKey = (action.targetKey && action.targetKey.trim()) ? action.targetKey.trim() : '';
     const target = action.targetClient || '1';
+
+    if (!targetKey) {
+        console.warn(`[Action Warning] Skipped "${action.name}" - No target key specified for Key Hold mode.`);
+        return;
+    }
+
     let targets = getActionTargets(target).map(x => parseInt(x, 10));
 
     const isCurrentlyHeld = !!activeHoldStates[action.id];
@@ -1740,12 +1746,22 @@ async function toggleKeyHoldAction(action, callStack) {
     for (let t of targets) {
         const page = clientPages[t];
         if (!page) continue;
-        
+        const cdp = await getCDPSession(t);
+        const formattedKey = formatKeyForPlaywright(targetKey);
+
         try {
-            if (nextState) {
-                await pressKeyHoldDown(page, targetKey);
+            if (cdp) {
+                if (nextState) {
+                    await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: formattedKey, code: formattedKey }).catch(() => {});
+                } else {
+                    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: formattedKey, code: formattedKey }).catch(() => {});
+                }
             } else {
-                await pressKeyHoldUp(page, targetKey);
+                if (nextState) {
+                    await pressKeyHoldDown(page, targetKey);
+                } else {
+                    await pressKeyHoldUp(page, targetKey);
+                }
             }
         } catch (e) {
             console.error(`[Action Error] Failed toggle key hold on Client ${t}:`, e.message);

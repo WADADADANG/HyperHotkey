@@ -1,0 +1,29 @@
+{
+  "name": "[Ex] 08. Cooldown Guard (Skill Guard)",
+  "actions": [
+    {
+      "id": "act_1786226671237",
+      "name": "Barrier Of Life (Loop Buff)",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "4"
+      },
+      "mode": "loop",
+      "targetClient": "1",
+      "keys": [
+        "8"
+      ],
+      "interval": 1000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "skill_ringmaster_barrier-of-life",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      }
+    }
+  ]
+}

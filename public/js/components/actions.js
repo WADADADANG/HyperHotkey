@@ -114,7 +114,7 @@ export function renderActions(actions) {
         
         <input type="text" class="action-name-input" value="${escapeHtml(act.name)}" 
           placeholder="${currentLang === 'en' ? 'Action Name' : 'ชื่อคำสั่ง'}" 
-          style="background:none; border:none; color:var(--text); font-size:13px; font-weight:700; outline:none; border-bottom:1px dashed rgba(255,255,255,0.15); width:160px; padding-bottom: 2px;">
+          style="background:none; border:none; color:var(--text); font-size:13px; font-weight:700; outline:none; border-bottom:1px dashed rgba(255,255,255,0.15); min-width:240px; max-width:420px; padding-bottom: 2px;">
         
         <div class="summary-badges" style="display:flex; align-items:center; gap:8px; font-size:11px; flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; color:var(--muted);">
           <span style="background:${badgeInfo.bg}; border:1px solid ${badgeInfo.border}; border-radius:4px; padding:2px 6px; color:${badgeInfo.color}; font-size:10px; font-weight:700; text-transform:uppercase;">
@@ -509,23 +509,34 @@ export function renderModeSpecificFields(act) {
       </div>
     `;
   } else if (act.mode === 'delay_only') {
+    const currentDelay = act.delayMs ?? 1000;
     html = `
       <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
-        <div class="field">
-          <label style="color:var(--primary); font-weight:700;">⏱️ ${TRANSLATIONS[currentLang].delayOnlyLabel || 'Delay Duration (ms)'}</label>
-          <input type="number" class="delay-only-ms" value="${act.delayMs ?? 1000}" min="50" step="50" placeholder="1000" style="background:var(--bg-input); border:1px solid var(--border-focus); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%;">
-          <span style="font-size:11px; color:var(--muted); margin-top:4px;">${TRANSLATIONS[currentLang].delayOnlyHint || 'Pure waiting time before triggering chained actions'}</span>
+        <div class="field-row">
+          <div class="field">
+            <label style="color:var(--primary); font-weight:700;">⏱️ ${TRANSLATIONS[currentLang].delayOnlyLabel || 'Delay Duration (ms)'}</label>
+            <input type="number" class="delay-only-ms" id="delay-input-${act.id}" value="${currentDelay}" min="50" step="50" placeholder="1000" oninput="syncDelayOnlyInput('${act.id}', this.value)" onchange="saveCurrentProfile()" style="background:var(--bg-input); border:1px solid var(--border-focus); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; width:100%;">
+          </div>
+          <div class="field">
+            <label>${TRANSLATIONS[currentLang].loopQuickAdjust || 'Quick Adjust'}</label>
+            <div class="range-row">
+              <input type="range" id="delay-range-${act.id}" min="100" max="30000" step="100" value="${currentDelay}" oninput="syncDelayOnlyRange('${act.id}', this.value)" onchange="saveCurrentProfile()">
+              <span class="range-val" id="delay-range-${act.id}-label">${currentDelay}ms</span>
+            </div>
+          </div>
         </div>
+        <span style="font-size:11px; color:var(--muted); margin-top:-4px;">${TRANSLATIONS[currentLang].delayOnlyHint || 'Pure waiting time before triggering chained actions'}</span>
       </div>
     `;
   } else if (act.mode === 'forward') {
+    const currentActivationDelay = act.activationDelayMs ?? 1000;
     html = `
       <div style="display:flex; flex-direction:column; gap:12px; border-top:1px dashed var(--border); padding-top:12px;">
         <div class="field-row">
           <div class="field">
             <label>${TRANSLATIONS[currentLang].forwardTargetKeyLabel}</label>
             <div style="display:flex; align-items:center; gap:6px; width:100%;">
-              <input type="text" class="forward-target-key" value="${escapeHtml(act.targetKey || '5')}" placeholder="e.g. 5 or F1" readonly onfocus="startRecordingKey(this, '${act.id}', 'single_key')" onblur="stopRecordingKey(this)" style="flex:1; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; cursor:pointer;">
+              <input type="text" class="forward-target-key" value="${escapeHtml(act.targetKey || '')}" placeholder="e.g. 5 or F1" readonly onfocus="startRecordingKey(this, '${act.id}', 'single_key')" onblur="stopRecordingKey(this)" style="flex:1; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; cursor:pointer;">
               <button type="button" class="btn btn-ghost" onclick="openVirtualKeyboard(this.previousElementSibling, '${act.id}', 'single_key')" style="height:38px; padding:0 10px; border-color:var(--primary); color:var(--primary); border-radius:8px;" title="Open Virtual Keyboard Picker">⌨️</button>
             </div>
           </div>
@@ -537,12 +548,23 @@ export function renderModeSpecificFields(act) {
 
         <div style="background:rgba(255,255,255,0.03); border:1px dashed var(--border); border-radius:8px; padding:10px 12px;">
           <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text); cursor:pointer; font-weight:700;">
-            <input type="checkbox" class="forward-delay-activation" ${act.delayActivation ? 'checked' : ''} style="accent-color:var(--primary); cursor:pointer; width:16px; height:16px;">
+            <input type="checkbox" class="forward-delay-activation" ${act.delayActivation ? 'checked' : ''} onchange="toggleForwardDelayActivationDisplay('${act.id}', this.checked); saveCurrentProfile();" style="accent-color:var(--primary); cursor:pointer; width:16px; height:16px;">
             <span>${TRANSLATIONS[currentLang].forwardDelayActivationLabel}</span>
           </label>
-          <div class="forward-delay-activation-field-${act.id}" style="display:${act.delayActivation ? 'flex' : 'none'}; flex-direction:column; gap:6px; margin-top:10px; margin-left:24px;">
-            <label style="font-size:11px; color:var(--muted); font-weight:600;">${TRANSLATIONS[currentLang].forwardActivationDelayMsLabel}</label>
-            <input type="number" class="forward-activation-delay-ms" value="${act.activationDelayMs ?? 1000}" min="100" step="100" placeholder="1000" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text); font-family:'JetBrains Mono'; font-size:12px; outline:none; width:180px;">
+          <div class="forward-delay-activation-field-${act.id}" style="display:${act.delayActivation ? 'flex' : 'none'}; flex-direction:column; gap:8px; margin-top:10px; margin-left:24px;">
+            <div class="field-row">
+              <div class="field">
+                <label style="font-size:11px; color:var(--muted); font-weight:600;">${TRANSLATIONS[currentLang].forwardActivationDelayMsLabel}</label>
+                <input type="number" class="forward-activation-delay-ms" id="forward-delay-input-${act.id}" value="${currentActivationDelay}" min="100" step="100" placeholder="1000" oninput="syncForwardActivationInput('${act.id}', this.value)" onchange="saveCurrentProfile()" style="background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:var(--text); font-family:'JetBrains Mono'; font-size:12px; outline:none; width:100%;">
+              </div>
+              <div class="field">
+                <label style="font-size:11px; color:var(--muted); font-weight:600;">${TRANSLATIONS[currentLang].loopQuickAdjust || 'Quick Adjust'}</label>
+                <div class="range-row">
+                  <input type="range" id="forward-delay-range-${act.id}" min="100" max="30000" step="100" value="${currentActivationDelay}" oninput="syncForwardActivationRange('${act.id}', this.value)" onchange="saveCurrentProfile()">
+                  <span class="range-val" id="forward-delay-range-${act.id}-label">${currentActivationDelay}ms</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -554,7 +576,7 @@ export function renderModeSpecificFields(act) {
           <div class="field">
             <label>${TRANSLATIONS[currentLang].holdTargetKeyLabel}</label>
             <div style="display:flex; align-items:center; gap:6px; width:100%;">
-              <input type="text" class="hold-target-key" value="${escapeHtml(act.targetKey || '1')}" placeholder="e.g. 1 or F2" readonly onfocus="startRecordingKey(this, '${act.id}', 'single_key')" onblur="stopRecordingKey(this)" style="flex:1; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; cursor:pointer;">
+              <input type="text" class="hold-target-key" value="${escapeHtml(act.targetKey || '')}" placeholder="e.g. 1 or F2" readonly onfocus="startRecordingKey(this, '${act.id}', 'single_key')" onblur="stopRecordingKey(this)" style="flex:1; background:var(--bg-input); border:1px solid var(--border); border-radius:8px; padding:9px 12px; color:var(--text); font-family:'JetBrains Mono'; font-size:13px; outline:none; cursor:pointer;">
               <button type="button" class="btn btn-ghost" onclick="openVirtualKeyboard(this.previousElementSibling, '${act.id}', 'single_key')" style="height:38px; padding:0 10px; border-color:var(--primary); color:var(--primary); border-radius:8px;" title="Open Virtual Keyboard Picker">⌨️</button>
             </div>
           </div>
@@ -966,6 +988,7 @@ export function syncActionFromDom(actionId) {
   } else if (act.mode === 'key_hold') {
     const targetKeyEl = card.querySelector('.hold-target-key');
     if (targetKeyEl) act.targetKey = targetKeyEl.value.trim();
+    act.keys = [];
 
     const delayAfterEl = card.querySelector('.hold-delay-after');
     if (delayAfterEl) act.delayAfter = parseInt(delayAfterEl.value) || 0;
@@ -1121,5 +1144,60 @@ export function syncIntervalInput(actionId, value) {
   if (profile && profile.actions) {
     const act = profile.actions.find(a => a.id === actionId);
     if (act) act.interval = parseInt(value, 10) || 100;
+  }
+}
+
+export function syncDelayOnlyRange(actionId, value) {
+  const numInput = document.getElementById(`delay-input-${actionId}`);
+  const label = document.getElementById(`delay-range-${actionId}-label`);
+  if (numInput) numInput.value = value;
+  if (label) label.textContent = `${value}ms`;
+  const profile = fullConfig.profiles[currentEditProfile];
+  if (profile && profile.actions) {
+    const act = profile.actions.find(a => a.id === actionId);
+    if (act) act.delayMs = parseInt(value, 10) || 50;
+  }
+}
+
+export function syncDelayOnlyInput(actionId, value) {
+  const rangeInput = document.getElementById(`delay-range-${actionId}`);
+  const label = document.getElementById(`delay-range-${actionId}-label`);
+  if (rangeInput) rangeInput.value = value;
+  if (label) label.textContent = `${value}ms`;
+  const profile = fullConfig.profiles[currentEditProfile];
+  if (profile && profile.actions) {
+    const act = profile.actions.find(a => a.id === actionId);
+    if (act) act.delayMs = parseInt(value, 10) || 50;
+  }
+}
+
+export function toggleForwardDelayActivationDisplay(actionId, isChecked) {
+  const container = document.querySelector(`.forward-delay-activation-field-${actionId}`);
+  if (container) {
+    container.style.display = isChecked ? 'flex' : 'none';
+  }
+}
+
+export function syncForwardActivationRange(actionId, value) {
+  const numInput = document.getElementById(`forward-delay-input-${actionId}`);
+  const label = document.getElementById(`forward-delay-range-${actionId}-label`);
+  if (numInput) numInput.value = value;
+  if (label) label.textContent = `${value}ms`;
+  const profile = fullConfig.profiles[currentEditProfile];
+  if (profile && profile.actions) {
+    const act = profile.actions.find(a => a.id === actionId);
+    if (act) act.activationDelayMs = parseInt(value, 10) || 100;
+  }
+}
+
+export function syncForwardActivationInput(actionId, value) {
+  const rangeInput = document.getElementById(`forward-delay-range-${actionId}`);
+  const label = document.getElementById(`forward-delay-range-${actionId}-label`);
+  if (rangeInput) rangeInput.value = value;
+  if (label) label.textContent = `${value}ms`;
+  const profile = fullConfig.profiles[currentEditProfile];
+  if (profile && profile.actions) {
+    const act = profile.actions.find(a => a.id === actionId);
+    if (act) act.activationDelayMs = parseInt(value, 10) || 100;
   }
 }
