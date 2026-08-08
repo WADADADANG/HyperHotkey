@@ -1928,28 +1928,34 @@ async function runActionCondition(act, callStack) {
 function startGlobalListeners() {
     console.log("\n[System] Initializing global keyboard and mouse listeners...");
     const { GlobalKeyboardListener } = require('node-global-key-listener');
-    mouseEvents = require('global-mouse-events');
-    keyboard = new GlobalKeyboardListener();
+    
+    try {
+        mouseEvents = require('global-mouse-events');
+        if (mouseEvents && typeof mouseEvents.on === 'function') {
+            mouseEvents.on('mousedown', (event) => {
+                if (global.isSuspended) return;
 
-    // 1. Mouse Button Events Hook
-    mouseEvents.on('mousedown', (event) => {
-        if (global.isSuspended) return;
+                const hasAttachedPage = Object.values(clientPages).some(p => p !== null && p !== undefined);
+                if (!hasAttachedPage) return;
 
-        const hasAttachedPage = Object.values(clientPages).some(p => p !== null && p !== undefined);
-        if (!hasAttachedPage) return;
+                // Find matching actions
+                const matchingActions = activeActions.filter(act =>
+                    act.enabled &&
+                    act.trigger.type === 'mouse' &&
+                    act.trigger.value == event.button
+                );
 
-        // Find matching actions
-        const matchingActions = activeActions.filter(act =>
-            act.enabled &&
-            act.trigger.type === 'mouse' &&
-            act.trigger.value == event.button
-        );
-
-        for (let act of matchingActions) {
-            console.log(`[Global Mouse Captured] Triggered action: "${act.name}" via Mouse Button ${event.button}`);
-            handleActionTrigger(act);
+                for (let act of matchingActions) {
+                    console.log(`[Global Mouse Captured] Triggered action: "${act.name}" via Mouse Button ${event.button}`);
+                    handleActionTrigger(act);
+                }
+            });
         }
-    });
+    } catch (err) {
+        console.warn("[System] ⚠️ Note: 'global-mouse-events' module is disabled or not built (Mouse triggers offline). Keyboard triggers active 100%.");
+    }
+
+    keyboard = new GlobalKeyboardListener();
 
     // 2. Keyboard Events Hook
     keyboard.addListener(function (e, down) {

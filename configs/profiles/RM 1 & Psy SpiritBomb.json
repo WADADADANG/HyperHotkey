@@ -1,0 +1,142 @@
+{
+  "name": "RM 1 & Psy SpiritBomb",
+  "actions": [
+    {
+      "id": "act_1786182020888",
+      "name": "Heal 1",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "5"
+      },
+      "mode": "loop",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [
+        {
+          "key": "F1",
+          "delay": 500
+        }
+      ],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": true,
+        "onBeforeStart": [
+          "act_1786182183509"
+        ]
+      }
+    },
+    {
+      "id": "act_1786182183509",
+      "name": "Buff GT",
+      "enabled": true,
+      "trigger": {
+        "type": "keyboard",
+        "value": ""
+      },
+      "mode": "loop",
+      "targetClient": "1",
+      "keys": [
+        "8"
+      ],
+      "interval": 60000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "skill_ringmaster_geburah-tiphreth",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      }
+    },
+    {
+      "id": "act_1786182244484",
+      "name": "AC Buff GT",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "stop",
+      "controlTargetIds": [
+        "act_1786182183509"
+      ]
+    },
+    {
+      "id": "act_1786182303857",
+      "name": "Hold Psy SpiritBomb",
+      "enabled": true,
+      "trigger": {
+        "type": "mouse",
+        "value": "5"
+      },
+      "mode": "key_hold",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "targetKey": "1"
+    },
+    {
+      "id": "act_1786182354857",
+      "name": "AC Stop Psy SpiritBomb",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "stop",
+      "controlTargetIds": [
+        "act_1786182303857"
+      ]
+    }
+  ]
+}
