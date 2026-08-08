@@ -34,7 +34,7 @@ def is_port_in_use(port=3000):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
 
-function_start_node = None
+
 
 def start_node_server():
     global node_process

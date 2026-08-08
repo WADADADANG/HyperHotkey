@@ -12,12 +12,8 @@ status_queue = queue.Queue()
 
 import socket
 
-# Enforce single instance overlay window to prevent overlapping
-try:
-    lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    lock_socket.bind(('127.0.0.1', 54329))
-except Exception:
-    sys.exit(0)
+# Single instance is managed by parent Node.js process (bot.js)
+lock_socket = None
 
 def log_debug(msg):
     pass
@@ -117,7 +113,7 @@ def close_overlay():
             method="POST",
             headers={"Content-Type": "application/json"}
         )
-        urllib.request.urlopen(req, timeout=0.5)
+        urllib.request.urlopen(req, timeout=1.5)
     except Exception as e:
         log_debug(f"Failed to post disable overlay status: {e}")
     root.destroy()

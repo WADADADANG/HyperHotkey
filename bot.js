@@ -74,7 +74,7 @@ global.pressedRemapKeys = pressedRemapKeys;
 global.activeHoldStates = activeHoldStates;
 let isSystemInitialized = false;
 let overlayProcess = null;
-let lastEnableOverlaySetting = false;
+let lastEnableOverlaySetting = true;
 let overlayAutoRestartTimer = null;
 const { spawn } = require('child_process');
 
@@ -171,9 +171,9 @@ function loadConfigFromFile() {
             // Sync state of active loops
             syncRunningLoops();
 
-            // Sync Python overlay process
-            const enableOverlayVal = globalSet.enableOverlay !== undefined ? globalSet.enableOverlay : profile.enableOverlay;
-            syncOverlayProcess(!!enableOverlayVal);
+            // Sync Python overlay process setting (actual spawn handled by sendOverlayUpdate below)
+            const enableOverlayVal = (globalSet && globalSet.enableOverlay !== undefined) ? globalSet.enableOverlay : ((profile && profile.enableOverlay !== undefined) ? profile.enableOverlay : true);
+            lastEnableOverlaySetting = !!enableOverlayVal;
 
             // Sync Ghost Mouse Jitter
             syncGhostMouseJitter();
@@ -214,7 +214,6 @@ watchConfigChanges();
 // (Variables hoisted to the top to avoid ReferenceError)
 
 function sendOverlayUpdate() {
-    if (!overlayProcess) return;
     const activeList = activeClients || [];
     const clientStatuses = {};
     activeList.forEach(clientIdx => {
@@ -272,6 +271,8 @@ function sendOverlayUpdate() {
             }
         }
     });
+    syncOverlayProcess();
+    if (!overlayProcess || !overlayProcess.stdin) return;
     const payload = JSON.stringify({ activeClients: activeList, clientStatuses, clientAliases, isSuspended: !!global.isSuspended, disabledClients: global.disabledClients || [] });
     try {
         overlayProcess.stdin.write(payload + "\n");
@@ -343,8 +344,6 @@ global.toggleSuspendState = function(forcedState) {
 function syncOverlayProcess(enableOverlay) {
     if (enableOverlay !== undefined) {
         lastEnableOverlaySetting = !!enableOverlay;
-    } else {
-        enableOverlay = lastEnableOverlaySetting;
     }
 
     if (!isSystemInitialized) return; // Delay overlay launch until system initialization is complete
@@ -354,59 +353,63 @@ function syncOverlayProcess(enableOverlay) {
         overlayAutoRestartTimer = null;
     }
 
-    if (enableOverlay) {
+    const shouldRun = lastEnableOverlaySetting && (activeClients.length > 0);
+
+    if (shouldRun) {
         if (overlayProcess) return; // Already running
 
         console.log(`[Overlay] Starting Python Desktop Overlay...`);
         const overlayPath = path.join(__dirname, 'overlay.py');
-        
-        // Spawn Python subprocess with stdin piped, ignoring stdout/stderr to reduce log clutter
-        overlayProcess = spawn('python', ['-u', overlayPath], {
-            stdio: ['pipe', 'ignore', 'ignore'],
-            detached: true,
-            windowsHide: true
-        });
 
-        overlayProcess.on('error', (err) => {
-            overlayProcess = spawn('py', ['-u', overlayPath], { stdio: ['pipe', 'ignore', 'ignore'], detached: true, windowsHide: true });
-            
-            overlayProcess.on('error', (err2) => {
-                overlayProcess = spawn('python3', ['-u', overlayPath], { stdio: ['pipe', 'ignore', 'ignore'], detached: true, windowsHide: true });
-                
-                overlayProcess.on('error', (err3) => {
-                    console.error(`[Overlay Error] Python is not installed or not available in the system PATH.`);
-                    overlayProcess = null;
-                });
+        function spawnOverlay(cmd) {
+            // Capture reference locally to detect race condition in close handler
+            const proc = spawn(cmd, ['-u', overlayPath], {
+                stdio: ['pipe', 'ignore', 'ignore'],
+                detached: true,
+                windowsHide: true
             });
-        });
 
-        if (overlayProcess) {
-            overlayProcess.unref();
-            
-            overlayProcess.on('close', (code) => {
-                console.log(`[Overlay] Desktop Overlay process closed (exit code: ${code}).`);
-                overlayProcess = null;
-
-                // Auto-restart if overlay was supposed to be enabled
-                if (lastEnableOverlaySetting && isSystemInitialized) {
-                    console.log(`[Overlay] Overlay expected to be active. Auto-restarting in 3 seconds...`);
-                    overlayAutoRestartTimer = setTimeout(() => {
-                        overlayAutoRestartTimer = null;
-                        if (lastEnableOverlaySetting) {
-                            syncOverlayProcess(true);
-                        }
-                    }, 3000);
+            proc.on('error', (err) => {
+                if (overlayProcess === proc) {
+                    overlayProcess = null;
+                    if (cmd === 'python') spawnOverlay('py');
+                    else if (cmd === 'py') spawnOverlay('python3');
+                    else console.error(`[Overlay Error] Python is not installed or not available in the system PATH.`);
                 }
             });
 
-            // Send initial state update
-            setTimeout(sendOverlayUpdate, 300);
+            proc.on('close', (code) => {
+                console.log(`[Overlay] Desktop Overlay process closed (exit code: ${code}).`);
+                // Only clear if this is still the active process (avoid race condition)
+                if (overlayProcess === proc) {
+                    overlayProcess = null;
+                    // Auto-restart if overlay was supposed to be enabled and clients are active
+                    if (lastEnableOverlaySetting && isSystemInitialized && activeClients.length > 0) {
+                        console.log(`[Overlay] Overlay expected to be active. Auto-restarting in 3 seconds...`);
+                        overlayAutoRestartTimer = setTimeout(() => {
+                            overlayAutoRestartTimer = null;
+                            if (lastEnableOverlaySetting && activeClients.length > 0) {
+                                syncOverlayProcess();
+                            }
+                        }, 3000);
+                    }
+                }
+            });
+
+            proc.unref();
+            return proc;
         }
+
+        overlayProcess = spawnOverlay('python');
+
+        // Send initial state update
+        setTimeout(sendOverlayUpdate, 300);
     } else {
         if (overlayProcess) {
             console.log(`[Overlay] Stopping Desktop Overlay...`);
-            overlayProcess.kill('SIGINT');
-            overlayProcess = null;
+            const dyingProc = overlayProcess;
+            overlayProcess = null; // Clear first to prevent race with close handler
+            try { dyingProc.kill('SIGINT'); } catch(e) {}
         }
     }
 }
@@ -1231,17 +1234,9 @@ async function initSystem() {
 
         isSystemInitialized = true;
         // Sync overlay process after system is fully initialized
-        const configPath = path.join(__dirname, 'config.json');
-        if (fs.existsSync(configPath)) {
-            const data = fs.readFileSync(configPath, 'utf8');
-            const parsed = JSON.parse(data);
-            if (parsed.profiles && parsed.activeProfile) {
-                const profile = parsed.profiles[parsed.activeProfile];
-                if (profile) {
-                    syncOverlayProcess(!!profile.enableOverlay);
-                }
-            }
-        }
+        // Overlay setting is already loaded by loadConfigFromFile above
+        // Just trigger sync now that isSystemInitialized = true
+        syncOverlayProcess();
 
     } catch (error) {
         console.error("\n❌ [System Error] Initialization failed!");

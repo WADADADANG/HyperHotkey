@@ -187,10 +187,26 @@ function writeConfig(fullConfig) {
   }
 }
 
+// Get only the globalSettings portion of the config
+function getGlobalSettings() {
+  ensureDirs();
+  if (fs.existsSync(GLOBAL_CONFIG_PATH)) {
+    try {
+      const raw = fs.readFileSync(GLOBAL_CONFIG_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      return parsed.globalSettings || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+}
+
 module.exports = {
   readConfig,
   writeConfig,
   migrateLegacyConfig,
+  getGlobalSettings,
   CONFIGS_DIR,
   PROFILES_DIR,
   GLOBAL_CONFIG_PATH
