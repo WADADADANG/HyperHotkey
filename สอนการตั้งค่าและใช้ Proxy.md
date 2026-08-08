@@ -21,17 +21,16 @@
 
 ## 🎮 ขั้นตอนที่ 2: ใส่ค่า Proxy ใน HyperHotkey (Web Dashboard)
 
-1. เปิดใช้งานบอทโดยการดับเบิลคลิกไฟล์ **`3 start.bat`**
-2. เลือกหมายเลขจอที่ต้องการรัน แล้วกด Enter
-3. เปิดหน้าเว็บควบคุม **[http://localhost:3000](http://localhost:3000)** บนเบราว์เซอร์
-4. มองไปที่หัวข้อ **Client Control Center (การ์ดจอ Client 1 - 8)**
-5. คลิกไอคอน **รูปฟันเฟือง (⚙️)** บนการ์ดจอ Client ที่คุณต้องการตั้งค่า จะมีหน้าต่าง Pop-up เด้งขึ้นมา
-6. ในช่อง **IP / Proxy Settings** ให้กรอกข้อมูล:
+1. เปิดใช้งานโปรแกรมโดยการดับเบิลคลิกไฟล์ **`HyperHotkey Launcher.bat`** (หรือ **`3 start.bat`**)
+2. หน้าเว็บควบคุม **[http://localhost:3000](http://localhost:3000)** จะเปิดขึ้นมาบนเบราว์เซอร์อัตโนมัติ
+3. มองไปที่หัวข้อ **Client Control Center (การ์ดจอ Client 1 - 8)**
+4. คลิกไอคอน **รูปฟันเฟือง (⚙️)** บนการ์ดจอ Client ที่คุณต้องการตั้งค่า จะมีหน้าต่าง Pop-up เด้งขึ้นมา
+5. ในหน้าต่างตั้งค่า คุณสามารถเลือก **Browser Engine** (Google Chrome, Microsoft Edge, Mozilla Firefox) และในช่อง **IP / Proxy Settings** ให้กรอกข้อมูล:
    ```text
    http://127.0.0.1:40000
    ```
-   *(หรือถ้ามี Proxy รายเดือน ให้กรอกเป็น `http://ip:port` หรือ `http://ip:port:user:pass`)*
-7. กดปุ่ม **💾 Save Changes** เพื่อบันทึกข้อมูล
+   *(หรือหากใช้ Proxy รายเดือน ให้กรอกเป็น `http://ip:port` หรือ `http://ip:port:user:pass`)*
+6. กดปุ่ม **💾 Save Changes** เพื่อบันทึกข้อมูล
 
 ---
 
