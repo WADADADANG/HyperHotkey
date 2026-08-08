@@ -11,12 +11,13 @@
 | 🎮 **Client Control Center (1-8)** | สั่งเปิด (`Launch`), สลับหยุดชั่วคราว (`Pause`), หรือปิด (`Close`) แต่ละจอได้อย่างอิสระผ่าน Web Dashboard |
 | 🛡️ **Per-Client Anti-Detect & Proxy** | ตั้งค่า **User-Agent** สุ่ม และใส่ **HTTP/SOCKS5 Proxy IP** แยกประจำแต่ละจอได้อิสระ ป้องกันการโดนตรวจจับ IP ซ้ำ |
 | 🌐 **Background Control** | ส่งปุ่มเข้าแท็บเกมพื้นหลังแบบ CDP Input แท้ เกมคิดว่าเปิดจออยู่ตลอดเวลา ไม่แย่งเมาส์ |
-| ⚡ **Multi-Action Modes** | รองรับ **Loop** (กดวนซ้ำ), **Buff Sequence** (กดปุ่มเรียงชุด), **Single Press**, **Key Hold**, **Action Control** |
-| 🔗 **Action Chaining & Cooldown Guards** | ตั้งค่าลูกโซ่เชื่อม Action อัตโนมัติ พร้อมระบบเช็ค Cooldown ป้องกันกดทับซ้อน |
+| ⚡ **8 Multi-Action Modes** | รองรับ **Loop** (กดวนซ้ำ + First Steps), **Buff Sequence** (กดสกิลตามคูลดาวน์), **Single Key Press**, **Timer / Delay**, **Key Forwarder**, **Key Hold**, **Action Control**, และ **Branch (If / Else)** |
+| 🌿 **Condition Branch (If / Else)** | ตรวจสอบสถานะ Action อ้างอิงแล้วแยกสายการทำงาน (`onTrue` / `onFalse`) ช่วยควบคุมลูปได้อย่างชาญฉลาด |
+| 🔍 **Profile Integrity Inspector & 1-Click Auto-Fix** | ระบบสแกนหาข้อผิดพลาดในโปรไฟล์ (ปุ่ม Trigger ชนกัน, สาย Chain ขาด, ลืมเลือกเป้าหมาย) พร้อมปุ่ม **`⚡ Auto-Fix`** ซ่อมแซมอัตโนมัติใน 1 คลิก |
+| 🔗 **Action Chaining & Cooldown Guards** | ตั้งค่าลูกโซ่เชื่อม Action อัตโนมัติ พร้อมระบบเช็ค Cooldown และ Cooldown Presets ป้องกันกดทับซ้อน |
 | 🖱️ **Ghost Mouse Jitter** | สุ่มขยับเมาส์ในแท็บเกมพื้นหลังเพื่อสร้าง `mousemove` event หลีกเลี่ยง AFK Detection |
 | 🖥️ **Single-Instance Desktop Overlay** | หน้าต่างลอยแสดงสถานะ Real-time ติดตามบอท ลากย้ายได้ พร้อมระบบ Socket Lock ป้องกันหน้าต่างซ้อน |
-| 📂 **Modular Config (configs/)** | แยกเก็บไฟล์ตั้งค่า `configs/global.json` (ค่าระบบ/Proxy) และ `configs/profiles/*.json` (ไฟล์ละ 1 โปรไฟล์) แยกแชร์โปรไฟล์ง่าย ปลอดภัย ไม่ปะปนกับ IP ส่วนตัว |
-| 📱 **Responsive Web UI** | Web Dashboard ดีไซน์ใหม่ กว้าง สบายตา ปรับขนาดอัตโนมัติตามทุกหน้าจอ (PC, Tablet, Mobile) |
+| 📂 **Modular Config (configs/)** | แยกเก็บไฟล์ตั้งค่า `configs/global.json` (ค่าระบบ/Proxy) และ `configs/profiles/*.json` (ไฟล์ละ 1 โปรไฟล์) แชร์โปรไฟล์ขึ้น GitHub ง่าย ปลอดภัย ไม่ปะปนกับ IP ส่วนตัว |
 
 ---
 
@@ -41,6 +42,7 @@
 
 1. เปิดหน้าเว็บควบคุม **[http://localhost:3000](http://localhost:3000)**
 2. ตั้งค่า Proxy IP / User-Agent ประจำจอ (ถ้ามี) แล้วกดปุ่ม **`➕ Launch`** บนการ์ดจอนั้นๆ เพื่อเปิดเกมได้ทันที!
+3. ปรับแต่งโปรไฟล์คำสั่ง และกดปุ่ม **`🔍 Validate Profile`** เพื่อสแกนตรวจสอบความถูกต้อง และกดปุ่มลอย **`💾`** เพื่อบันทึกใช้งาน!
 
 ---
 
