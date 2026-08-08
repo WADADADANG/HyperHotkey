@@ -25,8 +25,7 @@
 
 1. ติดตั้ง **Node.js v18+** จาก [nodejs.org](https://nodejs.org/)
 2. ติดตั้ง **Python 3.x** จาก [python.org](https://www.python.org/) *(ต้องติ๊ก "Add Python to PATH")*
-3. ดับเบิลคลิก `1 install.bat` *(รอจนขึ้น Press any key แล้วกดปิด)*
-4. ดับเบิลคลิก `2 playwright install.bat` *(รอจนขึ้น Press any key แล้วกดปิด)*
+3. ดับเบิลคลิก `1 install.bat` *(ระบบจะติดตั้งแพ็คเกจ และ Playwright Browser ครบจบในคลิกเดียว)*
 
 ---
 

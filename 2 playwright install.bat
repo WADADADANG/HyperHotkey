@@ -1,2 +1,0 @@
-npx playwright install
-pause
