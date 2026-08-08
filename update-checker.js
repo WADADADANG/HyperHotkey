@@ -6,8 +6,8 @@ const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/WADADADANG/HyperHotkey
 
 let cachedUpdateStatus = {
   hasUpdate: false,
-  currentVersion: pkg.version || '2.0.0',
-  latestVersion: pkg.version || '2.0.0',
+  currentVersion: pkg.version || '2.2.0',
+  latestVersion: pkg.version || '2.2.0',
   repoUrl: GITHUB_REPO_URL,
   checkedAt: null
 };

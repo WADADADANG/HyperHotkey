@@ -13,7 +13,7 @@ function escapeHtml(str) {
 
 export let fullConfig = { activeProfile: 'Default', profiles: {} };
 export let currentEditProfile = 'Default';
-export let activeClients = [1];
+export let activeClients = [];
 
 let renderActionsCallback = null;
 
@@ -494,7 +494,7 @@ export function pollActiveClients() {
       if (res && res.disabledClients) {
         disabledClients = res.disabledClients;
       }
-      if (Array.isArray(list) && list.length > 0) {
+      if (Array.isArray(list)) {
         const changed = JSON.stringify(activeClients) !== JSON.stringify(list);
         activeClients = list;
         renderClientToggles(activeClients, disabledClients);

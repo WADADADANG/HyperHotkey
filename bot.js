@@ -12,6 +12,7 @@ let keyboard, mouseEvents;
 let clientPages = {};    // clientIndex -> page
 let clientContexts = {}; // clientIndex -> browserContext
 let activeClients = [];  // Array of active client indices, e.g. [2, 4]
+global.activeClients = activeClients;
 let clientCooldowns = {}; // clientIndex -> { [presetId]: expireTimestamp, [presetId_lastCycle]: lastCycleTimestamp }
 
 // ============================================================================
@@ -477,41 +478,45 @@ function askClientsAndBrowser() {
 
     console.log("=================================================");
     console.log("Enter active client numbers to run (1-8):");
-    console.log("Example: '2,4' for Client 2 & 4, or '1-3' for Clients 1 to 3.");
-    console.log("Press Enter without input to run Client 1.");
+    console.log("Example: '2,4' for Client 2 & 4, or '1-5' for Clients 1 to 5.");
+    console.log("Press Enter without input (or '0') to skip browser launch and open Dashboard later.");
     console.log("=================================================");
 
     return new Promise((resolve) => {
         rl.question("Enter clients and press Enter: ", (clientAnswer) => {
             const input = clientAnswer.trim();
             let parsedClients = [];
-            if (input === '') {
-                parsedClients = [1];
+            if (input === '' || input === '0' || input.toLowerCase() === 'none') {
+                parsedClients = [];
             } else {
                 parsedClients = parseClientInput(input);
             }
+
             if (parsedClients.length === 0) {
-                console.log("⚠️ No valid client numbers detected! Running Client 1 by default.");
-                parsedClients = [1];
+                console.log("\n📌 [System] Skipping initial browser launch.");
+                console.log("👉 Open Web Dashboard at http://localhost:3000/ to configure Proxy/Settings & launch clients!");
+                rl.close();
+                return resolve({ activeClientsList: [], choice: '1' });
             }
 
             console.log(`\nSelected clients to launch: [${parsedClients.join(', ')}]`);
 
             console.log("\n=================================================");
             console.log("Please select browser to run:");
-            console.log(" [1] Google Chrome");
+            console.log(" [1] Google Chrome (Default)");
             console.log(" [2] Microsoft Edge");
             console.log(" [3] Mozilla Firefox");
+            console.log("Press Enter without input for [1] Google Chrome.");
             console.log("=================================================");
 
             rl.question("Enter number (1, 2 or 3) and press Enter: ", (browserAnswer) => {
                 rl.close();
                 const browserChoice = browserAnswer.trim();
                 let choice = '1';
-                if (browserChoice === '1' || browserChoice === '2' || browserChoice === '3') {
+                if (browserChoice === '2' || browserChoice === '3') {
                     choice = browserChoice;
                 } else {
-                    console.log("⚠️ Invalid choice! Opening Google Chrome by default.");
+                    choice = '1';
                 }
                 resolve({ activeClientsList: parsedClients, choice });
             });
@@ -1215,18 +1220,11 @@ async function initSystem() {
         clearAllProfileLockFiles();
         migrateProfilesDirectory();
         
-        const { activeClientsList, choice } = await askClientsAndBrowser();
-        await launchBrowser(activeClientsList, choice);
-        sendOverlayUpdate();
-
-        console.log("=================================================");
-        console.log("[System] Bot attached to browser context successfully!");
-        console.log("=================================================");
-
-        const scanPromises = activeClients.map(index => 
-            findAndAttachTabForClient(index, clientContexts[index])
-        );
-        await Promise.all(scanPromises);
+        console.log("\n=================================================================");
+        console.log("🚀 HyperHotkey v2.2.0 Control Center Ready!");
+        console.log("👉 Open Web Dashboard at: http://localhost:3000/");
+        console.log("👉 Configure Proxy / User-Agent & launch your clients (1-8) directly from the Web UI!");
+        console.log("=================================================================\n");
 
         // Start native mouse and keyboard listeners after initialization completes
         startGlobalListeners();
