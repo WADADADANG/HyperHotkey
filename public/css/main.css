@@ -850,3 +850,10 @@ select.profile-select option {
     padding: 16px;
   }
 }
+
+/* Dark Theme Dropdown Options */
+select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  padding: 8px 12px;
+}

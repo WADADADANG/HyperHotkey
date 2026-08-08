@@ -183,9 +183,9 @@ const server = http.createServer((req, res) => {
     req.on('data', c => body += c);
     req.on('end', async () => {
       try {
-        const { clientIndex } = JSON.parse(body);
+        const { clientIndex, browserChoice } = JSON.parse(body);
         if (typeof global.launchSingleClient === 'function') {
-          const resObj = await global.launchSingleClient(clientIndex);
+          const resObj = await global.launchSingleClient(clientIndex, browserChoice);
           return sendJSON(res, 200, resObj);
         }
         return sendJSON(res, 500, { error: 'launchSingleClient not ready' });

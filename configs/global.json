@@ -22,10 +22,15 @@
       "8": "8"
     },
     "clientUserAgents": {
+      "1": "",
       "7": ""
     },
     "clientProxies": {
+      "1": "",
       "7": ""
+    },
+    "clientBrowsers": {
+      "1": "1"
     }
   }
 }

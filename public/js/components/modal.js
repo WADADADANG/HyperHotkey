@@ -196,12 +196,14 @@ export function openClientSettingsModal(clientIdx) {
   const aliases = gs.clientAliases || profile.clientAliases || {};
   const userAgents = gs.clientUserAgents || profile.clientUserAgents || {};
   const proxies = gs.clientProxies || profile.clientProxies || {};
+  const browsers = gs.clientBrowsers || profile.clientBrowsers || {};
 
   const customAlias = aliases[sIdx] || aliases[clientIdx];
   const displayName = customAlias ? `Client ${clientIdx} (${customAlias})` : `Client ${clientIdx}`;
 
   const ua = userAgents[sIdx] || userAgents[clientIdx] || '';
   const proxyVal = proxies[sIdx] || proxies[clientIdx] || '';
+  const browserVal = browsers[sIdx] || browsers[clientIdx] || '1';
 
   const titleEl = document.getElementById('client-settings-title');
   if (titleEl) titleEl.textContent = `⚙️ ${displayName} Settings`;
@@ -214,6 +216,9 @@ export function openClientSettingsModal(clientIdx) {
 
   const proxyInput = document.getElementById('client-modal-proxy-input');
   if (proxyInput) proxyInput.value = proxyVal;
+
+  const browserSelect = document.getElementById('client-modal-browser-select');
+  if (browserSelect) browserSelect.value = browserVal;
 
   modal.classList.add('show');
 }
@@ -250,12 +255,16 @@ export function saveClientSettingsModal() {
   const gs = fullConfig.globalSettings;
   if (!gs.clientUserAgents) gs.clientUserAgents = {};
   if (!gs.clientProxies) gs.clientProxies = {};
+  if (!gs.clientBrowsers) gs.clientBrowsers = {};
 
   const uaInput = document.getElementById('client-modal-ua-input');
   if (uaInput) gs.clientUserAgents[sIdx] = uaInput.value.trim();
 
   const proxyInput = document.getElementById('client-modal-proxy-input');
   if (proxyInput) gs.clientProxies[sIdx] = proxyInput.value.trim();
+
+  const browserSelect = document.getElementById('client-modal-browser-select');
+  if (browserSelect) gs.clientBrowsers[sIdx] = browserSelect.value;
 
   saveCurrentProfile();
   closeClientSettingsModal();

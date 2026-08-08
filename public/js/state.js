@@ -351,7 +351,8 @@ export function renderClientToggles(activeList = activeClients, disabledList = d
   container.innerHTML = '';
 
   const currentProf = fullConfig.profiles[currentEditProfile];
-  const aliases = currentProf ? (currentProf.clientAliases || {}) : {};
+  const gs = fullConfig.globalSettings || {};
+  const aliases = gs.clientAliases || (currentProf ? currentProf.clientAliases : {}) || {};
 
   const activeStrList = (activeList || []).map(String);
   const disabledStrList = (disabledList || []).map(String);
@@ -361,6 +362,13 @@ export function renderClientToggles(activeList = activeClients, disabledList = d
     const customAlias = aliases[sIdx] || aliases[clientIdx] || '';
     const isActive = activeStrList.includes(sIdx);
     const isDisabled = disabledStrList.includes(sIdx);
+
+    const browsers = gs.clientBrowsers || {};
+    const browserCode = browsers[sIdx] || '1';
+    let browserIcon = '🌐';
+    let browserName = 'Google Chrome';
+    if (browserCode === '2') { browserIcon = '🌊'; browserName = 'Microsoft Edge'; }
+    else if (browserCode === '3') { browserIcon = '🦊'; browserName = 'Mozilla Firefox'; }
 
     let statusText = '⚪ OFFLINE';
     let statusStyle = 'background:rgba(255,255,255,0.05); color:var(--muted);';
@@ -393,8 +401,8 @@ export function renderClientToggles(activeList = activeClients, disabledList = d
     card.innerHTML = `
       <div style="display:flex; align-items:center; justify-content:space-between;">
         <div style="display:flex; align-items:center; gap:4px;">
-          <span style="font-size:11px; font-weight:700; color:var(--text);">Client ${clientIdx}</span>
-          <button type="button" class="btn btn-ghost" onclick="openClientSettingsModal(${clientIdx})" style="padding:0 3px; height:18px; font-size:10px; border:none; background:transparent; color:var(--muted); cursor:pointer; transition:transform 0.2s;" title="Anti-Detect User-Agent & Proxy Settings">⚙️</button>
+          <span style="font-size:11px; font-weight:700; color:var(--text);" title="${browserName}">${browserIcon} Client ${clientIdx}</span>
+          <button type="button" class="btn btn-ghost" onclick="openClientSettingsModal(${clientIdx})" style="padding:0 3px; height:18px; font-size:10px; border:none; background:transparent; color:var(--muted); cursor:pointer; transition:transform 0.2s;" title="Browser, User-Agent & Proxy Settings">⚙️</button>
         </div>
         <span style="font-size:9px; font-weight:700; padding:2px 5px; border-radius:4px; ${statusStyle}">${statusText}</span>
       </div>
@@ -416,10 +424,14 @@ export function launchClient(clientIdx) {
   if (typeof window.toast === 'function') {
     window.toast(t('toastLaunchingClient') || `Launching Client ${clientIdx}...`, 'info');
   }
+  const gs = fullConfig.globalSettings || {};
+  const browsers = gs.clientBrowsers || {};
+  const browserChoice = browsers[String(clientIdx)] || '1';
+
   fetch('/api/client/launch', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ clientIndex: clientIdx })
+    body: JSON.stringify({ clientIndex: clientIdx, browserChoice: browserChoice })
   })
     .then(r => r.json())
     .then(res => {
