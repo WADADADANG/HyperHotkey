@@ -3,20 +3,24 @@
   "actions": [
     {
       "id": "action_1",
-      "name": "Heal 1",
+      "name": "Heal Rain",
       "mode": "loop",
       "trigger": {
         "type": "mouse",
         "value": "4"
       },
       "keys": [
-        "1"
+        "2"
       ],
       "interval": 3000,
       "jitter": 250,
       "firstSteps": [
         {
-          "key": "F1",
+          "key": "F4",
+          "delay": 1
+        },
+        {
+          "key": "3",
           "delay": 500
         }
       ],
@@ -29,44 +33,43 @@
       "chaining": {
         "_enabled": true,
         "onBeforeStart": [
-          "act_1786176084491"
+          "act_1786178765713"
         ],
-        "onAfterStart": [],
+        "onAfterStart": [
+          "action_2",
+          "act_1786190153364"
+        ],
         "onEachCycle": [],
-        "onStop": []
+        "onStop": [
+          "act_1786178809367",
+          "act_1786188841667",
+          "act_1786190287416"
+        ]
       }
     },
     {
       "id": "action_2",
-      "name": "Heal Rain 1",
+      "name": "Merkabar",
       "mode": "loop",
       "trigger": {
-        "type": "mouse",
-        "value": "5"
+        "type": "none",
+        "value": ""
       },
       "keys": [
-        "2"
+        "4"
       ],
-      "interval": 1500,
+      "interval": 1000,
       "jitter": 150,
-      "firstSteps": [
-        {
-          "key": "F1",
-          "delay": 500
-        }
-      ],
+      "firstSteps": [],
       "enabled": true,
       "targetClient": "1",
-      "cooldownPresetId": "",
+      "cooldownPresetId": "skill_ringmaster_merkaba-hanzelrusha",
       "customCooldownMs": 0,
       "executeImmediately": true,
       "delayAfter": 0,
       "chaining": {
         "_enabled": true,
-        "onBeforeStart": [
-          "action_4",
-          "act_1786178409579"
-        ],
+        "onBeforeStart": [],
         "onAfterStart": [
           "act_1786178765713"
         ],
@@ -82,21 +85,24 @@
       "mode": "buff_sequence",
       "trigger": {
         "type": "keyboard",
-        "value": "RIGHT CTRL"
+        "value": "INSERT"
       },
       "keys": [
-        "F2",
+        "F5",
         "1",
         "2",
         "3",
         "4",
         "5",
         "6",
-        "LEFT ALT + 1",
-        "LEFT ALT + 2",
-        "LEFT ALT + 3",
-        "LEFT ALT + 4",
-        "LEFT ALT + 5"
+        "7",
+        "8",
+        "9",
+        "0",
+        "F6",
+        "1",
+        "2",
+        "F4"
       ],
       "interval": 40000,
       "jitter": 2000,
@@ -117,189 +123,6 @@
       "delayBuff": 800
     },
     {
-      "id": "action_4",
-      "name": "AC Stop Heal 1",
-      "mode": "control",
-      "trigger": {
-        "type": "none",
-        "value": ""
-      },
-      "keys": [
-        "F3",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7",
-        "F4",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "F1"
-      ],
-      "delayBuff": 800,
-      "enabled": true,
-      "targetClient": "1",
-      "cooldownPresetId": "",
-      "customCooldownMs": 0,
-      "delayAfter": 0,
-      "chaining": {
-        "_enabled": false,
-        "onBeforeStart": [],
-        "onAfterStart": [],
-        "onComplete": []
-      },
-      "controlOperation": "stop",
-      "controlTargetIds": [
-        "action_1"
-      ]
-    },
-    {
-      "id": "act_1786176084491",
-      "name": "AC Stop Heal Rain 1",
-      "enabled": true,
-      "trigger": {
-        "type": "none",
-        "value": ""
-      },
-      "mode": "control",
-      "targetClient": "1",
-      "keys": [
-        "1"
-      ],
-      "interval": 3000,
-      "jitter": 250,
-      "executeImmediately": true,
-      "firstSteps": [],
-      "cooldownPresetId": "",
-      "customCooldownMs": 0,
-      "delayAfter": 0,
-      "chaining": {
-        "_enabled": false
-      },
-      "controlOperation": "stop",
-      "controlTargetIds": [
-        "action_2"
-      ]
-    },
-    {
-      "id": "act_1786177908217",
-      "name": "Full Buff",
-      "enabled": true,
-      "trigger": {
-        "type": "keyboard",
-        "value": "HOME"
-      },
-      "mode": "buff_sequence",
-      "targetClient": "1",
-      "keys": [
-        "F2",
-        "8",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "LEFT ALT + 1",
-        "LEFT ALT + 2",
-        "LEFT ALT + 3",
-        "LEFT ALT + 4",
-        "LEFT ALT + 5"
-      ],
-      "interval": 3000,
-      "jitter": 250,
-      "executeImmediately": true,
-      "firstSteps": [],
-      "cooldownPresetId": "",
-      "customCooldownMs": 0,
-      "delayAfter": 0,
-      "chaining": {
-        "_enabled": false
-      },
-      "delayBuff": 800
-    },
-    {
-      "id": "act_1786178224235",
-      "name": "AC Buff GT",
-      "enabled": true,
-      "trigger": {
-        "type": "keyboard",
-        "value": "TAB"
-      },
-      "mode": "control",
-      "targetClient": "1",
-      "keys": [
-        "1"
-      ],
-      "interval": 3000,
-      "jitter": 250,
-      "executeImmediately": true,
-      "firstSteps": [],
-      "cooldownPresetId": "",
-      "customCooldownMs": 0,
-      "delayAfter": 0,
-      "chaining": {
-        "_enabled": false
-      },
-      "controlOperation": "start",
-      "controlTargetIds": [
-        "act_1786178177252"
-      ]
-    },
-    {
-      "id": "act_1786178177252",
-      "name": "Buff GT",
-      "enabled": true,
-      "trigger": {
-        "type": "none",
-        "value": ""
-      },
-      "mode": "single_press",
-      "targetClient": "1",
-      "keys": [
-        "7"
-      ],
-      "interval": 3000,
-      "jitter": 250,
-      "executeImmediately": true,
-      "firstSteps": [],
-      "cooldownPresetId": "skill_ringmaster_geburah-tiphreth",
-      "customCooldownMs": 0,
-      "delayAfter": 0,
-      "chaining": {
-        "_enabled": false
-      }
-    },
-    {
-      "id": "act_1786178409579",
-      "name": "Buff BOF",
-      "enabled": true,
-      "trigger": {
-        "type": "none",
-        "value": ""
-      },
-      "mode": "single_press",
-      "targetClient": "1",
-      "keys": [
-        "8"
-      ],
-      "interval": 3000,
-      "jitter": 250,
-      "executeImmediately": true,
-      "firstSteps": [],
-      "cooldownPresetId": "skill_ringmaster_holyguard",
-      "customCooldownMs": 0,
-      "delayAfter": 0,
-      "chaining": {
-        "_enabled": false
-      }
-    },
-    {
       "id": "act_1786178765713",
       "name": "Restore MP",
       "enabled": true,
@@ -310,9 +133,9 @@
       "mode": "loop",
       "targetClient": "1",
       "keys": [
-        "4"
+        "5"
       ],
-      "interval": 14000,
+      "interval": 3600,
       "jitter": 250,
       "executeImmediately": false,
       "firstSteps": [],
@@ -349,6 +172,88 @@
       "controlOperation": "stop",
       "controlTargetIds": [
         "act_1786178765713"
+      ]
+    },
+    {
+      "id": "act_1786188841667",
+      "name": "AC Stop Merkabar",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "stop",
+      "controlTargetIds": [
+        "action_2"
+      ]
+    },
+    {
+      "id": "act_1786190153364",
+      "name": "Loop Buff GT",
+      "enabled": true,
+      "trigger": {
+        "type": "keyboard",
+        "value": ""
+      },
+      "mode": "loop",
+      "targetClient": "1",
+      "keys": [
+        "3"
+      ],
+      "interval": 27000,
+      "jitter": 250,
+      "executeImmediately": false,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false,
+        "onEachCycle": []
+      }
+    },
+    {
+      "id": "act_1786190287416",
+      "name": "AC Stop Loop Buff GT",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "stop",
+      "delayBuff": 800,
+      "controlTargetIds": [
+        "act_1786190153364"
       ]
     }
   ]

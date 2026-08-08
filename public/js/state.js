@@ -1,5 +1,6 @@
 import { currentLang, TRANSLATIONS, t } from './i18n.js';
 import { syncActionFromDom, renderActions } from './components/actions.js';
+import { validateProfile } from './validator.js';
 
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -136,6 +137,25 @@ export function saveCurrentProfile() {
     .catch(err => {
       console.error('Failed to save config:', err);
     });
+}
+
+export function onManualSaveProfile() {
+  saveCurrentProfile();
+
+  const profile = fullConfig.profiles[currentEditProfile];
+  if (profile && profile.actions && Array.isArray(profile.actions)) {
+    const { issues } = validateProfile(profile.actions);
+    if (issues.length > 0) {
+      if (typeof window.openValidatorModal === 'function') {
+        window.openValidatorModal();
+      }
+    } else {
+      if (typeof window.toast === 'function') {
+        const msg = currentLang === 'en' ? '✓ Profile saved & validated clean!' : '✓ บันทึกโปรไฟล์และตรวจสอบระบบเรียบร้อย!';
+        window.toast(msg, 'success');
+      }
+    }
+  }
 }
 
 export function populateProfileDropdowns() {

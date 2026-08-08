@@ -5,6 +5,7 @@ import {
   activeClients,
   loadConfig,
   saveCurrentProfile,
+  onManualSaveProfile,
   activateProfile,
   onProfileSelectChange,
   openNewProfileModal,
@@ -113,6 +114,7 @@ window.confirmRenameProfile = confirmRenameProfile;
 window.deleteProfile = deleteProfile;
 window.toggleGhostMouseSettings = toggleGhostMouseSettings;
 window.saveCurrentProfile = saveCurrentProfile;
+window.onManualSaveProfile = onManualSaveProfile;
 window.toggleClientEnable = toggleClientEnable;
 window.launchClient = launchClient;
 window.closeClient = closeClient;

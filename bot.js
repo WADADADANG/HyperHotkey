@@ -1227,7 +1227,7 @@ async function initSystem() {
         migrateProfilesDirectory();
         
         console.log("\n=================================================================");
-        console.log("🚀 HyperHotkey v2.2.1 Control Center Ready!");
+        console.log("🚀 HyperHotkey v2.2.2 Control Center Ready!");
         console.log("👉 Open Web Dashboard at: http://localhost:3000/");
         console.log("👉 Configure Proxy / User-Agent & launch your clients (1-8) directly from the Web UI!");
         console.log("=================================================================\n");

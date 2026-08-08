@@ -1,6 +1,6 @@
 {
   "name": "hyper-hotkey",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "Background WebGL multi-client automation using Playwright CDP and node-global-key-listener",
   "main": "bot.js",
   "scripts": {

@@ -132,6 +132,61 @@ export function validateProfile(actions) {
     }
   });
 
+  // 5. Duplicate Action Name Check:
+  const nameCounts = {};
+  actions.forEach(act => {
+    const trimmed = (act.name || '').trim();
+    if (trimmed) {
+      if (!nameCounts[trimmed]) nameCounts[trimmed] = [];
+      nameCounts[trimmed].push(act);
+    }
+  });
+
+  Object.keys(nameCounts).forEach(name => {
+    if (nameCounts[name].length > 1) {
+      nameCounts[name].forEach(act => {
+        issues.push({
+          type: 'duplicate_name',
+          severity: 'error',
+          actionId: act.id,
+          actionName: act.name,
+          autoFixable: false,
+          messageEn: `Duplicate Action name "${name}" found. Multiple actions share the exact same name.`,
+          messageTh: `พบชื่อ Action ซ้ำกัน ("${name}") ซึ่งอาจทำให้เกิดความสับสน`
+        });
+      });
+    }
+  });
+
+  // 6. Duplicate Trigger Key Check:
+  const triggerCounts = {};
+  actions.forEach(act => {
+    if (act.enabled && act.trigger && act.trigger.type !== 'none' && act.trigger.value) {
+      const key = `${act.trigger.type}:${act.trigger.value.toUpperCase()}`;
+      if (!triggerCounts[key]) triggerCounts[key] = [];
+      triggerCounts[key].push(act);
+    }
+  });
+
+  Object.keys(triggerCounts).forEach(key => {
+    if (triggerCounts[key].length > 1) {
+      const acts = triggerCounts[key];
+      const names = acts.map(a => `"${a.name}"`).join(', ');
+      const trigValue = key.split(':')[1];
+      acts.forEach(act => {
+        issues.push({
+          type: 'duplicate_trigger',
+          severity: 'warning',
+          actionId: act.id,
+          actionName: act.name,
+          autoFixable: false,
+          messageEn: `Trigger key "${trigValue}" is assigned to multiple active actions (${names}).`,
+          messageTh: `ปุ่ม Trigger "${trigValue}" ถูกใช้ซ้ำกับหลาย Action (${names})`
+        });
+      });
+    }
+  });
+
   const errorCount = issues.filter(i => i.severity === 'error').length;
   const warningCount = issues.filter(i => i.severity === 'warning').length;
 
