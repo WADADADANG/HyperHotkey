@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 > nul
 echo ===================================================
 echo 🚀 Updating HyperHotkey to the latest version...
 echo ===================================================
@@ -17,14 +18,21 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-echo [1/3] Pulling latest code from GitHub...
+echo [1/4] Pulling latest code from GitHub...
 git stash >nul 2>&1
 git pull
 echo.
-echo [2/3] Updating Node.js dependencies...
-call npm install
+echo [2/4] Updating Node.js dependencies...
+call npm install --ignore-scripts
 echo.
-echo [3/3] Updating Playwright browser files...
+echo [3/4] Injecting Prebuilt Mouse Engine...
+if not exist "node_modules\global-mouse-events\build\Release" mkdir "node_modules\global-mouse-events\build\Release"
+if exist "prebuilt\global_mouse_events.node" (
+    copy /Y "prebuilt\global_mouse_events.node" "node_modules\global-mouse-events\build\Release\global_mouse_events.node" > nul
+    echo [SUCCESS] Mouse Engine updated successfully!
+)
+echo.
+echo [4/4] Updating Playwright browser files...
 call npx playwright install
 echo.
 echo ===================================================
