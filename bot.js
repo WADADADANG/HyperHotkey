@@ -1401,6 +1401,7 @@ async function getCDPSession(targetIdx) {
 // ACTION & LOOP FUNCTIONS
 // ============================================================================
 async function sendKey(action, key) {
+    if (global.isSuspended) return;
     const target = action.targetClient || '1';
     const targets = getActionTargets(target);
     if (targets.length === 0) return;
@@ -1550,6 +1551,7 @@ function syncRunningLoops() {
 
 // Start a loop action
 async function startLoopAction(action, callStack) {
+    if (global.isSuspended) return;
     const target = action.targetClient || '1';
     let targets = getActionTargets(target).map(x => parseInt(x, 10));
 
@@ -1661,6 +1663,7 @@ async function runLoopStep(action, callStack) {
 
 // Run buff sequence
 async function runBuffSequenceAction(action, callStack) {
+    if (global.isSuspended) return;
     const target = action.targetClient || '1';
     let targets = getActionTargets(target).map(x => parseInt(x, 10));
 
@@ -1704,6 +1707,7 @@ async function runBuffSequenceAction(action, callStack) {
 
 // Run single press
 async function runSinglePressAction(action, callStack) {
+    if (global.isSuspended) return;
     const target = action.targetClient || '1';
     console.log(`⚡ [Action] Single Press: "${action.name}" on Client ${target}`);
     if (action.keys && action.keys.length > 0) {
@@ -1716,6 +1720,7 @@ async function runSinglePressAction(action, callStack) {
 
 // Run delay only (Pure Delay / Timer Only, no keypresses sent)
 async function runDelayOnlyAction(action, callStack) {
+    if (global.isSuspended) return;
     const delay = action.delayMs !== undefined ? parseInt(action.delayMs, 10) : (action.delayBuff || 1000);
     console.log(`⏳ [Action] Delay Only Started: "${action.name}" (Waiting ${delay}ms)...`);
     await fireChain(action, 'onBeforeStart', callStack);
@@ -1727,6 +1732,7 @@ async function runDelayOnlyAction(action, callStack) {
 }
 
 async function toggleKeyHoldAction(action, callStack) {
+    if (global.isSuspended) return;
     const targetKey = (action.targetKey && action.targetKey.trim()) ? action.targetKey.trim() : '';
     const target = action.targetClient || '1';
 
@@ -1774,6 +1780,7 @@ async function toggleKeyHoldAction(action, callStack) {
 
 // Unified trigger entry point
 function handleActionTrigger(act) {
+    if (global.isSuspended) return;
     if (act.mode === 'loop') {
         const state = activeLoopStates[act.id];
         if (state && state.running) {
@@ -1817,6 +1824,7 @@ function handleActionTrigger(act) {
 // Fire chained actions for a given source action and event name.
 // callStack prevents infinite loops (A→B→A).
 async function fireChain(sourceAction, eventName, callStack = new Set()) {
+    if (global.isSuspended) return;
     const chains = sourceAction.chaining;
     if (!chains || chains._enabled !== true) return; // Chain disabled globally unless explicitly true
     if (!chains[eventName] || !chains[eventName].length) return;
@@ -1855,6 +1863,7 @@ async function fireChain(sourceAction, eventName, callStack = new Set()) {
 
 // Run a target action directly (bypasses hotkey requirement).
 async function runChainedAction(action, callStack) {
+    if (global.isSuspended) return;
     if (action.mode === 'loop') {
         const state = activeLoopStates[action.id];
         if (state && state.running) {

@@ -38,7 +38,7 @@
       "chaining": {
         "_enabled": false
       },
-      "delayBuff": 800
+      "delayBuff": 1000
     }
   ]
 }

@@ -307,7 +307,7 @@
       "jitter": 100,
       "firstSteps": [
         {
-          "key": "F5",
+          "key": "F1",
           "delay": 300
         }
       ],
@@ -321,9 +321,7 @@
         ],
         "onAfterStart": [],
         "onEachCycle": [],
-        "onStop": [
-          "act_1786078860694"
-        ]
+        "onStop": []
       },
       "cooldownPresetId": "",
       "customCooldownMs": 0,
@@ -567,7 +565,7 @@
       "mode": "single_press",
       "trigger": {
         "type": "keyboard",
-        "value": "NUMPAD 0"
+        "value": "0"
       },
       "keys": [
         "0"
@@ -576,7 +574,7 @@
       "jitter": 100,
       "firstSteps": [],
       "enabled": true,
-      "targetClient": "1,2,3,4,5",
+      "targetClient": "all",
       "chaining": {
         "_enabled": false,
         "onBeforeStart": [],
@@ -600,7 +598,7 @@
       "keys": [
         "4"
       ],
-      "interval": 14000,
+      "interval": 13000,
       "jitter": 250,
       "firstSteps": [],
       "enabled": true,
@@ -817,7 +815,7 @@
         "onStop": [],
         "onComplete": []
       },
-      "delayBuff": 900
+      "delayBuff": 1000
     },
     {
       "id": "action_1785174361566_959",
@@ -861,9 +859,7 @@
         "type": "none",
         "value": ""
       },
-      "keys": [
-        "1"
-      ],
+      "keys": [],
       "interval": 2000,
       "jitter": 100,
       "firstSteps": [],
@@ -956,9 +952,7 @@
         "type": "none",
         "value": ""
       },
-      "keys": [
-        "3"
-      ],
+      "keys": [],
       "interval": 2000,
       "jitter": 100,
       "firstSteps": [],
@@ -1117,9 +1111,7 @@
       },
       "mode": "key_hold",
       "targetClient": "6",
-      "keys": [
-        "1"
-      ],
+      "keys": [],
       "interval": 3000,
       "jitter": 250,
       "executeImmediately": true,
