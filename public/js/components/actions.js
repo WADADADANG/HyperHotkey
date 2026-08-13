@@ -135,6 +135,9 @@ export function renderActions(actions) {
         </div>
 
         <div style="display:flex; align-items:center; gap:12px;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; font-weight:600;" title="แสดงชื่อ Action นี้บน Overlay เมื่อมีการทำงานหลาย Action พร้อมกัน">
+            <input type="checkbox" class="action-show-overlay-checkbox" ${act.showOnOverlay ? 'checked' : ''} style="accent-color:var(--primary); cursor:pointer;"> ${TRANSLATIONS[currentLang].showOnOverlay || '📌 Overlay'}
+          </label>
           <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; font-weight:600;">
             <input type="checkbox" class="action-enabled-checkbox" ${act.enabled ? 'checked' : ''} style="accent-color:var(--primary); cursor:pointer;"> ${TRANSLATIONS[currentLang].enabled}
           </label>
@@ -907,6 +910,9 @@ export function syncActionFromDom(actionId) {
 
   const enabledEl = card.querySelector('.action-enabled-checkbox');
   if (enabledEl) act.enabled = !!enabledEl.checked;
+
+  const showOverlayEl = card.querySelector('.action-show-overlay-checkbox');
+  if (showOverlayEl) act.showOnOverlay = !!showOverlayEl.checked;
 
   const triggerTypeEl = card.querySelector('.action-trigger-type');
   const triggerValEl = card.querySelector('.action-trigger-val');

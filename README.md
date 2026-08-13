@@ -1,4 +1,4 @@
-# 🚀 HyperHotkey (v2.2.3) - Background WebGL Multi-Client Automation Suite
+# 🚀 HyperHotkey (v2.2.4) - Background WebGL Multi-Client Automation Suite
 
 เครื่องมืออัตโนมัติช่วยกดปุ่มคีย์บอร์ดและเมาส์ในเบราว์เซอร์แบบพื้นหลัง (Background Automation) ออกแบบมาสำหรับเกม HTML5 / WebGL เช่น **Flyff Universe** รองรับหลายจอพร้อมกัน ไม่แย่งเมาส์ ไม่กวนการทำงานของคอมพิวเตอร์
 

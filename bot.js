@@ -24,11 +24,18 @@ let activeActions = [];
 let clientAliases = {};
 let clientUserAgents = {};
 let clientProxies = {};
+let clientWindowModes = {};
+let clientBrowsers = {};
+let clientWindowBounds = {};
+let clientMuteAudio = {};
+let clientFpsLimit = {};
+let clientRamLimit = {};
+let clientScale1x = {};
 
 function parseProxyString(rawStr) {
     if (!rawStr || typeof rawStr !== 'string' || !rawStr.trim()) return null;
     let str = rawStr.trim();
-    
+
     if (str.startsWith('http://') || str.startsWith('https://') || str.startsWith('socks5://')) {
         try {
             const u = new URL(str);
@@ -106,7 +113,7 @@ function releaseAllHeldKeys() {
                 for (let t of targets) {
                     const page = clientPages[t];
                     if (page) {
-                        page.keyboard.up(targetKey).catch(e => {});
+                        page.keyboard.up(targetKey).catch(e => { });
                     }
                 }
             }
@@ -119,7 +126,7 @@ function releaseAllHeldKeys() {
     }
 }
 
-const { readConfig } = require('./config-store');
+const { readConfig, writeConfig } = require('./config-store');
 
 // Helper to load config from JSON file
 function loadConfigFromFile() {
@@ -132,59 +139,68 @@ function loadConfigFromFile() {
         const profile = parsed.profiles[activeProfile] || { actions: [] };
         console.log(`[Config] Using profile: "${activeProfile}"`);
 
-            const globalSet = parsed.globalSettings || {};
+        const globalSet = parsed.globalSettings || {};
 
-            // Load target URL keyword
-            targetUrlKeyword = globalSet.targetUrlKeyword || profile.targetUrlKeyword || 'universe.flyff.com';
-            suspendHotkey = globalSet.suspendHotkey || profile.suspendHotkey || '';
+        // Load target URL keyword
+        targetUrlKeyword = globalSet.targetUrlKeyword || profile.targetUrlKeyword || 'universe.flyff.com';
+        suspendHotkey = globalSet.suspendHotkey || profile.suspendHotkey || '';
 
-            // Load actions array
-            if (profile.actions && Array.isArray(profile.actions)) {
-                activeActions = profile.actions;
-            } else {
-                activeActions = [];
-            }
-            global.activeActions = activeActions; // Share with test-server.js
+        // Load actions array
+        if (profile.actions && Array.isArray(profile.actions)) {
+            activeActions = profile.actions;
+        } else {
+            activeActions = [];
+        }
+        global.activeActions = activeActions; // Share with test-server.js
 
-            // Load client aliases
-            clientAliases = globalSet.clientAliases || profile.clientAliases || {};
+        // Load client aliases
+        clientAliases = globalSet.clientAliases || profile.clientAliases || {};
 
-            // Load client User-Agents
-            clientUserAgents = globalSet.clientUserAgents || profile.clientUserAgents || {};
+        // Load client User-Agents
+        clientUserAgents = globalSet.clientUserAgents || profile.clientUserAgents || {};
 
-            // Load client Proxies
-            clientProxies = globalSet.clientProxies || profile.clientProxies || {};
+        // Load client Proxies
+        clientProxies = globalSet.clientProxies || profile.clientProxies || {};
 
-            // Load Ghost Mouse Jitter config
-            const gmj = globalSet.ghostMouseJitter || profile.ghostMouseJitter;
-            if (gmj) {
-                ghostMouseJitterConfig = {
-                    enabled: !!gmj.enabled,
-                    intervalMin: gmj.intervalMin || 8000,
-                    intervalMax: gmj.intervalMax || 25000,
-                    maxOffset: gmj.maxOffset || 12
-                };
-            } else {
-                ghostMouseJitterConfig = { enabled: false, intervalMin: 8000, intervalMax: 25000, maxOffset: 12 };
-            }
+        // Load client Window Modes, Browsers & Window Bounds
+        clientWindowModes = globalSet.clientWindowModes || profile.clientWindowModes || {};
+        clientBrowsers = globalSet.clientBrowsers || profile.clientBrowsers || {};
+        clientWindowBounds = globalSet.clientWindowBounds || profile.clientWindowBounds || {};
+        clientMuteAudio = globalSet.clientMuteAudio || profile.clientMuteAudio || {};
+        clientFpsLimit = globalSet.clientFpsLimit || profile.clientFpsLimit || {};
+        clientRamLimit = globalSet.clientRamLimit || profile.clientRamLimit || {};
+        clientScale1x = globalSet.clientScale1x || profile.clientScale1x || {};
 
-            // Sync state of active loops
-            syncRunningLoops();
+        // Load Ghost Mouse Jitter config
+        const gmj = globalSet.ghostMouseJitter || profile.ghostMouseJitter;
+        if (gmj) {
+            ghostMouseJitterConfig = {
+                enabled: !!gmj.enabled,
+                intervalMin: gmj.intervalMin || 8000,
+                intervalMax: gmj.intervalMax || 25000,
+                maxOffset: gmj.maxOffset || 12
+            };
+        } else {
+            ghostMouseJitterConfig = { enabled: false, intervalMin: 8000, intervalMax: 25000, maxOffset: 12 };
+        }
 
-            // Sync Python overlay process setting (actual spawn handled by sendOverlayUpdate below)
-            const enableOverlayVal = (globalSet && globalSet.enableOverlay !== undefined) ? globalSet.enableOverlay : ((profile && profile.enableOverlay !== undefined) ? profile.enableOverlay : true);
-            lastEnableOverlaySetting = !!enableOverlayVal;
+        // Sync state of active loops
+        syncRunningLoops();
 
-            // Sync Ghost Mouse Jitter
-            syncGhostMouseJitter();
+        // Sync Python overlay process setting (actual spawn handled by sendOverlayUpdate below)
+        const enableOverlayVal = (globalSet && globalSet.enableOverlay !== undefined) ? globalSet.enableOverlay : ((profile && profile.enableOverlay !== undefined) ? profile.enableOverlay : true);
+        lastEnableOverlaySetting = !!enableOverlayVal;
 
-            // Update browser titles if running
-            updateBrowserTitles();
+        // Sync Ghost Mouse Jitter
+        syncGhostMouseJitter();
 
-            // Send state to overlay
-            sendOverlayUpdate();
+        // Update browser titles if running
+        updateBrowserTitles();
 
-            console.log(`[Config] Loaded ${activeActions.length} actions successfully!`);
+        // Send state to overlay
+        sendOverlayUpdate();
+
+        console.log(`[Config] Loaded ${activeActions.length} actions successfully!`);
     } catch (e) {
         console.error("[Config Error] Failed to read config:", e.message);
     }
@@ -221,17 +237,38 @@ function sendOverlayUpdate() {
     const clientStatuses = {};
     activeList.forEach(clientIdx => {
         const clientStr = String(clientIdx);
-        if (isBuffSequenceRunning[clientStr]) {
+
+        // Priority 0: Explicit user choice via showOnOverlay
+        const pinnedAction = (activeActions || []).find(a => {
+            if (!a.showOnOverlay || !a.enabled || !isTargetMatched(a.targetClient, clientStr)) return false;
+            if (a.mode === 'buff_sequence') return !!isBuffSequenceRunning[clientStr];
+            if (a.mode === 'loop') return activeLoopStates[a.id] && activeLoopStates[a.id].running;
+            if (a.mode === 'key_hold') return !!activeHoldStates[a.id];
+            if (a.mode === 'forward') return !!pressedRemapKeys[`${a.id}-${clientStr}`];
+            return false;
+        });
+
+        if (pinnedAction) {
+            let statusType = "loop";
+            if (pinnedAction.mode === 'buff_sequence') statusType = "buff";
+            else if (pinnedAction.mode === 'key_hold') statusType = "hold";
+            else if (pinnedAction.mode === 'forward') statusType = "forward";
+
+            clientStatuses[clientStr] = {
+                status: pinnedAction.name || "Active",
+                type: statusType
+            };
+        } else if (isBuffSequenceRunning[clientStr]) {
             const buffAct = activeActions.find(a => a.mode === 'buff_sequence' && isTargetMatched(a.targetClient, clientStr));
             clientStatuses[clientStr] = {
                 status: buffAct ? buffAct.name : "Buffing",
                 type: "buff"
             };
         } else {
-            const activeLoop = activeActions.find(a => 
-                a.mode === 'loop' && 
-                a.enabled && 
-                activeLoopStates[a.id] && 
+            const activeLoop = activeActions.find(a =>
+                a.mode === 'loop' &&
+                a.enabled &&
+                activeLoopStates[a.id] &&
                 activeLoopStates[a.id].running &&
                 isTargetMatched(a.targetClient, clientStr)
             );
@@ -285,19 +322,19 @@ function sendOverlayUpdate() {
 }
 global.sendOverlayUpdate = sendOverlayUpdate;
 
-global.toggleSuspendState = function(forcedState) {
+global.toggleSuspendState = function (forcedState) {
     if (forcedState !== undefined) {
         global.isSuspended = forcedState;
     } else {
         global.isSuspended = !global.isSuspended;
     }
-    
+
     console.log(`\n[System Pause/Resume] Bot is now ${global.isSuspended ? '⏸️ PAUSED/SUSPENDED' : '▶️ ACTIVE/RESUMED'}`);
-    
+
     if (global.isSuspended) {
         // Stop all loops
         stopAllLoops();
-        
+
         // Release all key holds
         for (let actionId in activeHoldStates) {
             if (activeHoldStates[actionId]) {
@@ -309,7 +346,7 @@ global.toggleSuspendState = function(forcedState) {
                     for (let t of targets) {
                         const page = clientPages[t];
                         if (page) {
-                            page.keyboard.up(act.targetKey || '1').catch(e => {});
+                            page.keyboard.up(act.targetKey || '1').catch(e => { });
                         }
                     }
                 }
@@ -326,7 +363,7 @@ global.toggleSuspendState = function(forcedState) {
                     const act = activeActions.find(a => a.id === actId);
                     const page = clientPages[clientIndex];
                     if (act && page) {
-                        page.keyboard.up(act.targetKey || '5').catch(e => {});
+                        page.keyboard.up(act.targetKey || '5').catch(e => { });
                     }
                 }
             }
@@ -339,7 +376,7 @@ global.toggleSuspendState = function(forcedState) {
             }
         }
     }
-    
+
     sendOverlayUpdate();
     return global.isSuspended;
 };
@@ -412,7 +449,7 @@ function syncOverlayProcess(enableOverlay) {
             console.log(`[Overlay] Stopping Desktop Overlay...`);
             const dyingProc = overlayProcess;
             overlayProcess = null; // Clear first to prevent race with close handler
-            try { dyingProc.kill('SIGINT'); } catch(e) {}
+            try { dyingProc.kill('SIGINT'); } catch (e) { }
         }
     }
 }
@@ -431,7 +468,7 @@ function updateBrowserTitles() {
         if (!page) continue;
         const alias = clientAliases[String(index)] || '';
         const prefix = alias ? `[${alias}] ` : `[Client ${index}] `;
-        
+
         page.evaluate(({ prefix }) => {
             window.__clientPrefix = prefix;
             const title = document.title;
@@ -581,7 +618,7 @@ function clearLockFiles(profilePath) {
                     if (stat.isFile() || stat.isSymbolicLink()) {
                         fs.unlinkSync(filePath);
                     }
-                } catch (err) {}
+                } catch (err) { }
             };
 
             const files = fs.readdirSync(profilePath);
@@ -591,7 +628,7 @@ function clearLockFiles(profilePath) {
                     deleteFile(path.join(profilePath, file));
                 }
             }
-            
+
             // Check Default folder inside profile if exists
             const defaultDir = path.join(profilePath, 'Default');
             if (fs.existsSync(defaultDir)) {
@@ -604,7 +641,7 @@ function clearLockFiles(profilePath) {
                 }
             }
         }
-    } catch (e) {}
+    } catch (e) { }
 }
 
 function clearAllProfileLockFiles() {
@@ -621,6 +658,30 @@ function clearAllProfileLockFiles() {
     } catch (e) {
         console.warn(`[System Warning] Failed to scan profiles for locks cleanup:`, e.message);
     }
+}
+
+function getBrowserLaunchParams(choiceStr) {
+    const raw = String(choiceStr || '1');
+    const isApp = raw.endsWith('-app');
+    const baseChoice = raw.replace('-app', '');
+
+    let browserName = 'Google Chrome';
+    let browserType = chromium;
+    let channelVal = 'chrome';
+
+    if (baseChoice === '2') {
+        browserName = isApp ? 'Microsoft Edge (App Mode)' : 'Microsoft Edge';
+        channelVal = 'msedge';
+    } else if (baseChoice === '3') {
+        browserName = 'Mozilla Firefox';
+        browserType = firefox;
+        channelVal = undefined;
+    } else {
+        browserName = isApp ? 'Google Chrome (App Mode)' : 'Google Chrome';
+        channelVal = 'chrome';
+    }
+
+    return { baseChoice, isApp: isApp && baseChoice !== '3', browserName, browserType, channelVal };
 }
 
 async function launchBrowser(activeClientsList, choice) {
@@ -661,7 +722,6 @@ async function launchBrowser(activeClientsList, choice) {
             '--disable-hang-monitor',
             '--disable-prompt-on-repost',
             '--disable-translate',
-            '--js-flags=--max-old-space-size=512',
             '--disk-cache-size=52428800',
             '--media-cache-size=52428800',
             '--disable-site-isolation-trials',
@@ -684,40 +744,41 @@ async function launchBrowser(activeClientsList, choice) {
         }
     }
 
-    let browserName = '';
-    let browserType = chromium;
-
-    if (choice === '1') {
-        browserName = 'Google Chrome';
-        browserType = chromium;
-    } else if (choice === '2') {
-        browserName = 'Microsoft Edge';
-        browserType = chromium;
-    } else {
-        browserName = 'Mozilla Firefox';
-        browserType = firefox;
-    }
-
     global.lastBrowserChoice = choice;
-    const channelVal = choice === '1' ? 'chrome' : (choice === '2' ? 'msedge' : undefined);
-    const controlPanelUrl = 'http://localhost:3000/';
 
     // Launch all selected clients
     for (let clientIndex of activeClients) {
+        const clientChoice = clientBrowsers[String(clientIndex)] || choice || '1';
+        const { baseChoice, isApp, browserName, browserType, channelVal } = getBrowserLaunchParams(clientChoice);
+
         console.log(`[System] Launching Client ${clientIndex} (${browserName}) with persistent context...`);
 
         let profileName = '';
-        if (choice === '1') {
+        if (baseChoice === '1') {
             profileName = clientIndex === 1 ? 'chrome-profile' : `chrome-profile-${clientIndex}`;
-        } else if (choice === '2') {
+        } else if (baseChoice === '2') {
             profileName = clientIndex === 1 ? 'edge-profile' : `edge-profile-${clientIndex}`;
         } else {
             profileName = clientIndex === 1 ? 'firefox-profile' : `firefox-profile-${clientIndex}`;
         }
 
         const profilePath = path.join(profilesDir, profileName);
-        const launchArgs = { ...launchOptions };
+        const launchArgs = {
+            ...launchOptions,
+            args: [...launchOptions.args]
+        };
         if (channelVal) launchArgs.channel = channelVal;
+        if (isApp) {
+            launchArgs.args.push(`--app=${startUrl}`);
+        }
+
+        // Apply saved window bounds (position & size) if available
+        const bounds = clientWindowBounds[String(clientIndex)];
+        if (bounds && typeof bounds.x === 'number' && typeof bounds.y === 'number' && bounds.w > 200 && bounds.h > 200) {
+            console.log(`[System] [Client ${clientIndex}] Restoring window bounds: Position (${bounds.x}, ${bounds.y}), Size (${bounds.w}x${bounds.h})`);
+            launchArgs.args.push(`--window-position=${bounds.x},${bounds.y}`);
+            launchArgs.args.push(`--window-size=${bounds.w},${bounds.h}`);
+        }
 
         // Apply custom User-Agent if defined in clientUserAgents configuration
         const customUa = clientUserAgents[String(clientIndex)];
@@ -725,6 +786,8 @@ async function launchBrowser(activeClientsList, choice) {
             console.log(`[System] [Client ${clientIndex}] Setting custom User-Agent: "${customUa}"`);
             launchArgs.userAgent = customUa.trim();
         }
+
+
 
         // Apply custom Proxy if defined in clientProxies configuration
         const customProxyStr = clientProxies[String(clientIndex)];
@@ -735,7 +798,7 @@ async function launchBrowser(activeClientsList, choice) {
                 launchArgs.proxy = proxyObj;
             }
         }
-        
+
         // Firefox specific args & user prefs
         if (choice === '3') {
             // Firefox performance prefs (equivalent to about:config tweaks)
@@ -804,7 +867,9 @@ async function launchBrowser(activeClientsList, choice) {
 
         const browserCtx = await browserType.launchPersistentContext(profilePath, launchArgs);
         clientContexts[clientIndex] = browserCtx;
-        
+
+
+
         browserCtx.on('close', () => {
             handleClientContextClosed(clientIndex);
         });
@@ -874,9 +939,9 @@ async function launchBrowser(activeClientsList, choice) {
             window.addEventListener('mousedown', preventMouseNav, true);
             window.addEventListener('mouseup', preventMouseNav, true);
             window.addEventListener('click', preventMouseNav, true);
-            
+
             window.__clientPrefix = initialPrefix;
-            
+
             const updateTitle = () => {
                 const prefix = window.__clientPrefix || `[Client ${index}] `;
                 const title = document.title;
@@ -914,12 +979,12 @@ function handleClientContextClosed(clientIndexInput) {
         try {
             clientPages[clientIndex].removeAllListeners('close');
             clientPages[clientIndex].removeAllListeners('crash');
-        } catch (e) {}
+        } catch (e) { }
         clientPages[clientIndex] = null;
     }
 
     if (clientContexts[clientIndex]) {
-        try { clientContexts[clientIndex].close().catch(() => {}); } catch (e) {}
+        try { clientContexts[clientIndex].close().catch(() => { }); } catch (e) { }
         clientContexts[clientIndex] = null;
     }
 
@@ -938,10 +1003,60 @@ function handleClientContextClosed(clientIndexInput) {
     sendOverlayUpdate();
 }
 
+async function saveWindowBoundsForClient(clientIndex) {
+    const page = clientPages[clientIndex];
+    if (!page || page.isClosed()) return;
+    try {
+        const bounds = await page.evaluate(() => ({
+            x: window.screenX,
+            y: window.screenY,
+            w: window.outerWidth,
+            h: window.outerHeight
+        })).catch(() => null);
+        if (bounds && typeof bounds.x === 'number' && bounds.x > -5000 && bounds.w > 200 && bounds.h > 200) {
+            clientWindowBounds[String(clientIndex)] = bounds;
+        }
+    } catch (e) { }
+}
+
+async function saveActiveClientsWindowBounds() {
+    if (!activeClients || activeClients.length === 0) return;
+    let updated = false;
+    for (const clientIdx of activeClients) {
+        const page = clientPages[clientIdx];
+        if (page && !page.isClosed()) {
+            try {
+                const bounds = await page.evaluate(() => ({
+                    x: window.screenX,
+                    y: window.screenY,
+                    w: window.outerWidth,
+                    h: window.outerHeight
+                })).catch(() => null);
+                if (bounds && typeof bounds.x === 'number' && bounds.x > -5000 && bounds.w > 200 && bounds.h > 200) {
+                    clientWindowBounds[String(clientIdx)] = bounds;
+                    updated = true;
+                }
+            } catch (e) { }
+        }
+    }
+    if (updated) {
+        try {
+            const fullCfg = readConfig();
+            if (fullCfg && fullCfg.globalSettings) {
+                fullCfg.globalSettings.clientWindowBounds = clientWindowBounds;
+                writeConfig(fullCfg);
+            }
+        } catch (e) { }
+    }
+}
+
+// Window bounds are saved when closing clients or closing app
+
 async function closeSingleClient(clientIndexInput) {
     const clientIndex = parseInt(clientIndexInput, 10);
     if (isNaN(clientIndex)) return { success: false, error: "Invalid client index" };
 
+    await saveWindowBoundsForClient(clientIndex);
     handleClientContextClosed(clientIndex);
     return { success: true, activeClients: activeClients, disabledClients: global.disabledClients || [] };
 }
@@ -988,7 +1103,6 @@ async function launchSingleClient(clientIndexInput, choiceParam) {
             '--disable-hang-monitor',
             '--disable-prompt-on-repost',
             '--disable-translate',
-            '--js-flags=--max-old-space-size=512',
             '--disk-cache-size=52428800',
             '--media-cache-size=52428800',
             '--disable-site-isolation-trials',
@@ -1007,16 +1121,17 @@ async function launchSingleClient(clientIndexInput, choiceParam) {
         }
     }
 
-    let browserName = choice === '1' ? 'Google Chrome' : (choice === '2' ? 'Microsoft Edge' : 'Mozilla Firefox');
-    let browserType = choice === '3' ? firefox : chromium;
-    const channelVal = choice === '1' ? 'chrome' : (choice === '2' ? 'msedge' : undefined);
+    const clientChoice = choiceParam || clientBrowsers[String(clientIndex)] || global.lastBrowserChoice || '1';
+    global.lastBrowserChoice = clientChoice;
+
+    const { baseChoice, isApp, browserName, browserType, channelVal } = getBrowserLaunchParams(clientChoice);
 
     console.log(`[System] Dynamically launching Client ${clientIndex} (${browserName})...`);
 
     let profileName = '';
-    if (choice === '1') {
+    if (baseChoice === '1') {
         profileName = clientIndex === 1 ? 'chrome-profile' : `chrome-profile-${clientIndex}`;
-    } else if (choice === '2') {
+    } else if (baseChoice === '2') {
         profileName = clientIndex === 1 ? 'edge-profile' : `edge-profile-${clientIndex}`;
     } else {
         profileName = clientIndex === 1 ? 'firefox-profile' : `firefox-profile-${clientIndex}`;
@@ -1025,8 +1140,22 @@ async function launchSingleClient(clientIndexInput, choiceParam) {
     const profilePath = path.join(profilesDir, profileName);
     clearLockFiles(profilePath);
 
-    const launchArgs = { ...launchOptions };
+    const launchArgs = {
+        ...launchOptions,
+        args: [...launchOptions.args]
+    };
     if (channelVal) launchArgs.channel = channelVal;
+    if (isApp) {
+        launchArgs.args.push(`--app=${startUrl}`);
+    }
+
+    // Apply saved window bounds (position & size) if available
+    const bounds = clientWindowBounds[String(clientIndex)];
+    if (bounds && typeof bounds.x === 'number' && typeof bounds.y === 'number' && bounds.w > 200 && bounds.h > 200) {
+        console.log(`[System] [Client ${clientIndex}] Restoring window bounds: Position (${bounds.x}, ${bounds.y}), Size (${bounds.w}x${bounds.h})`);
+        launchArgs.args.push(`--window-position=${bounds.x},${bounds.y}`);
+        launchArgs.args.push(`--window-size=${bounds.w},${bounds.h}`);
+    }
 
     const customUa = clientUserAgents[String(clientIndex)];
     if (customUa && customUa.trim() !== '') {
@@ -1039,7 +1168,7 @@ async function launchSingleClient(clientIndexInput, choiceParam) {
         if (proxyObj) launchArgs.proxy = proxyObj;
     }
 
-    if (choice === '3') {
+    if (baseChoice === '3') {
         launchArgs.firefoxUserPrefs = {
             'dom.ipc.processCount': 1,
             'javascript.options.mem.max': 512,
@@ -1059,6 +1188,8 @@ async function launchSingleClient(clientIndexInput, choiceParam) {
 
     const browserCtx = await browserType.launchPersistentContext(profilePath, launchArgs);
     clientContexts[clientIndex] = browserCtx;
+
+
 
     browserCtx.on('close', () => {
         handleClientContextClosed(clientIndex);
@@ -1100,7 +1231,7 @@ global.launchSingleClient = launchSingleClient;
 // Scanning for the target tab periodically until found
 async function findAndAttachTabForClient(clientIndex, browserCtx) {
     console.log(`[System] 🔍 [Client ${clientIndex}] Scanning for game tab containing "${targetUrlKeyword}"...`);
-    
+
     while (true) {
         try {
             const pages = browserCtx.pages();
@@ -1219,9 +1350,9 @@ async function initSystem() {
     try {
         clearAllProfileLockFiles();
         migrateProfilesDirectory();
-        
+
         console.log("\n=================================================================");
-        console.log("🚀 HyperHotkey v2.2.3 Control Center Ready!");
+        console.log("🚀 HyperHotkey v2.2.4 Control Center Ready!");
         console.log("👉 Open Web Dashboard at: http://localhost:3000/");
         console.log("👉 Configure Proxy / User-Agent & launch your clients (1-8) directly from the Web UI!");
         console.log("=================================================================\n");
@@ -1478,7 +1609,7 @@ async function sendKey(action, key) {
                         type: 'rawKeyDown',
                         key: p,
                         code: p
-                    }).catch(() => {});
+                    }).catch(() => { });
                 }
                 setTimeout(async () => {
                     for (let p of [...formattedParts].reverse()) {
@@ -1486,17 +1617,17 @@ async function sendKey(action, key) {
                             type: 'keyUp',
                             key: p,
                             code: p
-                        }).catch(() => {});
+                        }).catch(() => { });
                     }
                 }, holdTime);
                 console.log(`[Action] [${clientName}] Sent key: "${key}" (Formatted: "${formattedParts.join('+')}" | Direct CDP Combo | Hold: ${holdTime}ms)`);
             } else {
                 for (let p of formattedParts) {
-                    await targetPage.keyboard.down(p).catch(() => {});
+                    await targetPage.keyboard.down(p).catch(() => { });
                 }
                 setTimeout(async () => {
                     for (let p of [...formattedParts].reverse()) {
-                        await targetPage.keyboard.up(p).catch(() => {});
+                        await targetPage.keyboard.up(p).catch(() => { });
                     }
                 }, holdTime);
                 console.log(`[Action] [${clientName}] Sent key: "${key}" (Formatted: "${formattedParts.join('+')}" | Combo | Hold: ${holdTime}ms)`);
@@ -1513,21 +1644,21 @@ async function sendKey(action, key) {
                 code: formattedKey,
                 text: formattedKey.length === 1 ? formattedKey : undefined,
                 unmodifiedText: formattedKey.length === 1 ? formattedKey : undefined
-            }).catch(() => {});
+            }).catch(() => { });
 
             setTimeout(() => {
                 cdp.send('Input.dispatchKeyEvent', {
                     type: 'keyUp',
                     key: formattedKey,
                     code: formattedKey
-                }).catch(() => {});
+                }).catch(() => { });
             }, holdTime);
 
             console.log(`[Action] [${clientName}] Sent key: "${key}" (Formatted: "${formattedKey}" | Direct CDP | Hold: ${holdTime}ms)`);
         } else {
-            await targetPage.keyboard.down(formattedKey).catch(() => {});
+            await targetPage.keyboard.down(formattedKey).catch(() => { });
             setTimeout(() => {
-                targetPage.keyboard.up(formattedKey).catch(() => {});
+                targetPage.keyboard.up(formattedKey).catch(() => { });
             }, holdTime);
 
             console.log(`[Action] [${clientName}] Sent key: "${key}" (Formatted: "${formattedKey}" | Hold: ${holdTime}ms)`);
@@ -1758,9 +1889,9 @@ async function toggleKeyHoldAction(action, callStack) {
         try {
             if (cdp) {
                 if (nextState) {
-                    await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: formattedKey, code: formattedKey }).catch(() => {});
+                    await cdp.send('Input.dispatchKeyEvent', { type: 'rawKeyDown', key: formattedKey, code: formattedKey }).catch(() => { });
                 } else {
-                    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: formattedKey, code: formattedKey }).catch(() => {});
+                    await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', key: formattedKey, code: formattedKey }).catch(() => { });
                 }
             } else {
                 if (nextState) {
@@ -2038,7 +2169,7 @@ async function runActionCondition(act, callStack) {
 function startGlobalListeners() {
     console.log("\n[System] Initializing global keyboard and mouse listeners...");
     const { GlobalKeyboardListener } = require('node-global-key-listener');
-    
+
     try {
         mouseEvents = require('global-mouse-events');
         if (mouseEvents && typeof mouseEvents.on === 'function') {
@@ -2187,7 +2318,7 @@ process.on('SIGINT', async () => {
     for (let idx in clientContexts) {
         try {
             if (clientContexts[idx]) await clientContexts[idx].close();
-        } catch (e) {}
+        } catch (e) { }
     }
     clearAllProfileLockFiles();
     process.exit(0);

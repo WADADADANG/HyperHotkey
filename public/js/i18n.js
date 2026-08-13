@@ -10,6 +10,7 @@ export const TRANSLATIONS = {
     deleteProfileBtn: "✕ Delete",
     targetUrlKeyword: "TARGET URL KEYWORD",
     enableOverlayLabel: "Enable Desktop Status Overlay",
+    enableAppModeLabel: "🚀 Chrome App Mode (Borderless App Window Mode)",
     suspendHotkeyTitle: "GLOBAL PAUSE HOTKEY",
     antiDetectBtn: "🌐 Anti-Detect Settings",
     antiDetectModalTitle: "Anti-Detect & Per-Client User-Agent Settings",
@@ -45,6 +46,7 @@ export const TRANSLATIONS = {
 
     emptyProfile: "None (Empty Profile)",
     enabled: "Enabled",
+    showOnOverlay: "📌 Overlay",
     btnDeleteAction: "✕ Delete",
     triggerType: "Trigger Type",
     triggerHotkey: "Trigger Hotkey",
@@ -165,6 +167,7 @@ export const TRANSLATIONS = {
     deleteProfileBtn: "✕ ลบโปรไฟล์",
     targetUrlKeyword: "คีย์เวิร์ด URL เป้าหมาย",
     enableOverlayLabel: "เปิดใช้งานหน้าจอแสดงสถานะบนเดสก์ท็อป",
+    enableAppModeLabel: "🚀 Chrome App Mode (หน้าต่างแอป ไร้ Tab / Address Bar)",
     suspendHotkeyTitle: "ปุ่มลัด เปิด/ปิด ออโต้ทั้งหมด",
     antiDetectBtn: "🌐 ตั้งค่าความปลอดภัย & User-Agent แยกจอ",
     antiDetectModalTitle: "ตั้งค่าความปลอดภัย & User-Agent แยกจอ",
@@ -200,6 +203,7 @@ export const TRANSLATIONS = {
 
     emptyProfile: "ไม่มี (สร้างโปรไฟล์ว่าง)",
     enabled: "เปิดใช้งาน",
+    showOnOverlay: "📌 แสดงบน Overlay",
     btnDeleteAction: "✕ ลบออก",
     triggerType: "ชนิดของ Trigger",
     triggerHotkey: "ปุ่มคีย์ลัด (Hotkey)",

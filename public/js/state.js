@@ -68,6 +68,11 @@ export function syncGlobalSettingsFromDOM() {
     gs.enableOverlay = !!checkbox.checked;
   }
 
+  const appModeCb = document.getElementById('enable-app-mode-checkbox');
+  if (appModeCb) {
+    gs.useAppMode = !!appModeCb.checked;
+  }
+
   const suspendInput = document.getElementById('suspend-hotkey-input');
   if (suspendInput) {
     gs.suspendHotkey = suspendInput.value.trim();
@@ -104,6 +109,11 @@ export function syncGlobalSettingsFromDOM() {
     prof.clientAliases = gs.clientAliases;
     if (gs.clientUserAgents) prof.clientUserAgents = gs.clientUserAgents;
     if (gs.clientProxies) prof.clientProxies = gs.clientProxies;
+    if (gs.clientBrowsers) prof.clientBrowsers = gs.clientBrowsers;
+    if (gs.clientMuteAudio) prof.clientMuteAudio = gs.clientMuteAudio;
+    if (gs.clientFpsLimit) prof.clientFpsLimit = gs.clientFpsLimit;
+    if (gs.clientRamLimit) prof.clientRamLimit = gs.clientRamLimit;
+    if (gs.clientScale1x) prof.clientScale1x = gs.clientScale1x;
   });
 }
 
@@ -222,6 +232,9 @@ export function loadGlobalSettingsToUI() {
 
   const checkbox = document.getElementById('enable-overlay-checkbox');
   if (checkbox) checkbox.checked = !!gs.enableOverlay;
+
+  const appModeCb = document.getElementById('enable-app-mode-checkbox');
+  if (appModeCb) appModeCb.checked = gs.useAppMode !== false;
 
   const suspendInput = document.getElementById('suspend-hotkey-input');
   if (suspendInput) suspendInput.value = gs.suspendHotkey || '';

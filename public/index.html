@@ -271,10 +271,12 @@
 
       <!-- Browser Selection Section -->
       <div class="field" style="margin-top:16px;">
-        <label style="font-weight:700; color:#38bdf8; font-size:12px; margin-bottom:6px; display:block;">🌐 Browser Engine</label>
+        <label style="font-weight:700; color:#38bdf8; font-size:12px; margin-bottom:6px; display:block;">🌐 BROWSER ENGINE & DISPLAY MODE</label>
         <select id="client-modal-browser-select" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:12px; outline:none; width:100%; height:34px;">
-          <option value="1" style="background:#0f172a; color:#f8fafc;">🌐 Google Chrome (Default)</option>
+          <option value="1" style="background:#0f172a; color:#f8fafc;">🌐 Google Chrome</option>
+          <option value="1-app" style="background:#0f172a; color:#f8fafc;">🚀 Google Chrome (App Mode)</option>
           <option value="2" style="background:#0f172a; color:#f8fafc;">🌊 Microsoft Edge</option>
+          <option value="2-app" style="background:#0f172a; color:#f8fafc;">🚀 Microsoft Edge (App Mode)</option>
           <option value="3" style="background:#0f172a; color:#f8fafc;">🦊 Mozilla Firefox</option>
         </select>
       </div>
@@ -287,6 +289,8 @@
         </div>
         <input type="text" id="client-modal-proxy-input" placeholder="http://ip:port or socks5://ip:port or ip:port:user:pass" style="background:var(--bg-input); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-family:'JetBrains Mono'; font-size:11px; outline:none; width:100%; height:32px;">
       </div>
+
+
 
       <div class="modal-footer" style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end; width:100%;">
         <button class="btn btn-ghost" onclick="closeClientSettingsModal()">Cancel</button>

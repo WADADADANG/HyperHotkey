@@ -29,7 +29,8 @@
       ],
       "controlOperation": "toggle",
       "cooldownPresetId": "",
-      "customCooldownMs": 0
+      "customCooldownMs": 0,
+      "showOnOverlay": false
     },
     {
       "id": "act_1786169288255",
@@ -62,7 +63,8 @@
       },
       "controlOperation": "toggle",
       "conditionTargetId": "action_1784368366653_569",
-      "conditionRule": "is_running"
+      "conditionRule": "is_running",
+      "showOnOverlay": false
     },
     {
       "id": "action_1784974958870_518",
@@ -96,7 +98,8 @@
       "controlOperation": "start",
       "cooldownPresetId": "",
       "customCooldownMs": 0,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "act_1786169190017",
@@ -126,7 +129,8 @@
         "action_1784368366653_569",
         "action_1784974462974_596",
         "action_1786059315023_247"
-      ]
+      ],
+      "showOnOverlay": false
     },
     {
       "id": "action_1783931275751_446",
@@ -159,7 +163,8 @@
       "cooldownPresetId": "",
       "customCooldownMs": 0,
       "executeImmediately": true,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784974417559_135",
@@ -187,7 +192,8 @@
       "cooldownPresetId": "",
       "customCooldownMs": 0,
       "executeImmediately": true,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1785063894263_159",
@@ -195,7 +201,7 @@
       "mode": "loop",
       "trigger": {
         "type": "keyboard",
-        "value": "TAB"
+        "value": "LEFT ALT"
       },
       "keys": [
         "1"
@@ -204,7 +210,7 @@
       "jitter": 100,
       "firstSteps": [
         {
-          "key": "F1",
+          "key": "F5",
           "delay": 500
         }
       ],
@@ -222,7 +228,8 @@
       "cooldownPresetId": "skill_assist_heal",
       "customCooldownMs": 0,
       "executeImmediately": true,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784368366653_569",
@@ -235,7 +242,7 @@
       "keys": [
         "2"
       ],
-      "interval": 900,
+      "interval": 800,
       "jitter": 100,
       "firstSteps": [],
       "enabled": true,
@@ -259,7 +266,8 @@
       "cooldownPresetId": "",
       "customCooldownMs": 0,
       "executeImmediately": true,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784974462974_596",
@@ -272,7 +280,7 @@
       "keys": [
         "2"
       ],
-      "interval": 900,
+      "interval": 800,
       "jitter": 100,
       "firstSteps": [],
       "enabled": true,
@@ -290,7 +298,8 @@
       "cooldownPresetId": "",
       "customCooldownMs": 0,
       "executeImmediately": true,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1786059315023_247",
@@ -303,11 +312,11 @@
       "keys": [
         "2"
       ],
-      "interval": 1600,
+      "interval": 1300,
       "jitter": 100,
       "firstSteps": [
         {
-          "key": "F1",
+          "key": "F5",
           "delay": 300
         }
       ],
@@ -321,12 +330,15 @@
         ],
         "onAfterStart": [],
         "onEachCycle": [],
-        "onStop": []
+        "onStop": [
+          "act_1786328276413"
+        ]
       },
       "cooldownPresetId": "",
       "customCooldownMs": 0,
       "executeImmediately": true,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784089828905_433",
@@ -355,7 +367,8 @@
       },
       "cooldownPresetId": "",
       "customCooldownMs": 0,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784286310769_750",
@@ -385,7 +398,8 @@
       "activationDelayMs": 1000,
       "delayAfter": 0,
       "cooldownPresetId": "",
-      "customCooldownMs": 0
+      "customCooldownMs": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784288712484_406",
@@ -412,7 +426,8 @@
       },
       "delayAfter": 0,
       "cooldownPresetId": "",
-      "customCooldownMs": 0
+      "customCooldownMs": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784288771354_664",
@@ -439,7 +454,8 @@
       },
       "delayAfter": 0,
       "cooldownPresetId": "",
-      "customCooldownMs": 0
+      "customCooldownMs": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1785177068204_535",
@@ -473,7 +489,8 @@
         "action_1785063894263_159"
       ],
       "controlOperation": "stop",
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784368588592_660",
@@ -501,7 +518,8 @@
       },
       "delayAfter": 80,
       "cooldownPresetId": "skill_ringmaster_geburah-tiphreth",
-      "customCooldownMs": 0
+      "customCooldownMs": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784451866245_184",
@@ -529,7 +547,8 @@
       },
       "delayAfter": 80,
       "cooldownPresetId": "skill_ringmaster_holyguard",
-      "customCooldownMs": 0
+      "customCooldownMs": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784983773627_671",
@@ -557,7 +576,8 @@
       },
       "delayAfter": 150,
       "cooldownPresetId": "skill_ringmaster_barrier-of-life",
-      "customCooldownMs": 0
+      "customCooldownMs": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784468429631_624",
@@ -585,7 +605,8 @@
       },
       "delayAfter": 0,
       "cooldownPresetId": "",
-      "customCooldownMs": 0
+      "customCooldownMs": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784981983032_533",
@@ -598,7 +619,7 @@
       "keys": [
         "4"
       ],
-      "interval": 13000,
+      "interval": 9400,
       "jitter": 250,
       "firstSteps": [],
       "enabled": true,
@@ -613,7 +634,8 @@
       "cooldownPresetId": "",
       "customCooldownMs": 0,
       "executeImmediately": false,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1784982386756_385",
@@ -626,7 +648,7 @@
       "keys": [
         "4"
       ],
-      "interval": 17200,
+      "interval": 11600,
       "jitter": 250,
       "firstSteps": [],
       "enabled": true,
@@ -641,7 +663,8 @@
       "cooldownPresetId": "",
       "customCooldownMs": 0,
       "executeImmediately": false,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "act_1786078860694",
@@ -658,7 +681,7 @@
       ],
       "interval": 14000,
       "jitter": 250,
-      "executeImmediately": true,
+      "executeImmediately": false,
       "firstSteps": [],
       "cooldownPresetId": "",
       "customCooldownMs": 0,
@@ -669,7 +692,8 @@
         "onAfterStart": [],
         "onEachCycle": [],
         "onStop": []
-      }
+      },
+      "showOnOverlay": false
     },
     {
       "id": "action_1784982044462_250",
@@ -696,12 +720,14 @@
       },
       "controlTargetIds": [
         "action_1784981983032_533",
-        "action_1784982386756_385"
+        "action_1784982386756_385",
+        "act_1786078860694"
       ],
       "controlOperation": "stop",
       "cooldownPresetId": "",
       "customCooldownMs": 0,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "act_1786066937603",
@@ -735,7 +761,8 @@
         "onStop": [],
         "onComplete": []
       },
-      "delayBuff": 800
+      "delayBuff": 800,
+      "showOnOverlay": false
     },
     {
       "id": "action_1785063942886_827",
@@ -774,7 +801,8 @@
       "cooldownPresetId": "",
       "customCooldownMs": 0,
       "delayAfter": 0,
-      "delayBuff": 800
+      "delayBuff": 800,
+      "showOnOverlay": false
     },
     {
       "id": "act_1786063739025",
@@ -815,7 +843,8 @@
         "onStop": [],
         "onComplete": []
       },
-      "delayBuff": 1000
+      "delayBuff": 1100,
+      "showOnOverlay": false
     },
     {
       "id": "action_1785174361566_959",
@@ -849,7 +878,8 @@
         "act_1786076601982"
       ],
       "controlOperation": "toggle",
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1785174229024_696",
@@ -882,7 +912,8 @@
       "customCooldownMs": 0,
       "executeImmediately": true,
       "targetKey": "1",
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": true
     },
     {
       "id": "action_1785174291033_818",
@@ -910,7 +941,8 @@
       "cooldownPresetId": "",
       "customCooldownMs": 0,
       "executeImmediately": false,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1785174330546_585",
@@ -942,7 +974,8 @@
         "action_1785174291033_818"
       ],
       "controlOperation": "stop",
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1785174551133_953",
@@ -971,7 +1004,8 @@
       "customCooldownMs": 0,
       "executeImmediately": true,
       "targetKey": "3",
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": true
     },
     {
       "id": "action_1785174638224_455",
@@ -1003,7 +1037,8 @@
         "action_1785174551133_953"
       ],
       "controlOperation": "stop",
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1785174798789_793",
@@ -1035,7 +1070,8 @@
         "action_1785174291033_818"
       ],
       "controlOperation": "stop",
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1785721081500_696",
@@ -1070,7 +1106,8 @@
         "act_1786076601982"
       ],
       "controlOperation": "stop",
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "action_1786046644943_797",
@@ -1099,7 +1136,8 @@
       "cooldownPresetId": "skill_knight_heart-of-sacrifice",
       "customCooldownMs": 0,
       "executeImmediately": true,
-      "delayAfter": 0
+      "delayAfter": 0,
+      "showOnOverlay": false
     },
     {
       "id": "act_1786076601982",
@@ -1128,7 +1166,8 @@
         "onEnable": [],
         "onDisable": []
       },
-      "targetKey": "1"
+      "targetKey": "1",
+      "showOnOverlay": false
     },
     {
       "id": "act_1786137265427",
@@ -1157,7 +1196,8 @@
         "onEachCycle": [],
         "onStop": [],
         "onFired": []
-      }
+      },
+      "showOnOverlay": false
     },
     {
       "id": "act_1786167447416",
@@ -1185,7 +1225,8 @@
       "controlTargetIds": [
         "action_1785063894263_159"
       ],
-      "controlOperation": "stop"
+      "controlOperation": "stop",
+      "showOnOverlay": false
     },
     {
       "id": "act_1786167813058",
@@ -1213,7 +1254,69 @@
       "controlTargetIds": [
         "action_1786059315023_247"
       ],
-      "controlOperation": "stop"
+      "controlOperation": "stop",
+      "showOnOverlay": false
+    },
+    {
+      "id": "act_1786328276413",
+      "name": "AC Stop Mp Loop RM 4",
+      "enabled": true,
+      "trigger": {
+        "type": "none",
+        "value": ""
+      },
+      "mode": "control",
+      "targetClient": "1",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": false
+      },
+      "controlOperation": "stop",
+      "controlTargetIds": [
+        "act_1786078860694"
+      ],
+      "showOnOverlay": false
+    },
+    {
+      "id": "act_1786333698914",
+      "name": "Heal Rain 4 FW",
+      "enabled": true,
+      "trigger": {
+        "type": "keyboard",
+        "value": "TAB"
+      },
+      "mode": "forward",
+      "targetClient": "4",
+      "keys": [
+        "1"
+      ],
+      "interval": 3000,
+      "jitter": 250,
+      "executeImmediately": true,
+      "firstSteps": [],
+      "cooldownPresetId": "",
+      "customCooldownMs": 0,
+      "delayAfter": 0,
+      "chaining": {
+        "_enabled": true,
+        "onKeyDown": [
+          "act_1786167813058",
+          "act_1786167447416"
+        ]
+      },
+      "targetKey": "2",
+      "delayActivation": false,
+      "activationDelayMs": 1000,
+      "showOnOverlay": false
     }
   ]
 }

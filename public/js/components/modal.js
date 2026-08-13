@@ -197,7 +197,6 @@ export function openClientSettingsModal(clientIdx) {
   const userAgents = gs.clientUserAgents || profile.clientUserAgents || {};
   const proxies = gs.clientProxies || profile.clientProxies || {};
   const browsers = gs.clientBrowsers || profile.clientBrowsers || {};
-
   const customAlias = aliases[sIdx] || aliases[clientIdx];
   const displayName = customAlias ? `Client ${clientIdx} (${customAlias})` : `Client ${clientIdx}`;
 
@@ -219,6 +218,8 @@ export function openClientSettingsModal(clientIdx) {
 
   const browserSelect = document.getElementById('client-modal-browser-select');
   if (browserSelect) browserSelect.value = browserVal;
+
+
 
   modal.classList.add('show');
 }
@@ -265,6 +266,7 @@ export function saveClientSettingsModal() {
 
   const browserSelect = document.getElementById('client-modal-browser-select');
   if (browserSelect) gs.clientBrowsers[sIdx] = browserSelect.value;
+
 
   saveCurrentProfile();
   closeClientSettingsModal();
